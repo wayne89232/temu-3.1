@@ -50,6 +50,7 @@
 /qmp-commands.txt
 /vscclient
 /fsdev/virtfs-proxy-helper
+sftp-config.json
 *.[1-9]
 *.a
 *.aux
@@ -58,6 +59,7 @@
 *.exe
 *.dll
 *.so
+*.mak
 *.mo
 *.fn
 *.ky

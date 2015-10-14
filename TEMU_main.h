@@ -243,7 +243,7 @@ void do_send_key(const char *string);
 /// @param buf buffer (output buffer for read and input buffer for write)
 /// @param len length of memory region
 /// @param is_write true for write and false for read
-// void cpu_physical_memory_rw(uint32_t addr, uint8_t *buf, int len, int is_write);
+void cpu_physical_memory_rw(uint32_t addr, uint8_t *buf, int len, int is_write);
 
 /// print a message to TEMU terminal
 extern void term_printf(const char *fmt, ...);

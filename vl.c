@@ -120,6 +120,8 @@ int main(int argc, char **argv)
 #include "qom/object_interfaces.h"
 #include "qapi-event.h"
 
+#include "plugin.h"
+
 #define DEFAULT_RAM_SIZE 128
 
 #define MAX_VIRTIO_CONSOLES 1
@@ -2742,6 +2744,7 @@ int main(int argc, char **argv, char **envp)
     int optind;
     const char *optarg;
     const char *loadvm = NULL;
+    const char *load_plugin = NULL;
     MachineClass *machine_class;
     const char *cpu_model;
     const char *vga_model = NULL;
@@ -3365,6 +3368,9 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_loadvm:
                 loadvm = optarg;
+                break;
+            case QEMU_OPTION_load_plugin:
+                load_plugin = optarg;
                 break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
@@ -4315,6 +4321,15 @@ int main(int argc, char **argv, char **envp)
         fprintf(stderr, "rom loading failed\n");
         exit(1);
     }
+
+    //plugin loading
+
+    if(loadvm == NULL && load_plugin)
+        do_load_plugin(load_plugin);
+
+
+    //end plugin implementation
+
 
     /* TODO: once all bus devices are qdevified, this should be done
      * when bus is created by qdev.c */
