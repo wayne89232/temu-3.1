@@ -1,10 +1,11 @@
 #include "config.h"
 #include <dlfcn.h>
 #include <assert.h>
+#include "sysemu/sysemu.h"
 #include "plugin.h"
 
 
-plugin_interface_t *temu_plugin = NULL;
+plugin_interface_t *plugin = NULL;
 static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
@@ -22,7 +23,7 @@ void do_load_plugin(const char *plugin_path)
 
     plugin_handle = dlopen(plugin_path, RTLD_NOW);
     if(NULL == plugin_handle) {
-        term_printf("%s\n", dlerror());
+        printf("%s\n", dlerror());
         return;
     }
 
@@ -38,7 +39,7 @@ void do_load_plugin(const char *plugin_path)
 
     plugin = init_plugin();
     if (NULL == plugin) {
-        term_printf("fail to initialize the plugin!\n");
+        printf("fail to initialize the plugin!\n");
         dlclose(plugin_handle);
         plugin_handle = NULL;
         return;
@@ -47,11 +48,11 @@ void do_load_plugin(const char *plugin_path)
     load_plugin_log = fopen("plugin_log.log", "w");
     assert(load_plugin_log != NULL);
  
-    strncpy(plugin_path, plugin_path, PATH_MAX);
-    term_printf("%s is loaded successfully!\n", plugin_path);
+    strncpy(cur_plugin_path, plugin_path, 100);
+    printf("%s is loaded successfully!\n", plugin_path);
 }
 
-void do_unload_plugin()
+void do_unload_plugin(void)
 {
     if(cur_plugin_path[0]) {
         // plugin->plugin_cleanup();
@@ -61,7 +62,7 @@ void do_unload_plugin()
         plugin_handle = NULL;
         plugin = NULL;
 
-        term_printf("%s is unloaded!\n", plugin_path);
-        plugin_path[0] = 0;
+        printf("plugin unloaded!\n");
+        cur_plugin_path[0] = 0;
     }
 }
