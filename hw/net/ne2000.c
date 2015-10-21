@@ -27,7 +27,6 @@
 #include "ne2000.h"
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
-
 /* debug NE2000 card */
 //#define DEBUG_NE2000
 
@@ -272,7 +271,6 @@ ssize_t ne2000_receive(NetClientState *nc, const uint8_t *buf, size_t size_)
 
     return size_;
 }
-
 static void ne2000_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 {
     NE2000State *s = opaque;
@@ -300,6 +298,23 @@ static void ne2000_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                     index -= NE2000_PMEM_SIZE;
                 /* fail safe: check range on the transmitted length  */
                 if (index + s->tcnt <= NE2000_PMEM_END) {
+                    // printf("qemu_send_packet;*(mem+index)=%s;tcnt=%u\n",(s->mem + index),s->tcnt);//cliff
+                    // int i;
+                    // for(i = 0;i<s->tcnt;i++)
+                        // printf("%d ",*(s->mem + index+i));//cliff
+                    printf("Source IP:%d.%d.%d.%d\n",*(s->mem + index+26),*(s->mem + index+27),*(s->mem + index+28),*(s->mem + index+29));
+                    printf("Source Port:%d\n",256*(*(s->mem + index+34)) + *(s->mem + index+35));
+                    printf("Destination IP:%d.%d.%d.%d\n",*(s->mem + index+30),*(s->mem + index+31),*(s->mem + index+32),*(s->mem + index+33));
+                    printf("Destination Port:%d\n",256*(*(s->mem + index+36)) + *(s->mem + index+37));
+                    if(*(s->mem + index+23)==6)
+                        printf("Protocol: tcp\n");
+                    else if(*(s->mem + index+23)==17)
+                        printf("Protocol: udp\n");
+                    else if(*(s->mem + index+23)==1)
+                        printf("Protocol: icmp\n");
+                    else
+                        printf("Protocol number:%d\n",*(s->mem + index+23));
+                    printf("\n---------------------------------------\n");
                     qemu_send_packet(qemu_get_queue(s->nic), s->mem + index,
                                      s->tcnt);
                 }
@@ -655,6 +670,7 @@ static uint64_t ne2000_read(void *opaque, hwaddr addr,
                             unsigned size)
 {
     NE2000State *s = opaque;
+    // printf("ne2000_read;size = %u\n",size);//cliff test
 
     if (addr < 0x10 && size == 1) {
         return ne2000_ioport_read(s, addr);
@@ -674,6 +690,7 @@ static void ne2000_write(void *opaque, hwaddr addr,
                          uint64_t data, unsigned size)
 {
     NE2000State *s = opaque;
+    // printf("ne2000_write;size = %u;data = %lu\n",size,data);//cliff test
 
     if (addr < 0x10 && size == 1) {
         ne2000_ioport_write(s, addr, data);
