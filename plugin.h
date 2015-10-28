@@ -1,21 +1,23 @@
 
+// #include "monitor.c"
 
-typedef struct mon_cmd_t {
-    const char *name;
-    const char *args_type;
-    const char *params;
-    const char *help;
-    union {
-        void (*cmd);
-    } mhandler;
-} mon_cmd_t;
+// typedef struct mon_cmd_t {
+//     const char *name;
+//     const char *args_type;
+//     const char *params;
+//     const char *help;
+//     union {
+//         void (*cmd);
+//     } mhandler;
+// } mon_cmd_t;
+
 
 //structure for plugin
 typedef struct {
 
   	// array of terminal commands
-  	mon_cmd_t *term_cmds; 
-  	mon_cmd_t *info_cmds; 
+  	void *term_cmds; 
+  	void *info_cmds; 
 
   	int taint_record_size; 
 

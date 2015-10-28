@@ -9,24 +9,31 @@
 static plugin_interface_t my_interface;
 FILE *my_log;
 
+typedef struct mon_cmd_t {
+    const char *name;
+    const char *args_type;
+    const char *params;
+    const char *help;
+    union {
+        void (*cmd);
+    } mhandler;
+} mon_cmd_t;
+
 static void tests()
 {
   printf("testing\n");
 }
 
-static term_cmd_t my_term_cmds[] = {
-  {"tests", "", tests,
-   "", "do something"},
-  {NULL, NULL},
-};
-
-static term_cmd_t my_info_cmds[] = {
+static mon_cmd_t my_term_cmds[] = {
+  {"tests", "",
+   "", "do something", tests},
   {NULL, NULL},
 };
 
 static void test()
 {
   printf("test\n");
+  printf("hiiiiiiii\n");
 }
 
 
@@ -37,6 +44,8 @@ plugin_interface_t * init_plugin()
     fprintf(stderr, "cannot create plugin.log\n");
     return NULL;
   }
+
+  my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
   return &my_interface;
