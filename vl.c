@@ -120,6 +120,8 @@ int main(int argc, char **argv)
 #include "qom/object_interfaces.h"
 #include "qapi-event.h"
 
+#include "plugin.h"
+
 #define DEFAULT_RAM_SIZE 128
 
 #define MAX_VIRTIO_CONSOLES 1
@@ -2501,6 +2503,7 @@ static void qemu_run_machine_init_done_notifiers(void)
     notifier_list_notify(&machine_init_done_notifiers, NULL);
 }
 
+//try debugging for qemu-options here
 static const QEMUOption *lookup_opt(int argc, char **argv,
                                     const char **poptarg, int *poptind)
 {
@@ -2517,7 +2520,7 @@ static const QEMUOption *lookup_opt(int argc, char **argv,
     popt = qemu_options;
     for(;;) {
         if (!popt->name) {
-            error_report("invalid option");
+            error_report("invalid option test");
             exit(1);
         }
         if (!strcmp(popt->name, r + 1))
@@ -2728,7 +2731,7 @@ static void set_memory_options(uint64_t *ram_slots, ram_addr_t *maxram_size)
 }
 
 int main(int argc, char **argv, char **envp)
-{
+{  
     int i;
     int snapshot, linux_boot;
     const char *initrd_filename;
@@ -2742,6 +2745,7 @@ int main(int argc, char **argv, char **envp)
     int optind;
     const char *optarg;
     const char *loadvm = NULL;
+    const char *load_plugin = NULL;
     MachineClass *machine_class;
     const char *cpu_model;
     const char *vga_model = NULL;
@@ -2828,6 +2832,7 @@ int main(int argc, char **argv, char **envp)
     autostart = 1;
 
     /* first pass of option parsing */
+    printf("Test version\n" );
     optind = 1;
     while (optind < argc) {
         if (argv[optind][0] != '-') {
@@ -3365,6 +3370,9 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_loadvm:
                 loadvm = optarg;
+                break;
+            case QEMU_OPTION_load_plugin:
+                load_plugin = optarg;
                 break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
@@ -4315,6 +4323,20 @@ int main(int argc, char **argv, char **envp)
         fprintf(stderr, "rom loading failed\n");
         exit(1);
     }
+
+    //plugin loading
+
+    if(loadvm == NULL && load_plugin)
+        do_load_plugin(load_plugin);
+
+    if(plugin){
+        plugin->test();
+    }
+    else{
+        printf("No plugin loaded");
+    }
+    //end plugin implementation
+
 
     /* TODO: once all bus devices are qdevified, this should be done
      * when bus is created by qdev.c */
