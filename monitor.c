@@ -1453,27 +1453,27 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
              monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
              monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
 
-             // while(pid_value > 0)
-             // {
-             //        eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
-             //        //monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" ,(target_ulong) eprocess_next_actproclink_addr);
-             //        pcb_addr = eprocess_next_actproclink_addr - PCB;
-             //        imagefilename  = pcb_addr + ImageFileName;
-             //        ppid_addr = pcb_addr + PPID; 
-             //        ppid_value = my_memory_dump_printd(ppid_addr);
-             //        pid_addr = pcb_addr + PID; 
-             //        pid_value = my_memory_dump_printd(pid_addr);
-             //        if(pid_value ==0)
-             //            break; //break for last process
+             while(pid_value > 0)
+             {
+                    eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
+                    //monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" ,(target_ulong) eprocess_next_actproclink_addr);
+                    pcb_addr = eprocess_next_actproclink_addr - PCB;
+                    imagefilename  = pcb_addr + ImageFileName;
+                    ppid_addr = pcb_addr + PPID; 
+                    ppid_value = my_memory_dump_printd(ppid_addr);
+                    pid_addr = pcb_addr + PID; 
+                    pid_value = my_memory_dump_printd(pid_addr);
+                    if(pid_value ==0)
+                        break; //break for last process
 
-             //        monitor_printf(mon,  "0x" TARGET_FMT_lx" " , imagefilename);
-             //        my_memory_dump_printc(mon, imagefilename);
-             //        monitor_printf(mon,  "   ");
-             //        monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
-             //        monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
-             //        process_num++;
-             //        eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
-             // }
+                    monitor_printf(mon,  "0x" TARGET_FMT_lx" " , imagefilename);
+                    my_memory_dump_printc(mon, imagefilename);
+                    monitor_printf(mon,  "   ");
+                    monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
+                    monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
+                    process_num++;
+                    eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
+             }
                 monitor_printf(mon, "-----------------------------------------------\n");
                 monitor_printf(mon,  "Total : %d processes \n",process_num);
              }
