@@ -27,6 +27,9 @@
 #include "ne2000.h"
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
+//cliff
+#include "time.h"
+//cliff
 /* debug NE2000 card */
 //#define DEBUG_NE2000
 
@@ -177,6 +180,7 @@ int ne2000_can_receive(NetClientState *nc)
 
 ssize_t ne2000_receive(NetClientState *nc, const uint8_t *buf, size_t size_)
 {
+
     NE2000State *s = qemu_get_nic_opaque(nc);
     int size = size_;
     uint8_t *p;
@@ -246,7 +250,8 @@ ssize_t ne2000_receive(NetClientState *nc, const uint8_t *buf, size_t size_)
     p[2] = total_len;
     p[3] = total_len >> 8;
     index += 4;
-
+    //cliff instrumentation point
+    
     /* write packet data */
     while (size > 0) {
         if (index <= s->stop)
@@ -298,23 +303,7 @@ static void ne2000_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                     index -= NE2000_PMEM_SIZE;
                 /* fail safe: check range on the transmitted length  */
                 if (index + s->tcnt <= NE2000_PMEM_END) {
-                    // printf("qemu_send_packet;*(mem+index)=%s;tcnt=%u\n",(s->mem + index),s->tcnt);//cliff
-                    // int i;
-                    // for(i = 0;i<s->tcnt;i++)
-                        // printf("%d ",*(s->mem + index+i));//cliff
-                    printf("Source IP:%d.%d.%d.%d\n",*(s->mem + index+26),*(s->mem + index+27),*(s->mem + index+28),*(s->mem + index+29));
-                    printf("Source Port:%d\n",256*(*(s->mem + index+34)) + *(s->mem + index+35));
-                    printf("Destination IP:%d.%d.%d.%d\n",*(s->mem + index+30),*(s->mem + index+31),*(s->mem + index+32),*(s->mem + index+33));
-                    printf("Destination Port:%d\n",256*(*(s->mem + index+36)) + *(s->mem + index+37));
-                    if(*(s->mem + index+23)==6)
-                        printf("Protocol: tcp\n");
-                    else if(*(s->mem + index+23)==17)
-                        printf("Protocol: udp\n");
-                    else if(*(s->mem + index+23)==1)
-                        printf("Protocol: icmp\n");
-                    else
-                        printf("Protocol number:%d\n",*(s->mem + index+23));
-                    printf("\n---------------------------------------\n");
+                    //cliff instrumentation point
                     qemu_send_packet(qemu_get_queue(s->nic), s->mem + index,
                                      s->tcnt);
                 }
