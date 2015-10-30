@@ -3028,6 +3028,27 @@ STEXI
 Start right away with a saved state (@code{loadvm} in monitor)
 ETEXI
 
+DEF("after-loadvm", HAS_ARG, QEMU_OPTION_after_loadvm, \
+    "-after-loadvm [tag|id]\n" \
+    "                ",
+    QEMU_ARCH_ALL)
+STEXI
+@item -after-loadvm @var{file}
+@findex -after-loadvm
+Do something after loading vm (@code{after_loadvm} in monitor)
+ETEXI
+
+DEF("load-plugin", HAS_ARG, QEMU_OPTION_load_plugin, \
+    "-load-plugin [tag|id]\n" \
+    "                ",
+    QEMU_ARCH_ALL)
+STEXI
+@item -load-plugin @var{file}
+@findex -load-plugin
+do something on loading plugin (@code{load_plugin} in monitor)
+ETEXI
+
+
 #ifndef _WIN32
 DEF("daemonize", 0, QEMU_OPTION_daemonize, \
     "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
