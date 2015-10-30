@@ -1453,7 +1453,7 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
              monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
              monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     //monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" ,(target_ulong) eprocess_next_actproclink_addr);
@@ -1518,7 +1518,7 @@ static void getcr3(Monitor *mon)
              monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
              monitor_printf(mon,  "CR3=0x" TARGET_FMT_lx "\n", cr3_value);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     pcb_addr = eprocess_next_actproclink_addr - PCB;
@@ -1577,7 +1577,7 @@ static void DLLlist(Monitor *mon,int pid_num)
              //monitor_printf(mon,  "ProcessName:");
             // my_memory_dump_printc(mon, imagefilename);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     pcb_addr = eprocess_next_actproclink_addr - PCB;
