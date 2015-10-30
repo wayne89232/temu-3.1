@@ -1398,7 +1398,7 @@ static uint64_t my_memory_dump(hwaddr addr)
 /*find KDBG address between start_addr and end_addr*/
 static uint64_t findKDBG(void)
 { 
-  target_ulong start_addr = 0xfffff80003d00000;
+  target_ulong start_addr = 0xfffff80003b00000;
   target_ulong end_addr = 0xfffff80004000000; 
   target_ulong kdbg_value = 0x000003404742444b;
 
@@ -1554,7 +1554,8 @@ static void DLLlist(Monitor *mon,int pid_num)
     target_ulong imagefilename ;
     target_ulong pid_addr , pid_value ;
     target_ulong pshead_value; 
-    target_ulong peb_addr , peb_ldr; 
+    target_ulong peb_addr; 
+    // target_ulong peb_ldr; 
 
     KDBG_addr = findKDBG();
 

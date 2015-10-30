@@ -300,17 +300,6 @@ static void ne2000_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                     index -= NE2000_PMEM_SIZE;
                 /* fail safe: check range on the transmitted length  */
                 if (index + s->tcnt <= NE2000_PMEM_END) {
-                    // printf("qemu_send_packet;*(mem+index)=%s;tcnt=%u\n",(s->mem + index),s->tcnt);//cliff
-                    int i;
-
-                    CPUArchState *env;
-                    env = mon_get_cpu();
-                    printf('0x'TARGET_FMT_lx'\n',env->cr[3]);
-
-                    for(i = 0;i<s->tcnt;i++)
-                        printf("%d", *(s->mem+index+i) & 0x1);
-
-                    printf("\n---------------------------------------\n");
                     qemu_send_packet(qemu_get_queue(s->nic), s->mem + index,
                                      s->tcnt);
                 }

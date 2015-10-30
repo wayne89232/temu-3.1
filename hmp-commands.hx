@@ -1786,9 +1786,6 @@ STEXI
 show available trace events and their state
 ETEXI
 
-STEXI
-@end table
-ETEXI
 {
         .name       = "pslist",
         .args_type  = "command:s?",
@@ -1801,8 +1798,8 @@ STEXI
 @item pslist @var{command}
 @findex pslist
 List the active process in guest Windows.
-
 ETEXI
+
 {
         .name       = "getcr3",
         .args_type  = "command:s?",
@@ -1815,18 +1812,22 @@ STEXI
 @item getcr3 @var{command}
 @findex getcr3
 List the active process cr3 value.
-
 ETEXI
+
 {
         .name       = "dlllist",
         .args_type  = "command:s,num:i",
-        .params     = "dlllist [command][num]",
+        .params     = "dlllist [command] [num]",
         .help       = "List the loaded DLL list for a given process name.",
         .mhandler.cmd = hmp_dlllist,
 },
 
 STEXI
-@item dlllist @var{command}
+@item dlllist @var{command}@var{num}
 @findex dlllist
 List the loaded DLL list for a given process name.
+ETEXI
+
+STEXI
+@end table
 ETEXI
