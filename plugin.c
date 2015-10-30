@@ -11,7 +11,6 @@ static char cur_plugin_path[100]="";
 
 void do_load_plugin(const char *plugin_path)
 {
-
     printf("Start loading plugin \n");
     plugin_interface_t *(*init_plugin) (void);
     char *error;

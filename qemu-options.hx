@@ -3029,7 +3029,6 @@ STEXI
 Start right away with a saved state (@code{loadvm} in monitor)
 ETEXI
 
-
 DEF("load-plugin", HAS_ARG, QEMU_OPTION_load_plugin, \
     "-load-plugin \n" ,QEMU_ARCH_ALL)
 STEXI

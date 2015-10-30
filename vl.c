@@ -4329,6 +4329,7 @@ int main(int argc, char **argv, char **envp)
     if(loadvm == NULL && load_plugin)
         do_load_plugin(load_plugin);
 
+
     if(plugin){
         plugin->test();
     }

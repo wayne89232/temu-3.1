@@ -21,6 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
+#include <stdlib.h>
 #include <dirent.h>
 #include "hw/hw.h"
 #include "monitor/qdev.h"
@@ -74,6 +76,7 @@
 #include "qapi/qmp-event.h"
 #include "qapi-event.h"
 #include "sysemu/block-backend.h"
+#include "profile.h"
 
 /* for hmp_info_irq/pic */
 #if defined(TARGET_SPARC)
@@ -1183,7 +1186,7 @@ static void hmp_watchdog_action(Monitor *mon, const QDict *qdict)
 
 static void monitor_printc(Monitor *mon, int c)
 {
-    monitor_printf(mon, "'");
+   monitor_printf(mon, ".");
     switch(c) {
     case '\'':
         monitor_printf(mon, "\\'");
@@ -1198,14 +1201,14 @@ static void monitor_printc(Monitor *mon, int c)
         monitor_printf(mon, "\\r");
         break;
     default:
-        if (c >= 32 && c <= 126) {
-            monitor_printf(mon, "%c", c);
-        } else {
-            monitor_printf(mon, "\\x%02x", c);
-        }
+       if (c >= 32 && c <= 126) { //from space to ~
+           monitor_printf(mon, "%c", c);
+       } else {
+          // monitor_printf(mon, "\\x%02x", c);
+       }
         break;
     }
-    monitor_printf(mon, "'");
+    //monitor_printf(mon, "'");
 }
 
 static void memory_dump(Monitor *mon, int count, int format, int wsize,
@@ -1249,7 +1252,7 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
     }
 
     len = wsize * count;
-    if (wsize == 1)
+    if (wsize == 1) //for b 8 bits,line_size = 8 otherwise line_size = 16
         line_size = 8;
     else
         line_size = 16;
@@ -1273,11 +1276,11 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
     }
 
     while (len > 0) {
-        if (is_physical)
+        if (is_physical) //xp
             monitor_printf(mon, TARGET_FMT_plx ":", addr);
         else
             monitor_printf(mon, TARGET_FMT_lx ":", (target_ulong)addr);
-        l = len;
+        l = len; //l =16
         if (l > line_size)
             l = line_size;
         if (is_physical) {
@@ -1290,7 +1293,7 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
             }
         }
         i = 0;
-        while (i < l) {
+        while (i < l) { //i<16
             switch(wsize) {
             default:
             case 1:
@@ -1308,19 +1311,19 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
             }
             monitor_printf(mon, " ");
             switch(format) {
-            case 'o':
+            case 'o': //octal
                 monitor_printf(mon, "%#*" PRIo64, max_digits, v);
                 break;
-            case 'x':
+            case 'x': //hex
                 monitor_printf(mon, "0x%0*" PRIx64, max_digits, v);
                 break;
-            case 'u':
+            case 'u': //
                 monitor_printf(mon, "%*" PRIu64, max_digits, v);
                 break;
-            case 'd':
+            case 'd': // decimal
                 monitor_printf(mon, "%*" PRId64, max_digits, v);
                 break;
-            case 'c':
+            case 'c': //char
                 monitor_printc(mon, v);
                 break;
             }
@@ -1332,12 +1335,345 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
     }
 }
 
+/*return the integer for a given addr*/
+static uint64_t my_memory_dump_printd(hwaddr addr)
+{
+    CPUArchState *env;
+    int  len;
+    uint8_t buf[16];
+    uint64_t v;
+    len = 8;
+
+    env = mon_get_cpu();
+    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+                return -1;
+    }  
+    v = ldq_p(buf);
+    return v;
+}
+
+/*print the char for a given addr*/
+static void my_memory_dump_printc(Monitor *mon, hwaddr addr)
+{
+    CPUArchState *env;
+    int  i, len;
+    uint8_t buf[16];
+    uint64_t v;
+    len = 16; 
+    i = 0;
+   // char name[16];
+
+    env = mon_get_cpu();
+    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+             monitor_printf(mon, " Cannot get ProcessName.\n");
+    }
+    while (i < len) {
+              v = ldub_p(buf + i);         
+              if (v >= 32 && v <= 126) { //from space to ~
+                     monitor_printf(mon, "%c", (int) v);       
+                    // snprintf(name[i], 16,"%c",(int)v);
+              }  else{
+                     monitor_printf(mon, " ");       
+              }
+              i ++;
+     }
+    //monitor_printf(mon, " %s\n, name");
+}
+
+/*return the hex value for a given addr*/
+static uint64_t my_memory_dump(hwaddr addr)
+{ 
+    CPUArchState *env;
+    int  len;
+    uint8_t buf[16]; 
+    uint64_t v; 
+    len = 8; 
+    env = mon_get_cpu();
+    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+                return -1;
+    }else{   
+                v = ldq_p(buf);
+                return v;
+    }
+}
+
+/*find KDBG address between start_addr and end_addr*/
+static uint64_t findKDBG(void)
+{ 
+  target_ulong start_addr = 0xfffff80003b00000;
+  target_ulong end_addr = 0xfffff80004000000; 
+  target_ulong kdbg_value = 0x000003404742444b;
+
+   while(start_addr != end_addr){
+           start_addr += KDBG_offset; 
+            if(my_memory_dump(start_addr) == kdbg_value)            
+                   break;
+   }
+    return start_addr - KDBG_offset ;  //if not found,return end_addr
+}
+
+static void PSlist(Monitor *mon,hwaddr KDBG_addr)
+{
+    target_ulong pshead_addr ; 
+    target_ulong eprocess_actproclink_addr; 
+    target_ulong eprocess_next_actproclink_addr ;
+    target_ulong pcb_addr;//eprocess_head_addr = pcb
+    target_ulong imagefilename;
+    target_ulong pid_addr , pid_value ;
+    target_ulong ppid_addr , ppid_value ;
+    target_ulong pshead_value;  
+    int process_num = 1;
+    //char* process_name;
+
+    if(KDBG_addr + KDBG_offset == 0xfffff80004000000) //if not found
+    {
+             monitor_printf(mon,  "Could not found KDBG address. \n");
+    }else{           
+             pshead_addr  = KDBG_addr + PsActiveProcessHead;
+             pshead_value = my_memory_dump(pshead_addr); 
+               
+             //first process 
+             eprocess_actproclink_addr = my_memory_dump(pshead_value) ; //pshead_value 's value = eprocess_actkink_addr
+             pcb_addr = eprocess_actproclink_addr - PCB;
+             imagefilename = pcb_addr + ImageFileName;
+             //process_name = imagefilename;
+             ppid_addr = pcb_addr + PPID; 
+             ppid_value = my_memory_dump_printd(ppid_addr);
+             pid_addr = pcb_addr + PID; 
+             pid_value = my_memory_dump_printd(pid_addr);
+
+             monitor_printf(mon, "----------------------------------------------\n");
+             monitor_printf(mon,  "KDBG : 0x"TARGET_FMT_lx "\n" ,KDBG_addr);
+             monitor_printf(mon,  "PsActiveProcessHead : 0x" TARGET_FMT_lx " (value:0x%0*" PRIx64 ")\n" ,pshead_addr,16, pshead_value);
+             monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" , eprocess_actproclink_addr); 
+             monitor_printf(mon,  "-----------------Process List-----------------\n");
+             monitor_printf(mon,  "0x" TARGET_FMT_lx" " , imagefilename);
+             my_memory_dump_printc(mon, imagefilename);
+             //snprintf(process_name,16,"%" PRIu64, imagefilename_value);
+             //monitor_printf(mon,  "  %s\n",process_name);
+             monitor_printf(mon,  "   ");
+             monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
+             monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
+
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
+             {
+                    eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
+                    //monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" ,(target_ulong) eprocess_next_actproclink_addr);
+                    pcb_addr = eprocess_next_actproclink_addr - PCB;
+                    imagefilename  = pcb_addr + ImageFileName;
+                    ppid_addr = pcb_addr + PPID; 
+                    ppid_value = my_memory_dump_printd(ppid_addr);
+                    pid_addr = pcb_addr + PID; 
+                    pid_value = my_memory_dump_printd(pid_addr);
+                    if(pid_value ==0)
+                        break; //break for last process
+
+                    monitor_printf(mon,  "0x" TARGET_FMT_lx" " , imagefilename);
+                    my_memory_dump_printc(mon, imagefilename);
+                    monitor_printf(mon,  "   ");
+                    monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
+                    monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
+                    process_num++;
+                    eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
+             }
+                monitor_printf(mon, "-----------------------------------------------\n");
+                monitor_printf(mon,  "Total : %d processes \n",process_num);
+             }
+}
+
+static void getcr3(Monitor *mon)
+{
+    target_ulong KDBG_addr;
+    target_ulong pshead_addr ; 
+    target_ulong eprocess_actproclink_addr; 
+    target_ulong eprocess_next_actproclink_addr ;
+    target_ulong pcb_addr;//eprocess_head_addr = pcb
+    target_ulong imagefilename ;
+    target_ulong pid_addr , pid_value ;
+    target_ulong pshead_value; 
+    target_ulong cr3_value;
+    target_ulong cr3_addr;  
+    
+    CPUArchState *env;
+    
+    KDBG_addr = findKDBG();
+
+    if(KDBG_addr + KDBG_offset == 0xfffff80004000000)
+    {
+             monitor_printf(mon,  "Could not found KDBG address.\n");
+    }else{           
+             pshead_addr  = KDBG_addr + PsActiveProcessHead;
+             pshead_value = my_memory_dump(pshead_addr); 
+               
+             //first process 
+             eprocess_actproclink_addr = my_memory_dump(pshead_value) ; //pshead_value 's value = eprocess_actkink_addr
+             pcb_addr = eprocess_actproclink_addr - PCB;
+             cr3_addr = pcb_addr + CR3;
+             cr3_value = my_memory_dump(cr3_addr) ; 
+             imagefilename = pcb_addr + ImageFileName;
+             pid_addr = pcb_addr + PID; 
+             pid_value = my_memory_dump_printd(pid_addr);
+
+             monitor_printf(mon,  "-----------------Process CR3-----------------\n");
+             monitor_printf(mon,  "ProcessName:");
+             my_memory_dump_printc(mon, imagefilename);
+             monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
+             monitor_printf(mon,  "CR3=0x" TARGET_FMT_lx "\n", cr3_value);
+
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
+             {
+                    eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
+                    pcb_addr = eprocess_next_actproclink_addr - PCB;
+                    imagefilename  = pcb_addr + ImageFileName;
+                    cr3_addr = pcb_addr + CR3;
+                    cr3_value = my_memory_dump(cr3_addr) ; 
+                    pid_addr = pcb_addr +PID; 
+                    pid_value = my_memory_dump_printd(pid_addr);
+
+                    if(pid_value ==0)
+                        break; //break for last process
+             
+                   monitor_printf(mon,  "ProcessName:");
+                   my_memory_dump_printc(mon, imagefilename);
+                   monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
+                   monitor_printf(mon,  "CR3=0x" TARGET_FMT_lx"\n", cr3_value);
+              
+                   eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
+             }
+                monitor_printf(mon, "---------------------------------------------\n");
+                env = mon_get_cpu();
+                monitor_printf(mon,  "Current vcpu CR3 = 0x" TARGET_FMT_lx" (physical addr)\n", env->cr[3]); 
+             }
+}
+
+static void DLLlist(Monitor *mon,int pid_num)
+{
+    target_ulong KDBG_addr;
+    target_ulong pshead_addr ; 
+    target_ulong eprocess_actproclink_addr; 
+    target_ulong eprocess_next_actproclink_addr ;
+    target_ulong pcb_addr;//eprocess_head_addr = pcb
+    target_ulong imagefilename ;
+    target_ulong pid_addr , pid_value ;
+    target_ulong pshead_value; 
+    target_ulong peb_addr; 
+    // target_ulong peb_ldr; 
+
+    KDBG_addr = findKDBG();
+
+    if(KDBG_addr + KDBG_offset == 0xfffff80004000000)
+    {
+             monitor_printf(mon,  "Could not found KDBG address.\n");
+    }else{           
+             pshead_addr  = KDBG_addr + PsActiveProcessHead;
+             pshead_value = my_memory_dump(pshead_addr); 
+               
+             //first process 
+             eprocess_actproclink_addr = my_memory_dump(pshead_value) ; //pshead_value 's value = eprocess_actkink_addr
+             pcb_addr = eprocess_actproclink_addr - PCB;
+             imagefilename = pcb_addr + ImageFileName;
+             pid_addr = pcb_addr + PID; 
+             pid_value = my_memory_dump_printd(pid_addr);
+
+             monitor_printf(mon,  "-----------------DLL list for PID : %d-----------------\n",pid_num);
+             //monitor_printf(mon,  "ProcessName:");
+            // my_memory_dump_printc(mon, imagefilename);
+
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
+             {
+                    eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
+                    pcb_addr = eprocess_next_actproclink_addr - PCB;
+                    imagefilename  = pcb_addr + ImageFileName;
+                    pid_addr = pcb_addr +PID; 
+                    pid_value = my_memory_dump_printd(pid_addr);
+                    peb_addr = pcb_addr + PEB;
+                    //peb_ldr = my_memory_dump(my_memory_dump(peb_addr))+LDR;
+                    if(pid_value ==0)
+                        break; //break for last process
+               
+                   monitor_printf(mon,  "0x" TARGET_FMT_lx" " , imagefilename);
+                   my_memory_dump_printc(mon, imagefilename);
+                   monitor_printf(mon,  "  " );
+                   monitor_printf(mon,  "PEB_addr : 0x"TARGET_FMT_lx "\n" ,peb_addr);
+                   //monitor_printf(mon,  "PEB_LDR : 0x"TARGET_FMT_lx "\n" ,peb_ldr);
+                   
+                   eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
+             }
+                monitor_printf(mon, "---------------------------------------------\n");
+             }
+}
+
+    // //for debugging purpose
+    // const char *filename = "windows7.dump";
+    // FILE* fp = fopen("/home/a110605/volatility-2.4/windows7.dump", "r");
+    // Error *err = NULL;
+    // if(fp){
+    //         fclose(fp);   
+    // }else{
+    //         qmp_pmemsave(0, 1073741823, filename, &err);
+    //         int status;
+    //         status =  system("./shell.sh");   
+    // }
+    // //end debugging purpose
+
+static void hmp_pslist(Monitor *mon, const QDict *qdict)
+{
+    const char *arg = qdict_get_try_str(qdict, "command");
+    target_ulong KDBG_addr;
+    
+    if(arg){
+              if(strcmp(arg, "-h") == 0){
+                      monitor_printf(mon,  "List the active process in guest Windows OS. Usage: pslist [-h]\n");  
+             }else{
+                      monitor_printf(mon,  "Unknown command. Usage: pslist [-h]\n");  
+             }
+    }else{
+             KDBG_addr = findKDBG();
+             PSlist(mon, KDBG_addr);
+    }
+}
+
+static void hmp_dlllist(Monitor *mon, const QDict *qdict)
+{
+    const char *arg = qdict_get_try_str(qdict, "command");
+    if(arg){
+              if(strcmp(arg, "-h") == 0){
+                      monitor_printf(mon,  "List the loaded DLL for a given process ID. Usage: dlllist [-h][-pid number]\n");    
+              }else if(strcmp(arg,"-pid") == 0){
+                       const int pid_num = qdict_get_int(qdict, "num"); 
+                        DLLlist(mon , pid_num);                         
+              }else{
+                      monitor_printf(mon,  "Unknown command. Usage: dlllist [-h][-pid number]\n");  
+             }
+    }else{
+              monitor_printf(mon,  "Unknown command. Usage: dlllist [-h][-pid number]\n");  
+    } 
+}
+
+static void hmp_getcr3(Monitor *mon, const QDict *qdict)
+{
+    const char *arg = qdict_get_try_str(qdict, "command");
+    if(arg){
+              if(strcmp(arg, "-h") == 0)
+                      monitor_printf(mon,  "List the active process cr3 value in guest Windows OS.\n");    
+              else 
+                      monitor_printf(mon,  "Unknown command. Usage: getcr3 [-h]\n");  
+    }else{
+             getcr3(mon);
+    } 
+}
+
 static void hmp_memory_dump(Monitor *mon, const QDict *qdict)
 {
     int count = qdict_get_int(qdict, "count");
     int format = qdict_get_int(qdict, "format");
     int size = qdict_get_int(qdict, "size");
     target_long addr = qdict_get_int(qdict, "addr");
+
+    // printf("count : %d\n",count);
+    // printf("format : %d\n",format);
+    // printf("size : %d\n",size);
+    // printf("addr : 0x%lx\n",addr);
 
     memory_dump(mon, count, format, size, addr, 0);
 }
@@ -1347,7 +1683,12 @@ static void hmp_physical_memory_dump(Monitor *mon, const QDict *qdict)
     int count = qdict_get_int(qdict, "count");
     int format = qdict_get_int(qdict, "format");
     int size = qdict_get_int(qdict, "size");
-    hwaddr addr = qdict_get_int(qdict, "addr");
+    target_long addr = qdict_get_int(qdict, "addr");
+    
+    // printf("count : %d\n",count);
+    // printf("format : %d\n",format);
+    // printf("size : %d\n",size);
+    // printf("addr : 0x%lx\n",addr);
 
     memory_dump(mon, count, format, size, addr, 1);
 }

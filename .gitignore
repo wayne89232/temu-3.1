@@ -1,3 +1,4 @@
+/install
 /config-devices.*
 /config-all-devices.*
 /config-all-disas.*
@@ -105,3 +106,4 @@ cscope.*
 tags
 TAGS
 *~
+*.iso
