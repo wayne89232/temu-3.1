@@ -25,15 +25,16 @@ static void tests()
 }
 
 static mon_cmd_t my_term_cmds[] = {
-  {"tests", "",
-   "", "do something", tests},
+  {"tests", "","",
+  "do something", tests},
+  {"test2", "","",
+  "do something 2", tests},
   {NULL, NULL},
 };
 
 static void test()
 {
   printf("test\n");
-  printf("hiiiiiiii\n");
 }
 
 

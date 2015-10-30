@@ -3717,9 +3717,11 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         printf("searching command %s from temu side...\n", cmdname);
         mon_cmd_t *cmd2;
         printf("%lu\n", sizeof(plugin->term_cmds));
-        for(cmd2 = plugin->term_cmds; cmd2->name != NULL; cmd2++) {
+        for(cmd2 = (mon_cmd_t*)plugin->term_cmds; cmd2->name != NULL; cmd2++) {
             printf("%s\n",cmd2->name);
             if (compare_cmd(cmdname, cmd2->name)) {
+
+                //maybe add some type casting(?
                 printf("get command! \n");
                 cmd=cmd2;
             }
@@ -4130,6 +4132,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (!cmd)
         goto out;
 
+    //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_qobject(cmd)) {
