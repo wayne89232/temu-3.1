@@ -1,5 +1,6 @@
 install/
-install/bin/
+install.iso
+*.iso
 /config-devices.*
 /config-all-devices.*
 /config-all-disas.*
