@@ -82,13 +82,13 @@ all: $(PROGS) stap
 
 #########################################################
 # cpu emulator library
-obj-y = exec.o translate-all.o cpu-exec.o
+obj-y = exec.o translate-all.o cpu-exec.o 
 obj-y += tcg/tcg.o tcg/tcg-op.o tcg/optimize.o
 obj-$(CONFIG_TCG_INTERPRETER) += tci.o
 obj-$(CONFIG_TCG_INTERPRETER) += disas/tci.o
 obj-y += fpu/softfloat.o
 obj-y += target-$(TARGET_BASE_ARCH)/
-obj-y += disas.o
+obj-y += disas.o 
 obj-$(call notempty,$(TARGET_XML_FILES)) += gdbstub-xml.o
 obj-$(call lnot,$(CONFIG_KVM)) += kvm-stub.o
 
@@ -157,6 +157,7 @@ endif # CONFIG_SOFTMMU
 %/translate.o: QEMU_CFLAGS += $(TRANSLATE_OPT_CFLAGS)
 
 dummy := $(call unnest-vars,,obj-y)
+obj-y += plugin.o
 all-obj-y := $(obj-y)
 
 target-obj-y :=

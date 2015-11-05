@@ -84,6 +84,8 @@
 #endif
 #include "hw/lm32/lm32_pic.h"
 
+#include "plugin.h"
+
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
@@ -1453,7 +1455,7 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
              monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
              monitor_printf(mon,  "PPID:%*" PRId64"\n",4,ppid_value);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     //monitor_printf(mon,  "EPROCESS_ActiveProcessLinks : 0x" TARGET_FMT_lx "\n" ,(target_ulong) eprocess_next_actproclink_addr);
@@ -1518,7 +1520,7 @@ static void getcr3(Monitor *mon)
              monitor_printf(mon,  "PID:%*" PRId64"   ",4,pid_value);
              monitor_printf(mon,  "CR3=0x" TARGET_FMT_lx "\n", cr3_value);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     pcb_addr = eprocess_next_actproclink_addr - PCB;
@@ -1554,7 +1556,8 @@ static void DLLlist(Monitor *mon,int pid_num)
     target_ulong imagefilename ;
     target_ulong pid_addr , pid_value ;
     target_ulong pshead_value; 
-    target_ulong peb_addr , peb_ldr; 
+    target_ulong peb_addr; 
+    // target_ulong peb_ldr; 
 
     KDBG_addr = findKDBG();
 
@@ -1576,7 +1579,7 @@ static void DLLlist(Monitor *mon,int pid_num)
              //monitor_printf(mon,  "ProcessName:");
             // my_memory_dump_printc(mon, imagefilename);
 
-             while(pid_value > 0)
+             while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
              {
                     eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
                     pcb_addr = eprocess_next_actproclink_addr - PCB;
@@ -4050,6 +4053,22 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         return NULL;
 
     cmd = search_dispatch_table(table, cmdname);
+
+    if(plugin&&!cmd) {
+        printf("searching command %s from temu side...\n", cmdname);
+        mon_cmd_t *cmd2;
+        printf("%lu\n", sizeof(plugin->term_cmds));
+        for(cmd2 = (mon_cmd_t*)plugin->term_cmds; cmd2->name != NULL; cmd2++) {
+            printf("%s\n",cmd2->name);
+            if (compare_cmd(cmdname, cmd2->name)) {
+
+                //maybe add some type casting(?
+                printf("get command! \n");
+                cmd=cmd2;
+            }
+        }
+    }
+
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
                        (int)(p - cmdline), cmdline);
@@ -4454,6 +4473,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (!cmd)
         goto out;
 
+    //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_qobject(cmd)) {
