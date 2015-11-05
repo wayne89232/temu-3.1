@@ -9,6 +9,15 @@ static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
+void get_cr3(void){
+    printf("get_cr3\n");
+    printf("get_cr3\n");
+    printf("get_cr3\n");
+    printf("get_cr3\n");
+    printf("get_cr3\n");
+    printf("get_cr3\n");
+}
+
 void do_load_plugin(const char *plugin_path)
 {
     printf("Start loading plugin \n");
@@ -38,6 +47,7 @@ void do_load_plugin(const char *plugin_path)
     }
 
     plugin = init_plugin();
+    plugin->get_cr3 = *get_cr3;
     if (NULL == plugin) {
         printf("fail to initialize the plugin!\n");
         dlclose(plugin_handle);

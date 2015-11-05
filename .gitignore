@@ -1,4 +1,5 @@
-/install
+install/
+install/bin/
 /config-devices.*
 /config-all-devices.*
 /config-all-disas.*

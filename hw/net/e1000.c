@@ -36,6 +36,7 @@
 #include "qemu/range.h"
 
 #include "e1000_regs.h"
+#include "plugin.h"
 
 #define E1000_DEBUG
 

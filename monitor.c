@@ -84,7 +84,7 @@
 #endif
 #include "hw/lm32/lm32_pic.h"
 
-#include "plugin.h"
+// #include "plugin.h"
 
 //#define DEBUG
 //#define DEBUG_COMPLETION
@@ -4054,20 +4054,20 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
 
     cmd = search_dispatch_table(table, cmdname);
 
-    if(plugin&&!cmd) {
-        printf("searching command %s from temu side...\n", cmdname);
-        mon_cmd_t *cmd2;
-        printf("%lu\n", sizeof(plugin->term_cmds));
-        for(cmd2 = (mon_cmd_t*)plugin->term_cmds; cmd2->name != NULL; cmd2++) {
-            printf("%s\n",cmd2->name);
-            if (compare_cmd(cmdname, cmd2->name)) {
+    // if(plugin&&!cmd) {
+    //     printf("searching command %s from temu side...\n", cmdname);
+    //     mon_cmd_t *cmd2;
+    //     printf("%lu\n", sizeof(plugin->term_cmds));
+    //     for(cmd2 = (mon_cmd_t*)plugin->term_cmds; cmd2->name != NULL; cmd2++) {
+    //         printf("%s\n",cmd2->name);
+    //         if (compare_cmd(cmdname, cmd2->name)) {
 
-                //maybe add some type casting(?
-                printf("get command! \n");
-                cmd=cmd2;
-            }
-        }
-    }
+    //             //maybe add some type casting(?
+    //             printf("get command! \n");
+    //             cmd=cmd2;
+    //         }
+    //     }
+    // }
 
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
