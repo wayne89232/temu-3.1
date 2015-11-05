@@ -5,6 +5,7 @@
 #include "plugin.h"
 
 
+
 plugin_interface_t *plugin = NULL;
 static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;

@@ -207,6 +207,7 @@ static void log_packet(const uint8_t *buf, size_t size){
 static void print_packet(const uint8_t *buf, size_t size){
     //cliff
     get_cr3();
+    // printf("get_cr3");
     // time_t rawtime;
     // struct tm * timeinfo;
     // time ( &rawtime );

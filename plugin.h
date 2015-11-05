@@ -1,4 +1,3 @@
-
 // typedef struct mon_cmd_t {
 //     const char *name;
 //     const char *args_type;
