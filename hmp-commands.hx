@@ -1781,52 +1781,6 @@ show the memory devices
 @end table
 ETEXI
 
-STEXI
-@item info trace-events
-show available trace events and their state
-ETEXI
-
-{
-        .name       = "pslist",
-        .args_type  = "command:s?",
-        .params     = "pslist [command]",
-        .help       = "List the active process in guest Windows.",
-        .mhandler.cmd = hmp_pslist,
-},
-
-STEXI
-@item pslist @var{command}
-@findex pslist
-List the active process in guest Windows.
-ETEXI
-
-{
-        .name       = "getcr3",
-        .args_type  = "command:s?",
-        .params     = "getcr3 [command]",
-        .help       = "List the active process cr3 value.",
-        .mhandler.cmd = hmp_getcr3,
-},
-
-STEXI
-@item getcr3 @var{command}
-@findex getcr3
-List the active process cr3 value.
-ETEXI
-
-{
-        .name       = "dlllist",
-        .args_type  = "command:s,num:i",
-        .params     = "dlllist [command] [num]",
-        .help       = "List the loaded DLL list for a given process name.",
-        .mhandler.cmd = hmp_dlllist,
-},
-
-STEXI
-@item dlllist @var{command}@var{num}
-@findex dlllist
-List the loaded DLL list for a given process name.
-ETEXI
 
 STEXI
 @end table
