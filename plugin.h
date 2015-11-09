@@ -27,7 +27,7 @@ typedef struct {
   	void (*test) (void);
 
 } plugin_interface_t;
-s
+
 extern plugin_interface_t *plugin;
 
 void do_load_plugin(const char *plugin_path);
