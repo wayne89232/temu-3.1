@@ -62,7 +62,6 @@ sftp-config.json
 *.exe
 *.dll
 *.so
-!/plugins/plugin.so
 *.mak
 *.mo
 *.fn
