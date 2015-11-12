@@ -210,27 +210,28 @@ static void print_packet(const uint8_t *buf, size_t size){
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-
-    printf("[packet received]%s\n",asctime(timeinfo));
-    printf("Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
-    printf("Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
-    printf("Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
-    printf("Destination Port:%d\n",256*(*(buf+36)) + *(buf+37));
-    if(*(buf+23)==6)
-        printf("Protocol: tcp\n");
-    else if(*(buf+23)==17)
-        printf("Protocol: udp\n");
-    else if(*(buf+23)==1)
-        printf("Protocol: icmp\n");
-    else
-        printf("Protocol number:%d\n",*(buf+23));
-    
-    printf("pdu: ");  
-    int i;
-    for(i = 0;i<size;i++){
-        printf("%02x ",*(buf+i));
+    if(false){
+        printf("[packet received]%s\n",asctime(timeinfo));
+        printf("Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
+        printf("Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
+        printf("Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
+        printf("Destination Port:%d\n",256*(*(buf+36)) + *(buf+37));
+        if(*(buf+23)==6)
+            printf("Protocol: tcp\n");
+        else if(*(buf+23)==17)
+            printf("Protocol: udp\n");
+        else if(*(buf+23)==1)
+            printf("Protocol: icmp\n");
+        else
+            printf("Protocol number:%d\n",*(buf+23));
+        
+        printf("pdu: ");  
+        int i;
+        for(i = 0;i<size;i++){
+            printf("%02x ",*(buf+i));
+        }
+        printf("\n---------------------------------------\n");
     }
-    printf("\n---------------------------------------\n");
 }
 static void
 e1000_link_down(E1000State *s)
@@ -664,7 +665,7 @@ e1000_send_packet(E1000State *s, const uint8_t *buf, int size)
     if (s->phy_reg[PHY_CTRL] & MII_CR_LOOPBACK) {
         nc->info->receive(nc, buf, size);
     } else {
-        // print_packet(buf,size);
+        print_packet(buf,size);
         log_packet(buf,size);
         qemu_send_packet(nc, buf, size);
     }
@@ -1158,7 +1159,7 @@ e1000_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 static ssize_t
 e1000_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    // print_packet(buf,size);
+    print_packet(buf,size);
     log_packet(buf,size);
     const struct iovec iov = {
         .iov_base = (uint8_t *)buf,
