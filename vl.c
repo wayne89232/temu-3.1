@@ -3377,8 +3377,6 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_nic_target_port:
                 nic_target_port = optarg;
-                printf("%s",nic_target_port);
-                printf("-------------------");
                 break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
@@ -4333,7 +4331,7 @@ int main(int argc, char **argv, char **envp)
     //plugin loading
 
     if(loadvm == NULL && load_plugin)
-        do_load_plugin(load_plugin);
+        do_load_plugin(load_plugin,nic_target_port);
 
 
     if(plugin){

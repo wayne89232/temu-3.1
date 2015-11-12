@@ -11,7 +11,7 @@ static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
-void do_load_plugin(const char *plugin_path)
+void do_load_plugin(const char *plugin_path,const char *port_num)
 {
     printf("Start loading plugin \n");
     plugin_interface_t *(*init_plugin) (void);

@@ -8,6 +8,7 @@
 
 static plugin_interface_t my_interface;
 FILE *my_log;
+const char *nic_target_port = NULL;
 
 typedef struct mon_cmd_t {
     const char *name;
@@ -29,6 +30,8 @@ static mon_cmd_t my_term_cmds[] = {
   "do something", tests},
   {"test2", "","",
   "do something 2", tests},
+  {"nic_target_port", "","",
+  "set nic_target_port", tests},
   {NULL, NULL},
 };
 
