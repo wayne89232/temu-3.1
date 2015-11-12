@@ -3377,7 +3377,7 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_nic_target_port:
                 nic_target_port = optarg;
-                printf('%s',nic_target_port);
+                printf('%c',nic_target_port);
                 break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
