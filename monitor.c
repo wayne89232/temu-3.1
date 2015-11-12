@@ -4016,6 +4016,8 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
 
                 //maybe add some type casting(?
                 printf("get command! \n");
+                printf("get command! \n");
+                printf("get command! \n");
                 printf("FAULT-1");
                 cmd=cmd2;
                 printf("FAULT0");
