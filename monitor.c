@@ -4018,22 +4018,10 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 printf("get command! \n");
                 cmd=cmd2;
             }
+            printf("FAULT1");
         }
     }
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
-    printf("FAULT");
+    printf("FAULT3");
 
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
