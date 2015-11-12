@@ -20,18 +20,19 @@ typedef struct mon_cmd_t {
     } mhandler;
 } mon_cmd_t;
 
-static void tests()
+static void nic_target_port()
 {
-  printf("testing\n");
+  printf("nic_target_port\n");
 }
 
 static mon_cmd_t my_term_cmds[] = {
-  {"tests", "","",
-  "do something", tests},
-  {"test2", "","",
-  "do something 2", tests},
-  {"nic_target_port", "","",
-  "set nic_target_port", tests},
+  {     
+    .name       = "nic_target_port",
+    .args_type  = "",
+    .params     = "",
+    .help       = "set nic_target_port",
+    .mhandler.cmd = nic_target_port
+  }
   {NULL, NULL},
 };
 
@@ -39,8 +40,6 @@ static void test()
 {
   printf("test\n");
 }
-
-
 
 plugin_interface_t * init_plugin()
 {
