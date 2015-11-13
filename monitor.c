@@ -4424,8 +4424,6 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     cmd = monitor_parse_command(mon, cmdline, 0, mon->cmd_table, qdict);
     if (!cmd)
         goto out;
-    printf("get cmd\n");
-    printf("%s\n",cmd->name);
     //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
@@ -4440,7 +4438,11 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else {
+        printf("get cmd\n");
+    printf("%s\n",cmd->name);
         cmd->mhandler.cmd(mon, qdict);
+        printf("get cmd\n");
+    printf("%s\n",cmd->name);
     }
 
 out:
