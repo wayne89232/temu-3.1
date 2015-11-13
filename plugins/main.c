@@ -13,7 +13,7 @@ static void temu_fake_function() { }
 static void set_nic_target_port(void* opaque)
 {
   printf("APPLE nic_target_port\n");
-  printf("%i\n", (int *)opaque);
+  printf("%i\n", *(int *)opaque);
   printf("APPLE nic_target_port\n");
 }
 
