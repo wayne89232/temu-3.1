@@ -1704,7 +1704,7 @@ ETEXI
 
     {
         .name       = "target_port",
-        .args_type  = "port:o?",
+        .args_type  = "port:i",
         .params     = "port",
         .help       = "set plugin target port",
         .mhandler.cmd = hmp_set_target_port,
