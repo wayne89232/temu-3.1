@@ -4453,8 +4453,10 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     } else if (handler_is_temu_obj(cmd)) {
         const char* port = qdict_get_str(qdict, "port");
         printf("%s\n", port);
+        printf("11111111\n");
         cmd->temu(port);
     } else {
+        printf("22222222\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
