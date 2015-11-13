@@ -4446,6 +4446,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         printf("aaaaaaaaaa\n");
         cmd->temu(temu_params);
     } else if (handler_is_qobject(cmd)) {
+        printf("bbbbbbbbbb\n");
         QObject *data = NULL;
         /* XXX: ignores the error code */
         cmd->mhandler.cmd_new(mon, qdict,&data);
