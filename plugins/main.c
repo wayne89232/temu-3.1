@@ -164,6 +164,11 @@ static void print_packet(const uint8_t *buf, size_t size){
 static void get_packet(const uint8_t *buf, size_t size,int mode){
   int s_port = 256*(*(buf+34)) + *(buf+35);
   int d_port = 256*(*(buf+36)) + *(buf+37);
+  printf("-------------------------\n");
+  printf("%d\n", s_port);
+  printf("%d\n", d_port);
+  printf("%d\n", target_port);
+  printf("-------------------------\n");
   if(target_port == -1 || (target_port != s_port && target_port != d_port)){
     printf("return\n");
     return;
