@@ -17,8 +17,8 @@ typedef struct QDict {
 } QDict;
 
 typedef struct QObject {
-    const QType *type;
-    size_t refcnt;
+    // const QType *type;
+    // size_t refcnt;
 } QObject;
 
 typedef struct Monitor {
