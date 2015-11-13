@@ -10,10 +10,11 @@ static plugin_interface_t my_interface;
 FILE *my_log;
 static void temu_fake_function() { }
 
-static void set_nic_target_port(void* opaque)
+static void set_nic_target_port(const char *opaque)
 {
+  int val = atoi(opaque);
   printf("APPLE nic_target_port\n");
-  printf("%i\n", *(int *)opaque);
+  printf("%i\n", val);
   printf("APPLE nic_target_port\n");
 }
 
