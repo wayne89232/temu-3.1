@@ -4257,6 +4257,34 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                     monitor_printf(mon, "invalid size\n");
                     goto fail;
                 }
+                qdict_put(qdict, key, qint_from_int(val));
+                p = end;
+            }
+            break;
+        case 'i':
+            {
+                int64_t val;
+                char *end;
+                int k = 0;
+                while(k<20){
+                    printf(*p);
+                    p++;
+                    k++;
+                }
+                while (qemu_isspace(*p)) {
+                    p++;
+                }
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
+                        break;
+                    }
+                }
+                val = strtosz(p, &end);
+                if (val < 0) {
+                    monitor_printf(mon, "invalid size\n");
+                    goto fail;
+                }
                 printf("%" PRId64 "\n", val);
                 qdict_put(qdict, key, qint_from_int(val));
                 p = end;

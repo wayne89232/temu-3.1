@@ -21,7 +21,7 @@ static void set_nic_target_port(const int *port)
 static mon_cmd_t my_term_cmds[] = {
   {     
     .name       = "nic_target_port",
-    .args_type  = "port:o",
+    .args_type  = "port:i",
     .params     = "port",
     .temu       = set_nic_target_port,
     .user_print = monitor_user_noop,
