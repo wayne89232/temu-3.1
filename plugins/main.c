@@ -56,7 +56,7 @@ plugin_interface_t * init_plugin()
     return NULL;
   }
 
-  my_interface.term_cmds = my_term_cmds;
+  // my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
   my_interface.set_nic_target_port = do_set_nic_target_port;
