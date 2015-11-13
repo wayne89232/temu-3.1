@@ -4444,7 +4444,8 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
         printf("%d\n", nic_target_port);
-        cmd->temu(&nic_target_port);
+        printf("11111\n");
+        cmd->temu();
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
