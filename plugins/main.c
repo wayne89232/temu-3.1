@@ -163,9 +163,11 @@ static void get_packet(const uint8_t *buf, size_t size,int mode){
   int s_port = 256*(*(buf+34)) + *(buf+35);
   int d_port = 256*(*(buf+36)) + *(buf+37);
   if(target_port != -1 && (target_port == s_port || target_port == d_port)){
+    printf("aaa\n");
     print_packet(buf, size);
     log_packet_readable(buf, size);
     log_packet_pcap(buf, size);
+    printf("bbb\n");
   }
 }
 
