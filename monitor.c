@@ -4448,7 +4448,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         printf("%d\n", nic_target_port);
         printf("%d\n", nic_target_port);
         void* opaque_port = &nic_target_port;
-        printf("%d\n", *opaque_port);
+        printf("%i\n", *(int *)opaque_port);
         cmd->temu(opaque_port);
         printf("%d\n", nic_target_port);
     } else if (handler_is_qobject(cmd)) {
