@@ -4049,6 +4049,8 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             break;
         c = *typestr;
         typestr++;
+        printf("c\n");
+        printf("%s\n",c);
         switch(c) {
         case 'F':
         case 'B':
@@ -4377,6 +4379,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         key = NULL;
     }
     /* check that all arguments were parsed */
+            printf("/* check that all arguments were parsed */\n");
     while (qemu_isspace(*p))
         p++;
     if (*p != '\0') {
@@ -4385,6 +4388,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         goto fail;
     }
 
+            printf("return cmd\n");
     return cmd;
 
 fail:
