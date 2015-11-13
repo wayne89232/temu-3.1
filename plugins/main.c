@@ -17,6 +17,7 @@ typedef struct mon_cmd_t {
     const char *help;
     union {
         void (*cmd);
+        void (*cmd_new);
     } mhandler;
 } mon_cmd_t;
 
