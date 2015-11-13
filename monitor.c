@@ -966,7 +966,7 @@ static void hmp_info_help(Monitor *mon, const QDict *qdict)
     help_cmd(mon, "info");
 }
 
-static void set_target_port(Monitor *mon, const QDict *qdict)
+static void hmp_set_target_port(Monitor *mon, const QDict *qdict)
 {
     printf("plugin\n");
     plugin->set_nic_target_port(123);
