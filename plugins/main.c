@@ -51,7 +51,8 @@ static void test()
 }
 
 static void do_set_plugin(const char *property, const char *value ) {
-  const char* temp_string = "target_port";
+  char* temp_string;
+  temp_string = "target_port";
   if(strcmp(property, temp_string)==0){
     target_port = atoi(value);
     printf("setting target port: %d\n", target_port);
