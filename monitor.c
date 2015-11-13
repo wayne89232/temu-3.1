@@ -4435,6 +4435,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     const mon_cmd_t *cmd;
 
     qdict = qdict_new();
+    printf("ddddddd\n");
 
     cmd = monitor_parse_command(mon, cmdline, 0, mon->cmd_table, qdict);
     if (!cmd)
