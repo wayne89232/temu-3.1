@@ -58,22 +58,22 @@ static void do_set_plugin(const char *property, const char *value ) {
     return;
   }
 }
-static void do_toggle_plugin(const char *property, const char *value ) {
+static void do_toggle_plugin(const char *property) {
   const char* temp_string = "enable_print_packet";
   if(strcmp(property, temp_string)==0){
-    enable_print_packet = !enable_print_packet
+    enable_print_packet = !enable_print_packet;
     printf("toggle enable_print_packet: %d\n", enable_print_packet);
     return;
   }
   const char* temp_string = "enable_log";
   if(strcmp(property, temp_string)==0){
-    enable_log = !enable_log
+    enable_log = !enable_log;
     printf("toggle enable_log: %d\n", enable_log);
     return;
   }
   const char* temp_string = "enable_pcap_log";
   if(strcmp(property, temp_string)==0){
-    enable_pcap_log = !enable_pcap_log
+    enable_pcap_log = !enable_pcap_log;
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
     return;
   }
@@ -188,15 +188,6 @@ static void print_packet(const uint8_t *buf, size_t size) {
   printf("\n---------------------------------------\n");
 }
 
-static void get_packet(const uint8_t *buf, size_t size, int mode) {
-  int s_port = 256 * (*(buf + 34)) + *(buf + 35);
-  int d_port = 256 * (*(buf + 36)) + *(buf + 37);
-  if (target_port == -1 || (target_port != s_port && target_port != d_port)) {
-    return;
-  }
-  get_logged(buf, size);
-}
-
 static void get_logged(const uint8_t *buf, size_t size) {
   if(enable_print_packet){
     print_packet(buf, size);
@@ -207,6 +198,15 @@ static void get_logged(const uint8_t *buf, size_t size) {
   if(enable_pcap_log){
     log_packet_pcap(buf, size);
   }
+}
+
+static void get_packet(const uint8_t *buf, size_t size, int mode) {
+  int s_port = 256 * (*(buf + 34)) + *(buf + 35);
+  int d_port = 256 * (*(buf + 36)) + *(buf + 37);
+  if (target_port == -1 || (target_port != s_port && target_port != d_port)) {
+    return;
+  }
+  get_logged(buf, size);
 }
 
 static void do_nic_receive(const uint8_t *buf, size_t size) {
