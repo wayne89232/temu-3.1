@@ -4434,13 +4434,23 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
                 printf("2\n");
     printf("%s\n",cmd->name);
         QObject *data = NULL;
+                printf("23\n");
+    printf("%s\n",cmd->name);
 
         /* XXX: ignores the error code */
         cmd->mhandler.cmd_new(mon, qdict, &data);
+                printf("24\n");
+    printf("%s\n",cmd->name);
         assert(!monitor_has_error(mon));
+                printf("25\n");
+    printf("%s\n",cmd->name);
         if (data) {
+                printf("26\n");
+    printf("%s\n",cmd->name);
             cmd->user_print(mon, data);
             qobject_decref(data);
+                printf("27\n");
+    printf("%s\n",cmd->name);
         }
     } else {
         printf("get cmd\n");
