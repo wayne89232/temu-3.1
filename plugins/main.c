@@ -10,6 +10,8 @@ static plugin_interface_t my_interface;
 FILE *my_log;
 const char *nic_target_port = NULL;
 
+int target_port = 3000;
+
 typedef struct mon_cmd_t {
     const char *name;
     const char *args_type;
@@ -41,6 +43,12 @@ static void test()
   printf("test\n");
 }
 
+static void set_nic_target_port(int port_num){
+    target_port = port_num;
+    printf("target port: %d\n", target_port);
+}
+
+
 plugin_interface_t * init_plugin()
 {
   if (!(my_log = fopen("plugin.log", "w"))) {
@@ -51,6 +59,7 @@ plugin_interface_t * init_plugin()
   my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
+  my_interface.set_nic_target_port = set_nic_target_port;
   return &my_interface;
 }
 
