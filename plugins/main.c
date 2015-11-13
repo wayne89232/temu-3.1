@@ -14,7 +14,7 @@ static void temu_fake_function(Monitor *mon, const QObject *data) { }
 static void set_nic_target_port(const int port)
 {
   printf("APPLE nic_target_port\n");
-  printf("%d\n", &port);
+  printf("%d\n", port);
   printf("APPLE nic_target_port\n");
 }
 
