@@ -4263,9 +4263,10 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             break;
         case 'I':
             {
+                const char end = '\0';
                 int sum = atoi( p );
                 qdict_put(qdict, key, qint_from_int(sum));
-                p = '\0';
+                p = &end;
             }
             break;
         case 'T':
