@@ -4456,6 +4456,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else {
+        printf("bbbbbbbbbb\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
