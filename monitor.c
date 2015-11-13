@@ -4049,8 +4049,6 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             break;
         c = *typestr;
         typestr++;
-        printf("c\n");
-        printf("%d\n",c);
         switch(c) {
         case 'F':
         case 'B':
@@ -4379,7 +4377,6 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         key = NULL;
     }
     /* check that all arguments were parsed */
-            printf("/* check that all arguments were parsed */\n");
     while (qemu_isspace(*p))
         p++;
     if (*p != '\0') {
@@ -4388,7 +4385,6 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         goto fail;
     }
 
-            printf("return cmd\n");
     return cmd;
 
 fail:
@@ -4428,7 +4424,8 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     cmd = monitor_parse_command(mon, cmdline, 0, mon->cmd_table, qdict);
     if (!cmd)
         goto out;
-
+    printf("get cmd\n");
+    printf("%s\n",cmd->name);
     //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
