@@ -88,9 +88,6 @@
 
 //#define DEBUG
 //#define DEBUG_COMPLETION
-
-char* temu_params;
-
 /*
  * Supported types:
  *
@@ -4265,8 +4262,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             break;
         case 'I':
             {
-                const char end = '\0';
-                *temu_params = *p;
+                const char end = '\0'                printf("handler_is_async\n");
                 p = &end;
             }
             break;
@@ -4444,9 +4440,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        printf("aaaaaaaaaa\n");
-        cmd->temu(temu_params);
-    } else if (handler_is_qobject(cmd)) {
+        printf("aaaaaaaaaa\n")    } else if (handler_is_qobject(cmd)) {
         printf("bbbbbbbbbb\n");
         QObject *data = NULL;
         /* XXX: ignores the error code */
