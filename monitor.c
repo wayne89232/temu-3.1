@@ -4443,7 +4443,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        const char* port = qdict_get_str(qdict, "port");
+        // const char* port = qdict_get_str(qdict, "port");
         printf("%s\n", port);
         printf("not here\n");
         cmd->temu(port);
