@@ -969,7 +969,7 @@ static void hmp_info_help(Monitor *mon, const QDict *qdict)
 static void set_target_port(Monitor *mon, const QDict *qdict)
 {
     printf("plugin\n");
-    plugin->set_target_port(123);
+    plugin->set_nic_target_port(123);
     printf("plugin\n");
 }
 

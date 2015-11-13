@@ -11,7 +11,7 @@ static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
-void set_target_port(int port_num){
+void set_nic_target_port(int port_num){
     printf("%d\n", port_num);
 }
 
@@ -44,7 +44,7 @@ void do_load_plugin(const char *plugin_path)
     }
 
     plugin = init_plugin();
-    plugin->set_target_port = set_target_port;
+    plugin->set_target_port = set_nic_target_port;
     if (NULL == plugin) {
         printf("fail to initialize the plugin!\n");
         dlclose(plugin_handle);
