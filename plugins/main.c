@@ -8,13 +8,13 @@
 
 static plugin_interface_t my_interface;
 FILE *my_log;
-static void monitor_user_noop(Monitor *mon, const QObject *data) { }
-static void temu_fake_function(Monitor *mon, const QObject *data) { }
+static void temu_fake_function() { }
+static void temu_fake_function() { }
 
-static void set_nic_target_port(const char* port)
+static void set_nic_target_port(void* opaque)
 {
   printf("APPLE nic_target_port\n");
-  printf("%s\n", port);
+  printf("%d\n", *port);
   printf("APPLE nic_target_port\n");
 }
 
@@ -24,9 +24,8 @@ static mon_cmd_t my_term_cmds[] = {
     .args_type  = "port:I",
     .params     = "port",
     .temu       = set_nic_target_port,
-    .user_print = monitor_user_noop,
-    .help       = "set nic_target_port",
-    .mhandler.cmd = set_nic_target_port
+    .user_print = temu_fake_function,
+    .help       = "set nic_target_port"
   },
   {NULL, NULL},
 };

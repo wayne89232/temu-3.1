@@ -137,7 +137,7 @@ typedef struct mon_cmd_t {
     const char *params;
     const char *help;
     void (*user_print)(Monitor *mon, const QObject *data);
-    void (*temu)(const char *params);
+    void (*temu)(void *);
     union {
         void (*cmd)(Monitor *mon, const QDict *qdict);
         int  (*cmd_new)(Monitor *mon, const QDict *params, QObject **ret_data);
@@ -4267,7 +4267,6 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             {
                 const char end = '\0';
                 nic_target_port = atoi( p );
-                qdict_put(qdict, key, qint_from_int(nic_target_port));
                 p = &end;
             }
             break;
@@ -4444,8 +4443,8 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        printf("%s\n", nic_target_port);
-        cmd->temu(nic_target_port);
+        printf("%d\n", nic_target_port);
+        cmd->temu(&nic_target_port);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
