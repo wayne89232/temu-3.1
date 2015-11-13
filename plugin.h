@@ -17,8 +17,7 @@ typedef struct plugin_interface_t{
     void *info_cmds; 
     long long cr3_addr;
     int taint_record_size;
-
-    void (*get_cr3) (void); 
+    void (*set_target_port)(int port_num);
 
     // void (*taint_disk) (int size, int64_t sect_num, int flag,uint32_t paddr);
     // void (*nic_recv) (uint8_t * buf, int size, int cur_pos, int start, int stop);
