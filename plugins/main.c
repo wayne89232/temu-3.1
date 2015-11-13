@@ -28,7 +28,7 @@ static mon_cmd_t my_term_cmds[] = {
     .temu       = set_nic_target_port,
     .user_print = temu_fake_function,
     .help       = "set nic_target_port",
-    .mhandler.cmd = temu_fake_function
+    .mhandler.cmd = set_nic_target_port
   },
   {NULL, NULL},
 };

@@ -4023,6 +4023,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 //maybe add some type casting(?
                 printf("get command! \n");
                 cmd=cmd2;
+                printf("cmd: %s\n",cmd->name);
             }
         }
     }
@@ -4453,8 +4454,10 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     } else if (handler_is_temu_obj(cmd)) {
         const char* port = qdict_get_str(qdict, "port");
         printf("%s\n", port);
+        printf("not here\n");
         cmd->temu(port);
     } else {
+        printf("here\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
