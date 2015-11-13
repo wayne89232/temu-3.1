@@ -1,10 +1,7 @@
-#define QObject_HEAD  \
-    QObject base
-
 typedef struct QDict {
-    QObject_HEAD;
-    size_t size;
-    QLIST_HEAD(,QDictEntry) table[QDICT_BUCKET_MAX];
+    // QObject_HEAD;
+    // size_t size;
+    // QLIST_HEAD(,QDictEntry) table[QDICT_BUCKET_MAX];
 } QDict;
 
 typedef struct QObject {
@@ -36,6 +33,18 @@ typedef struct Monitor {
     // QLIST_HEAD(,mon_fd_t) fds;
     // QLIST_ENTRY(Monitor) entry;
 } Monitor;
+
+typedef struct mon_cmd_t {
+    const char *name;
+    const char *args_type;
+    void (*user_print)(Monitor *mon, const QObject *data);
+    void (*temu)(const char params);
+    const char *params;
+    const char *help;
+    union {
+        void (*cmd)(Monitor *mon, const QDict *qdict);
+    } mhandler;
+} mon_cmd_t;
 
 const char *qdict_get_str(const QDict *qdict, const char *key)
 {
