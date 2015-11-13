@@ -20,18 +20,18 @@ typedef struct mon_cmd_t {
     } mhandler;
 } mon_cmd_t;
 
-static void set_nic_target_port()
+static void temp_function()
 {
   printf("nic_target_port\n");
 }
 
 static mon_cmd_t my_term_cmds[] = {
   {     
-    .name       = "nic_target_port",
+    .name       = "temp_function",
     .args_type  = "",
     .params     = "",
-    .help       = "set nic_target_port",
-    .mhandler.cmd = set_nic_target_port
+    .help       = "temp_function",
+    .mhandler.cmd = temp_function
   },
   {NULL, NULL},
 };
