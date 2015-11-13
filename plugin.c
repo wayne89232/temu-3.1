@@ -40,7 +40,6 @@ void do_load_plugin(const char *plugin_path)
     }
 
     plugin = init_plugin();
-    plugin->set_nic_target_port = set_nic_target_port;
     if (NULL == plugin) {
         printf("fail to initialize the plugin!\n");
         dlclose(plugin_handle);
