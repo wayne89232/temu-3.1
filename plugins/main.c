@@ -25,6 +25,10 @@ static void set_nic_target_port()
 {
   printf("nic_target_port\n");
 }
+static int int_set_nic_target_port()
+{
+  printf("nic_target_port\n");
+}
 
 static mon_cmd_t my_term_cmds[] = {
   {     
@@ -33,7 +37,7 @@ static mon_cmd_t my_term_cmds[] = {
     .params     = "",
     .help       = "set nic_target_port",
     .mhandler.cmd = set_nic_target_port,
-    .mhandler.cmd_new = set_nic_target_port
+    .mhandler.cmd_new = int_set_nic_target_port
   },
   {NULL, NULL},
 };
