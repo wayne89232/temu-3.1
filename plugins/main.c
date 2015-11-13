@@ -59,19 +59,20 @@ static void do_set_plugin(const char *property, const char *value ) {
   }
 }
 static void do_toggle_plugin(const char *property) {
-  const char* temp_string = "enable_print_packet";
+  char* temp_string;
+  temp_string = "enable_print_packet";
   if(strcmp(property, temp_string)==0){
     enable_print_packet = !enable_print_packet;
     printf("toggle enable_print_packet: %d\n", enable_print_packet);
     return;
   }
-  const char* temp_string = "enable_log";
+  temp_string = "enable_log";
   if(strcmp(property, temp_string)==0){
     enable_log = !enable_log;
     printf("toggle enable_log: %d\n", enable_log);
     return;
   }
-  const char* temp_string = "enable_pcap_log";
+  temp_string = "enable_pcap_log";
   if(strcmp(property, temp_string)==0){
     enable_pcap_log = !enable_pcap_log;
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
