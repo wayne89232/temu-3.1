@@ -89,7 +89,7 @@
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
- const char* temu_params;
+ char* temu_params;
 
 /*
  * Supported types:
