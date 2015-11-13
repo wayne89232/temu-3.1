@@ -4267,6 +4267,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
             {
                 const char end = '\0';
                 temu_params = p;
+                printf("\n");
                 p = &end;
             }
             break;
