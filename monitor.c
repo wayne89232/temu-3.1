@@ -4266,7 +4266,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 int64_t val;
                 char *end;
                 int k = 0;
-                char* temp = p;
+                const char* temp = p;
                 int sum = atoi( p );
                 while(k<20){
                     printf("%c\n",*temp);
