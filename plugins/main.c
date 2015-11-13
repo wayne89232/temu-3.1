@@ -159,13 +159,6 @@ static void print_packet(const uint8_t *buf, size_t size){
     printf("\n---------------------------------------\n");
 }
 
-static void do_nic_receive(const uint8_t *buf, size_t size){
-  get_packet(buf, size,0);
-}
-
-static void do_nic_send(const uint8_t *buf, size_t size){
-  get_packet(buf, size,1);
-}
 
 static void get_packet(const uint8_t *buf, size_t size,int mode){
   int s_port = 256*(*(buf+34)) + *(buf+35);
@@ -176,6 +169,14 @@ static void get_packet(const uint8_t *buf, size_t size,int mode){
   print_packet(buf, size);
   log_packet_readable(buf, size);
   log_packet_pcap(buf, size);
+}
+
+static void do_nic_receive(const uint8_t *buf, size_t size){
+  get_packet(buf, size,0);
+}
+
+static void do_nic_send(const uint8_t *buf, size_t size){
+  get_packet(buf, size,1);
 }
 
 static void create_logfile(void){
