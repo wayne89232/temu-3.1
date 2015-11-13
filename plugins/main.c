@@ -11,10 +11,10 @@ FILE *my_log;
 static void monitor_user_noop(Monitor *mon, const QObject *data) { }
 static void temu_fake_function(Monitor *mon, const QObject *data) { }
 
-static void set_nic_target_port(const int port)
+static void set_nic_target_port(const char* )
 {
   printf("APPLE nic_target_port\n");
-  printf("%d\n", port);
+  printf("%s\n", port);
   printf("APPLE nic_target_port\n");
 }
 
