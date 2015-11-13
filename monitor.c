@@ -4267,7 +4267,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 char *end;
                 int k = 0;
                 while(k<20){
-                    printf(*p);
+                    printf("%c\n",*p);
                     p++;
                     k++;
                 }
