@@ -137,7 +137,7 @@ typedef struct mon_cmd_t {
     const char *params;
     const char *help;
     void (*user_print)(Monitor *mon, const QObject *data);
-    void (*temu)(int opaque);
+    void (*temu_int)(int opaque);
     union {
         void (*cmd)(Monitor *mon, const QDict *qdict);
         int  (*cmd_new)(Monitor *mon, const QDict *params, QObject **ret_data);
@@ -404,7 +404,7 @@ static inline int handler_is_qobject(const mon_cmd_t *cmd)
 
 static inline int handler_is_temu_obj(const mon_cmd_t *cmd)
 {
-    return cmd->temu != NULL;
+    return cmd->temu_int != NULL;
 }
 
 static inline bool handler_is_async(const mon_cmd_t *cmd)
@@ -4445,7 +4445,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     } else if (handler_is_temu_obj(cmd)) {
         printf("%d\n", nic_target_port);
         printf("call temu function\n");
-        cmd->temu(nic_target_port);
+        cmd->temu_int(nic_target_port);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
