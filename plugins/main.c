@@ -6,6 +6,9 @@
 #include "main.h"
 #include "../plugin.h"
 
+#include "../qapi/qmp/qobject.h"
+#include "../qapi/qmp/qlist.h"
+
 static plugin_interface_t my_interface;
 FILE *my_log;
 const char *nic_target_port = NULL;
@@ -59,8 +62,11 @@ typedef struct mon_cmd_t {
     } mhandler;
 } mon_cmd_t;
 
-static void set_nic_target_port()
+static void set_nic_target_port(Monitor *mon, const QDict *qdict)
 {
+  const char *port = qdict_get_str(qdict, "port");
+  printf("APPLE nic_target_port\n");
+  printf("%s\n",port);
   printf("APPLE nic_target_port\n");
 }
 
