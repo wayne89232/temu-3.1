@@ -4436,6 +4436,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         QObject *data = NULL;
                 printf("23\n");
     printf("%s\n",cmd->name);
+    printf("cmd->mhandler.cmd(mon, qdict);\n");
 
         /* XXX: ignores the error code */
         cmd->mhandler.cmd(mon, qdict);
