@@ -10,8 +10,6 @@ static plugin_interface_t my_interface;
 FILE *my_log;
 const char *nic_target_port = NULL;
 
-static void monitor_user_noop(Monitor *mon, const QObject *data) { }
-
 typedef struct QDict {
     // QObject_HEAD;
     // size_t size;
@@ -47,6 +45,8 @@ typedef struct Monitor {
     // QLIST_HEAD(,mon_fd_t) fds;
     // QLIST_ENTRY(Monitor) entry;
 } Monitor;
+
+static void monitor_user_noop(Monitor *mon, const QObject *data) { }
 
 typedef struct mon_cmd_t {
     const char *name;
