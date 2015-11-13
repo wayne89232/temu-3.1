@@ -89,7 +89,7 @@
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
- int nic_target_port = 0;
+ const char temu_params = 0;
 
 /*
  * Supported types:
@@ -4266,7 +4266,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         case 'I':
             {
                 const char end = '\0';
-                nic_target_port = p;
+                temu_params = p;
                 p = &end;
             }
             break;
@@ -4443,7 +4443,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        cmd->temu(nic_target_port);
+        cmd->temu(temu_params);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
