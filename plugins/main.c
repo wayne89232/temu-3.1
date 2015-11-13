@@ -6,8 +6,8 @@
 #include "main.h"
 #include "../plugin.h"
 
-#include "../qapi/qmp/qobject.h"
-#include "../qapi/qmp/qlist.h"
+#include "../include/qapi/qmp/qobject.h"
+#include "../include/qapi/qmp/qlist.h"
 
 static plugin_interface_t my_interface;
 FILE *my_log;
