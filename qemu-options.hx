@@ -3037,14 +3037,6 @@ STEXI
 do something on loading plugin
 ETEXI
 
-DEF("nic-target-port", HAS_ARG, QEMU_OPTION_nic_target_port, \
-    "-nic-target-port \n" ,QEMU_ARCH_ALL)
-STEXI
-@item -nic-target-port @var{port}
-@findex -nic-target-port
-set nic target port
-ETEXI
-
 
 #ifndef _WIN32
 DEF("daemonize", 0, QEMU_OPTION_daemonize, \

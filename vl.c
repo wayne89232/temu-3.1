@@ -2746,7 +2746,6 @@ int main(int argc, char **argv, char **envp)
     const char *optarg;
     const char *loadvm = NULL;
     const char *load_plugin = NULL;
-    const char *nic_target_port = NULL;
     MachineClass *machine_class;
     const char *cpu_model;
     const char *vga_model = NULL;
@@ -3374,9 +3373,6 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_load_plugin:
                 load_plugin = optarg;
-                break;
-            case QEMU_OPTION_nic_target_port:
-                nic_target_port = optarg;
                 break;
             case QEMU_OPTION_full_screen:
                 full_screen = 1;
