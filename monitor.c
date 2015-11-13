@@ -4288,7 +4288,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                     goto fail;
                 }
                 printf("%" PRId64 "\n", sum);
-                printf("%" PRId64 "\n", val);
+                printf("%d\n", val);
                 qdict_put(qdict, key, qint_from_int(val));
                 p = end;
             }
