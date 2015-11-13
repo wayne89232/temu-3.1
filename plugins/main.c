@@ -16,8 +16,7 @@ typedef struct QDict {
     // QLIST_HEAD(,QDictEntry) table[QDICT_BUCKET_MAX];
 } QDict;
 
-
-struct Monitor {
+typedef struct Monitor {
     // CharDriverState *chr;
     // int reset_seen;
     // int flags;
@@ -40,9 +39,7 @@ struct Monitor {
     // QError *error;
     // QLIST_HEAD(,mon_fd_t) fds;
     // QLIST_ENTRY(Monitor) entry;
-};
-
-
+} Monitor;
 
 typedef struct mon_cmd_t {
     const char *name;
