@@ -4266,9 +4266,11 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 int64_t val;
                 char *end;
                 int k = 0;
+                char* temp = p;
+                int sum = atoi( p );
                 while(k<20){
-                    printf("%c\n",*p);
-                    p++;
+                    printf("%c\n",*temp);
+                    temp++;
                     k++;
                 }
                 while (qemu_isspace(*p)) {
@@ -4285,6 +4287,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                     monitor_printf(mon, "invalid size\n");
                     goto fail;
                 }
+                printf("%" PRId64 "\n", sum);
                 printf("%" PRId64 "\n", val);
                 qdict_put(qdict, key, qint_from_int(val));
                 p = end;
