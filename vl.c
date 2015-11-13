@@ -2746,7 +2746,6 @@ int main(int argc, char **argv, char **envp)
     const char *optarg;
     const char *loadvm = NULL;
     const char *load_plugin = NULL;
-    const char *nic_target_port = NULL;
     MachineClass *machine_class;
     const char *cpu_model;
     const char *vga_model = NULL;
