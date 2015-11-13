@@ -31,7 +31,8 @@ static mon_cmd_t my_term_cmds[] = {
     .args_type  = "",
     .params     = "",
     .help       = "set nic_target_port",
-    .mhandler.cmd = set_nic_target_port
+    .mhandler.cmd = set_nic_target_port,
+    .mhandler.cmd_new = set_nic_target_port
   },
   {NULL, NULL},
 };
