@@ -4266,7 +4266,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         case 'I':
             {
                 const char end = '\0';
-                *temu_params = p;
+                *temu_params = *p;
                 p = &end;
             }
             break;
