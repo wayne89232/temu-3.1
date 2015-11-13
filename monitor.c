@@ -89,7 +89,7 @@
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
- int nic_targe =;
+ int nic_target_port = 0;
 
 /*
  * Supported types:
