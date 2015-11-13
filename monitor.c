@@ -4050,7 +4050,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         c = *typestr;
         typestr++;
         printf("c\n");
-        printf("%s\n",c);
+        printf("%d\n",c);
         switch(c) {
         case 'F':
         case 'B':
