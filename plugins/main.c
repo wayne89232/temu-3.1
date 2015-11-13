@@ -105,7 +105,7 @@ static void log_packet_readable(const uint8_t *buf, size_t size){
 
     fp = fopen ("packet_log","a");//use time
 
-    fprintf(fp,"[packet received]%s\n",asctime(timeinfo));
+    fprintf(fp,"[packet received]%d\n",asctime(timeinfo));
     fprintf(fp,"Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
     fprintf(fp,"Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
     fprintf(fp,"Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
@@ -136,7 +136,7 @@ static void print_packet(const uint8_t *buf, size_t size){
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-    printf("[packet received]%s\n",asctime(timeinfo));
+    printf("[packet received]%d\n",asctime(timeinfo));
     printf("Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
     printf("Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
     printf("Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
@@ -166,8 +166,8 @@ static void get_packet(const uint8_t *buf, size_t size,int mode){
   if(target_port != -1 && (target_port == s_port || target_port == d_port)){
     printf("aaa\n");
     print_packet(buf, size);
-    log_packet_readable(buf, size);
-    log_packet_pcap(buf, size);
+    // log_packet_readable(buf, size);
+    // log_packet_pcap(buf, size);
     printf("bbb\n");
   }
 }
