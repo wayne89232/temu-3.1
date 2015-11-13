@@ -1703,16 +1703,29 @@ Show various information about the system state.
 ETEXI
 
     {
-        .name       = "target_port",
-        .args_type  = "port:i",
-        .params     = "port",
-        .help       = "set plugin target port",
-        .mhandler.cmd = hmp_set_target_port,
+        .name       = "plugin_set",
+        .args_type  = "property:s,value:s",
+        .params     = "property value",
+        .help       = "set plugin configuration",
+        .mhandler.cmd = hmp_plugin_set,
     },
 
 STEXI
-@item target_port @var{port}
-Set plugin target port
+@item plugin_set @var{property} @var{value}
+Set plugin configuration
+ETEXI
+
+    {
+        .name       = "plugin_toggle",
+        .args_type  = "property:s",
+        .params     = "property",
+        .help       = "set plugin configuration",
+        .mhandler.cmd = hmp_plugin_toggle,
+    },
+
+STEXI
+@item plugin_toggle @var{property}
+Set plugin configuration
 
 @table @option
 @item info version
