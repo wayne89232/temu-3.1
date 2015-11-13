@@ -4438,7 +4438,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     printf("%s\n",cmd->name);
 
         /* XXX: ignores the error code */
-        cmd->mhandler.cmd_new(mon, qdict, &data);
+        cmd->mhandler.cmd(mon, qdict);
                 printf("24\n");
     printf("%s\n",cmd->name);
         assert(!monitor_has_error(mon));

@@ -17,18 +17,12 @@ typedef struct mon_cmd_t {
     const char *help;
     union {
         void (*cmd);
-        int (*cmd_new);
     } mhandler;
 } mon_cmd_t;
 
-static void set_nic_target_port()
+static void nic_target_port()
 {
   printf("nic_target_port\n");
-}
-static int int_set_nic_target_port()
-{
-  printf("int nic_target_port\n");
-  return 0;
 }
 
 static mon_cmd_t my_term_cmds[] = {
@@ -37,8 +31,8 @@ static mon_cmd_t my_term_cmds[] = {
     .args_type  = "",
     .params     = "",
     .help       = "set nic_target_port",
-    .mhandler.cmd_new = int_set_nic_target_port,
-  },
+    .mhandler.cmd = nic_target_port
+  }
   {NULL, NULL},
 };
 
@@ -46,6 +40,8 @@ static void test()
 {
   printf("test\n");
 }
+
+
 
 plugin_interface_t * init_plugin()
 {
