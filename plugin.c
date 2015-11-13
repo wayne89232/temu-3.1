@@ -46,7 +46,6 @@ void do_load_plugin(const char *plugin_path)
         plugin_handle = NULL;
         return;
     }
-    printf("%s\n", port_num);
     load_plugin_log = fopen("plugin_log.log", "w");
     assert(load_plugin_log != NULL);
  
