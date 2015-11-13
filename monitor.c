@@ -4444,9 +4444,10 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
         // const char* port = qdict_get_str(qdict, "port");
-        printf("%s\n", port);
+        // printf("%s\n", port); 
         printf("not here\n");
-        cmd->temu(port);
+        // cmd->temu(port);
+        cmd->temu();
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
