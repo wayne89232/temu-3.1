@@ -21,8 +21,8 @@ typedef struct plugin_interface_t{
     void (*do_set_nic_target_port)(int port_num);
 
     // void (*taint_disk) (int size, int64_t sect_num, int flag,uint32_t paddr);
-    // void (*nic_recv) (uint8_t * buf, int size, int cur_pos, int start, int stop);
-    // void (*nic_send) (uint32_t addr, int size, uint8_t * buf);
+    void (*nic_recv) (const uint8_t *buf, size_t size);
+    void (*nic_send) (const uint8_t *buf, size_t size);
 
     void (*test) (void);
 
