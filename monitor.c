@@ -4443,7 +4443,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else if (handler_is_temu_obj(cmd)) {
-        char* port = qdict_get_str(qdict, "port");
+        const char* port = qdict_get_str(qdict, "port");
         cmd->temu(port);
     } else {
         cmd->mhandler.cmd(mon, qdict);
