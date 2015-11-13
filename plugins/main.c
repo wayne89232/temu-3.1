@@ -23,7 +23,6 @@ static mon_cmd_t my_term_cmds[] = {
     .args_type  = "port:I",
     .params     = "port",
     .temu       = set_nic_target_port,
-    .user_print = temu_fake_function,
     .help       = "set nic_target_port"
   },
   {NULL, NULL},
