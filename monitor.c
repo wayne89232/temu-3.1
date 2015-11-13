@@ -4442,21 +4442,20 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
+    } else if (handler_is_temu_obj(cmd)) {
+        const char* port = qdict_get_str(qdict, "port");
+        printf("%s\n", port);
+        printf("not here\n");
+        cmd->temu(port);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
-        printf("here???????\n");
         cmd->mhandler.cmd_new(mon, qdict,&data);
         assert(!monitor_has_error(mon));
         if (data) {
             cmd->user_print(mon, data);
             qobject_decref(data);
         }
-    } else if (handler_is_temu_obj(cmd)) {
-        const char* port = qdict_get_str(qdict, "port");
-        printf("%s\n", port);
-        printf("not here\n");
-        cmd->temu(port);
     } else {
         printf("here\n");
         cmd->mhandler.cmd(mon, qdict);
