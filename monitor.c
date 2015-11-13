@@ -137,7 +137,7 @@ typedef struct mon_cmd_t {
     const char *params;
     const char *help;
     void (*user_print)(Monitor *mon, const QObject *data);
-    void (*temu)(void * opaque);
+    void (*temu)(void *opaque);
     union {
         void (*cmd)(Monitor *mon, const QDict *qdict);
         int  (*cmd_new)(Monitor *mon, const QDict *params, QObject **ret_data);
@@ -4444,7 +4444,8 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
         printf("%d\n", nic_target_port);
-        cmd->temu(&nic_target_port);
+        void* opaque_port = &nic_target_port;
+        cmd->temu(opaque_port);
         printf("%d\n", nic_target_port);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
