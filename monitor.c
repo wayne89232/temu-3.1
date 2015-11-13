@@ -4264,8 +4264,8 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         case 'I':
             {
                 const char end = '\0';
-                int sum = atoi( p );
-                qdict_put(qdict, key, qint_from_int(sum));
+                nic_target_port = atoi( p );
+                qdict_put(qdict, key, qint_from_int(nic_target_port));
                 p = &end;
             }
             break;
@@ -4442,14 +4442,11 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        const char* port = qdict_get_str(qdict, "port");
-        printf("%s\n", port);
-        printf("11111111\n");
-        cmd->temu(port);
+        printf("%s\n", nic_target_port);
+        cmd->temu(nic_target_port);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
-        printf("444444444\n");
         cmd->mhandler.cmd_new(mon, qdict,&data);
         assert(!monitor_has_error(mon));
         if (data) {
@@ -4457,7 +4454,6 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else {
-        printf("22222222\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
@@ -5786,3 +5782,5 @@ void qmp_rtc_reset_reinjection(Error **errp)
     error_set(errp, QERR_FEATURE_DISABLED, "rtc-reset-reinjection");
 }
 #endif
+
+int nic_target_port = 0;
