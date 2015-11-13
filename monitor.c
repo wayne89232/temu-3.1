@@ -4426,39 +4426,18 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         goto out;
     //add some cases for handling plugin command
     if (handler_is_async(cmd)) {
-                printf("1\n");
-    printf("%s\n",cmd->name);
-
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_qobject(cmd)) {
-                printf("2\n");
-    printf("%s\n",cmd->name);
         QObject *data = NULL;
-                printf("23\n");
-    printf("%s\n",cmd->name);
-    printf("cmd->mhandler.cmd(mon, qdict);\n");
-
         /* XXX: ignores the error code */
         cmd->mhandler.cmd(mon, qdict);
-                printf("24\n");
-    printf("%s\n",cmd->name);
         assert(!monitor_has_error(mon));
-                printf("25\n");
-    printf("%s\n",cmd->name);
         if (data) {
-                printf("26\n");
-    printf("%s\n",cmd->name);
             cmd->user_print(mon, data);
             qobject_decref(data);
-                printf("27\n");
-    printf("%s\n",cmd->name);
         }
     } else {
-        printf("get cmd\n");
-    printf("%s\n",cmd->name);
         cmd->mhandler.cmd(mon, qdict);
-        printf("get cmd\n");
-    printf("%s\n",cmd->name);
     }
 
 out:
