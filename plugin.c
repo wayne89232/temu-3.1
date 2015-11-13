@@ -12,7 +12,7 @@ static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
 void set_nic_target_port(int port_num){
-    printf("%d\n", port_num);
+    printf("target port: %d\n", port_num);
 }
 
 void do_load_plugin(const char *plugin_path)

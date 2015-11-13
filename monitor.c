@@ -968,9 +968,8 @@ static void hmp_info_help(Monitor *mon, const QDict *qdict)
 
 static void hmp_set_target_port(Monitor *mon, const QDict *qdict)
 {
-    printf("plugin\n");
-    plugin->set_nic_target_port(123);
-    printf("plugin\n");
+    int port = qdict_get_try_int(qdict, "port", -1);
+    plugin->set_nic_target_port(port);
 }
 
 CommandInfoList *qmp_query_commands(Error **errp)
