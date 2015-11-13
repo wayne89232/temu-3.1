@@ -89,6 +89,8 @@
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
+ int nic_target_port = 0;
+
 /*
  * Supported types:
  *
@@ -5783,4 +5785,4 @@ void qmp_rtc_reset_reinjection(Error **errp)
 }
 #endif
 
-int nic_target_port = 0;
+
