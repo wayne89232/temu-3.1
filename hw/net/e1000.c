@@ -1097,7 +1097,7 @@ e1000_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 static ssize_t
 e1000_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    plugin->nic_receive(buf,size);
+    plugin->nic_recv(buf,size);
     const struct iovec iov = {
         .iov_base = (uint8_t *)buf,
         .iov_len = size

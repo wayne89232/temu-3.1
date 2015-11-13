@@ -202,7 +202,7 @@ plugin_interface_t * init_plugin()
   }
   create_logfile();
   my_interface.nic_send = do_nic_send;
-  my_interface.nic_receive = do_nic_receive;
+  my_interface.nic_recv = do_nic_receive;
 
   // my_interface.term_cmds = my_term_cmds;
 
