@@ -4261,7 +4261,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 p = end;
             }
             break;
-        case 'i':
+        case 'I':
             {
                 int64_t val;
                 char *end;
