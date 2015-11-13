@@ -19,7 +19,7 @@ static void set_nic_target_port(void* opaque)
 
 static mon_cmd_t my_term_cmds[] = {
   {     
-    .name       = "nic_target_port",
+    .name       = "a",
     .args_type  = "port:I",
     .params     = "port",
     .temu       = set_nic_target_port,
