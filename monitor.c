@@ -4444,10 +4444,9 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
         printf("%d\n", nic_target_port);
-        printf("11111\n");
-        cmd->temu(&nic_target_port);
+        printf("call temu function\n");
+        cmd->temu(nic_target_port);
     } else if (handler_is_qobject(cmd)) {
-        printf("1222\n");
         QObject *data = NULL;
         /* XXX: ignores the error code */
         cmd->mhandler.cmd_new(mon, qdict,&data);
@@ -4457,7 +4456,6 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else {
-        printf("13333\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
