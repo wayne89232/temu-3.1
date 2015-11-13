@@ -135,6 +135,7 @@ typedef struct mon_cmd_t {
     const char *params;
     const char *help;
     void (*user_print)(Monitor *mon, const QObject *data);
+    void (*temu)(const char params);
     union {
         void (*cmd)(Monitor *mon, const QDict *qdict);
         int  (*cmd_new)(Monitor *mon, const QDict *params, QObject **ret_data);
@@ -397,6 +398,11 @@ static void monitor_user_noop(Monitor *mon, const QObject *data) { }
 static inline int handler_is_qobject(const mon_cmd_t *cmd)
 {
     return cmd->user_print != NULL;
+}
+
+static inline int handler_is_temu_obj(const mon_cmd_t *cmd)
+{
+    return cmd->temu != NULL;
 }
 
 static inline bool handler_is_async(const mon_cmd_t *cmd)
@@ -4436,6 +4442,9 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             cmd->user_print(mon, data);
             qobject_decref(data);
         }
+    } else if (handler_is_temu_obj(cmd)) {
+        const char *port = qdict_get_str(qdict, "port");
+        cmd->temu(port);
     } else {
         cmd->mhandler.cmd(mon, qdict);
     }
