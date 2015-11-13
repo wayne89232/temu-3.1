@@ -137,7 +137,7 @@ typedef struct mon_cmd_t {
     const char *params;
     const char *help;
     void (*user_print)(Monitor *mon, const QObject *data);
-    void (*temu)(const char *opaque);
+    void (*temu)(char *opaque);
     union {
         void (*cmd)(Monitor *mon, const QDict *qdict);
         int  (*cmd_new)(Monitor *mon, const QDict *params, QObject **ret_data);
