@@ -4331,7 +4331,7 @@ int main(int argc, char **argv, char **envp)
     //plugin loading
 
     if(loadvm == NULL && load_plugin)
-        do_load_plugin(load_plugin,nic_target_port);
+        do_load_plugin(load_plugin);
 
 
     if(plugin){
