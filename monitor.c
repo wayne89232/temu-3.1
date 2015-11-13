@@ -4445,7 +4445,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     } else if (handler_is_temu_obj(cmd)) {
         printf("%d\n", nic_target_port);
         printf("call temu function\n");
-        cmd->temu_int(nic_target_port);
+        cmd->temu_int();
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
