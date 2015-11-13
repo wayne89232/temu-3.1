@@ -8,8 +8,6 @@
 
 static plugin_interface_t my_interface;
 FILE *my_log;
-const char *nic_target_port = NULL;
-
 static void monitor_user_noop(Monitor *mon, const QObject *data) { }
 static void temu_fake_function(Monitor *mon, const QObject *data) { }
 
