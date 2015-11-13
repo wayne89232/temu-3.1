@@ -10,11 +10,18 @@ static plugin_interface_t my_interface;
 FILE *my_log;
 const char *nic_target_port = NULL;
 
+static void monitor_user_noop(Monitor *mon, const QObject *data) { }
+
 typedef struct QDict {
     // QObject_HEAD;
     // size_t size;
     // QLIST_HEAD(,QDictEntry) table[QDICT_BUCKET_MAX];
 } QDict;
+
+typedef struct QObject {
+    const QType *type;
+    size_t refcnt;
+} QObject;
 
 typedef struct Monitor {
     // CharDriverState *chr;
@@ -44,6 +51,7 @@ typedef struct Monitor {
 typedef struct mon_cmd_t {
     const char *name;
     const char *args_type;
+    void (*user_print)(Monitor *mon, const QObject *data);
     const char *params;
     const char *help;
     union {
@@ -61,6 +69,7 @@ static mon_cmd_t my_term_cmds[] = {
     .name       = "nic_target_port",
     .args_type  = "",
     .params     = "",
+    .user_print = monitor_user_noop,
     .help       = "set nic_target_port",
     .mhandler.cmd = set_nic_target_port
   },
