@@ -29,5 +29,5 @@ typedef struct plugin_interface_t{
 } plugin_interface_t;
 extern plugin_interface_t *plugin;
 
-void do_load_plugin(const char *plugin_path,const char *port_num);
+void do_load_plugin(const char *plugin_path);
 void do_unload_plugin(void);

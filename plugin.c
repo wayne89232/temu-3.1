@@ -11,7 +11,11 @@ static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
-void do_load_plugin(const char *plugin_path,const char *port_num)
+void set_target_port(int port_num){
+    printf("%d\n", port_num);
+}
+
+void do_load_plugin(const char *plugin_path)
 {
     printf("Start loading plugin \n");
     plugin_interface_t *(*init_plugin) (void);
@@ -46,7 +50,6 @@ void do_load_plugin(const char *plugin_path,const char *port_num)
         plugin_handle = NULL;
         return;
     }
-    printf("%s\n", port_num);
     load_plugin_log = fopen("plugin_log.log", "w");
     assert(load_plugin_log != NULL);
  

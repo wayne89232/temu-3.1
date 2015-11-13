@@ -1700,6 +1700,19 @@ STEXI
 @item info @var{subcommand}
 @findex info
 Show various information about the system state.
+ETEXI
+
+    {
+        .name       = "target_port",
+        .args_type  = "port:o?",
+        .params     = "port",
+        .help       = "set plugin target port",
+        .mhandler.cmd = set_target_port,
+    },
+
+STEXI
+@item target_port @var{port}
+Set plugin target port
 
 @table @option
 @item info version

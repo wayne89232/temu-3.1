@@ -966,6 +966,13 @@ static void hmp_info_help(Monitor *mon, const QDict *qdict)
     help_cmd(mon, "info");
 }
 
+static void set_target_port(Monitor *mon, const QDict *qdict)
+{
+    printf("plugin\n");
+    plugin->set_target_port(123);
+    printf("plugin\n");
+}
+
 CommandInfoList *qmp_query_commands(Error **errp)
 {
     CommandInfoList *info, *cmd_list = NULL;
