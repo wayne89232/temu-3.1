@@ -4443,6 +4443,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
+        printf("aaaaaaaaaa\n");
         cmd->temu(temu_params);
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
