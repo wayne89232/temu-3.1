@@ -4444,6 +4444,7 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     } else if (handler_is_qobject(cmd)) {
         QObject *data = NULL;
         /* XXX: ignores the error code */
+        printf("444444444\n");
         cmd->mhandler.cmd_new(mon, qdict,&data);
         assert(!monitor_has_error(mon));
         if (data) {
