@@ -4257,6 +4257,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                     monitor_printf(mon, "invalid size\n");
                     goto fail;
                 }
+                printf("%d\n", val);
                 qdict_put(qdict, key, qint_from_int(val));
                 p = end;
             }
