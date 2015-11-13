@@ -4266,9 +4266,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
         case 'I':
             {
                 const char end = '\0';
-                printf("temu_params\n");
                 temu_params = p;
-                printf("temu_params\n");
                 p = &end;
             }
             break;
@@ -4437,7 +4435,6 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     const mon_cmd_t *cmd;
 
     qdict = qdict_new();
-    printf("ddddddd\n");
 
     cmd = monitor_parse_command(mon, cmdline, 0, mon->cmd_table, qdict);
     if (!cmd)
@@ -4446,10 +4443,8 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
     if (handler_is_async(cmd)) {
         user_async_cmd_handler(mon, cmd, qdict);
     } else if (handler_is_temu_obj(cmd)) {
-        printf("aaaaaaaaaa\n");
         cmd->temu(temu_params);
     } else if (handler_is_qobject(cmd)) {
-        printf("bbbbbbbbbb\n");
         QObject *data = NULL;
         /* XXX: ignores the error code */
         cmd->mhandler.cmd_new(mon, qdict,&data);
@@ -4459,7 +4454,6 @@ static void handle_user_command(Monitor *mon, const char *cmdline)
             qobject_decref(data);
         }
     } else {
-        printf("ccccccccc\n");
         cmd->mhandler.cmd(mon, qdict);
     }
 
