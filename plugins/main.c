@@ -61,7 +61,7 @@ typedef struct mon_cmd_t {
 
 static void set_nic_target_port()
 {
-  printf("nic_target_port\n");
+  printf("APPLE nic_target_port\n");
 }
 
 static mon_cmd_t my_term_cmds[] = {
