@@ -10,16 +10,6 @@ static plugin_interface_t my_interface;
 FILE *my_log;
 const char *nic_target_port = NULL;
 
-typedef struct mon_cmd_t {
-    const char *name;
-    const char *args_type;
-    const char *params;
-    const char *help;
-    union {
-        void (*cmd)(Monitor *mon, const QDict *qdict);
-    } mhandler;
-} mon_cmd_t;
-
 typedef struct QDict {
     // QObject_HEAD;
     // size_t size;
@@ -52,6 +42,17 @@ struct Monitor {
     // QLIST_ENTRY(Monitor) entry;
 };
 
+
+
+typedef struct mon_cmd_t {
+    const char *name;
+    const char *args_type;
+    const char *params;
+    const char *help;
+    union {
+        void (*cmd)(Monitor *mon, const QDict *qdict);
+    } mhandler;
+} mon_cmd_t;
 
 static void set_nic_target_port()
 {
