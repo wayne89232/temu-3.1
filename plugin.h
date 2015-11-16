@@ -1,20 +1,19 @@
-// typedef struct mon_cmd_t {
-//     const char *name;
-//     const char *args_type;
-//     const char *params;
-//     const char *help;
-//     union {
-//         void (*cmd);
-//     } mhandler;
-// } mon_cmd_t;
+typedef struct plugin_cmd {
+    const char *name;
+    const char *args_type;
+    const char *params;
+    const char *help;
+    void (*cmd_handler)(p_cmdline* opaque);
+} plugin_cmd;
 
 
 //structure for plugin
 typedef struct plugin_interface_t{
 
     // array of terminal commands
-    void *term_cmds; 
-    void *info_cmds; 
+    // void *term_cmds; 
+    // void *info_cmds; 
+    plugin_cmd *term_cmds;
     long long cr3_addr;
     int taint_record_size;
 
@@ -28,7 +27,8 @@ typedef struct plugin_interface_t{
 
 } plugin_interface_t;
 extern plugin_interface_t *plugin;
+// extern char cur_plugin_path[100];
+// extern void *plugin_handle;
 
-void get_cr3(void);
 void do_load_plugin(const char *plugin_path);
 void do_unload_plugin(void);

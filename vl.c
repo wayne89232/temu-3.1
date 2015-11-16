@@ -4332,6 +4332,7 @@ int main(int argc, char **argv, char **envp)
 
     if(plugin){
         plugin->test();
+        // plugin->get_cr3();   
     }
     else{
         printf("No plugin loaded\n");

@@ -11,14 +11,9 @@ static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100]="";
 
-void get_cr3(void){
-    CPUArchState *env = first_cpu->env_ptr;
-    printf(TARGET_FMT_lx"\n",env->cr[3]);
-}
-
 void do_load_plugin(const char *plugin_path)
 {
-    printf("Start loading plugin \n");
+    printf("Start loading plugin from %s\n",plugin_path);
     plugin_interface_t *(*init_plugin) (void);
     char *error;
 
@@ -45,9 +40,6 @@ void do_load_plugin(const char *plugin_path)
     }
 
     plugin = init_plugin();
-    printf("plugin getcr3\n");
-    plugin->get_cr3 = &get_cr3;
-    printf("plugin getcr3\n");
     if (NULL == plugin) {
         printf("fail to initialize the plugin!\n");
         dlclose(plugin_handle);

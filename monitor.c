@@ -3909,6 +3909,28 @@ static const char *get_command_name(const char *cmdline,
     return p;
 }
 
+static const char *get_plugin_param(const char *cmdline,
+                                    char *cmdparam, size_t nlen)
+{
+    size_t len;
+    const char *p, *pstart;
+
+    p = cmdline;
+    while (qemu_isspace(*p))
+        p++;
+    if (*p == '\0')
+        return NULL;
+    pstart = p;
+    while (*p != '\0' && !qemu_isspace(*p))
+        p++;
+    len = p - pstart;
+    if (len > nlen - 1)
+        len = nlen - 1;
+    memcpy(cmdparam, pstart, len);
+    cmdparam[len] = '\0';
+    return p;
+}
+
 /**
  * Read key of 'type' into 'key' and return the current
  * 'type' pointer.
@@ -3992,6 +4014,12 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
     int c;
     const mon_cmd_t *cmd;
     char cmdname[256];
+    typedef struct p_cmdline{
+        CPUArchState* env;
+        char params[256];
+    }p_cmdline;
+    p_cmdline* handle;
+    handle = (p_cmdline *)malloc(sizeof(p_cmdline));
     char buf[1024];
     char *key;
 
@@ -4008,19 +4036,17 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
 
     if(plugin&&!cmd) {
         printf("searching command %s from temu side...\n", cmdname);
-        mon_cmd_t *cmd2;
-        printf("%lu\n", sizeof(plugin->term_cmds));
-        for(cmd2 = (mon_cmd_t*)plugin->term_cmds; cmd2->name != NULL; cmd2++) {
-            printf("%s\n",cmd2->name);
+        plugin_cmd *cmd2;
+        for(cmd2 = plugin->term_cmds; cmd2->name != NULL; cmd2++) {
             if (compare_cmd(cmdname, cmd2->name)) {
-
-                //maybe add some type casting(?
-                printf("get command! \n");
-                cmd=cmd2;
+                p = get_plugin_param(p, handle->params, sizeof(handle->params));
+                printf("cmd%s get param: %s\n",cmdname, handle->params);
+                handle->env = mon_get_cpu();
+                cmd2->cmd_handler(handle);
+                return NULL;
             }
         }
     }
-
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
                        (int)(p - cmdline), cmdline);
@@ -4034,13 +4060,14 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
     /* search sub command */
     if (cmd->sub_table != NULL) {
         /* check if user set additional command */
+        
         if (*p == '\0') {
             return cmd;
         }
+
         return monitor_parse_command(mon, cmdline, p - cmdline,
                                      cmd->sub_table, qdict);
     }
-
     /* parse the parameters */
     typestr = cmd->args_type;
     for(;;) {

@@ -1,4 +1,4 @@
-# include ../config-host.mak
+include ../config-host.mak
 
 # DEFINES=-I. -I.. 
 

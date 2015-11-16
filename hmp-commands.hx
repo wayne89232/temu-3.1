@@ -21,7 +21,35 @@ STEXI
 @item help or ? [@var{cmd}]
 @findex help
 Show the help for all commands or just for command @var{cmd}.
+ETEXI    
+    {
+        .name       = "unload_plugin",
+        .args_type  = "",
+        .params     = "",
+        .help       = "unload",
+        .mhandler.cmd = (void*)(do_unload_plugin),
+    },
+
+STEXI
+@item unload_plugin
+@findex unload_plugin
+unload.
 ETEXI
+
+    {
+        .name       = "load_plugin",
+        .args_type  = "filename:F",
+        .params     = "filename",
+        .help       = "load",
+        .mhandler.cmd = (void*)do_load_plugin,
+    },
+
+STEXI
+@item load_plugin @var{filename}
+@findex load_plugin
+load.
+ETEXI
+
 
     {
         .name       = "commit",
@@ -791,6 +819,7 @@ STEXI
 @findex memsave
 save to disk virtual memory dump starting at @var{addr} of size @var{size}.
 ETEXI
+
 
     {
         .name       = "pmemsave",
