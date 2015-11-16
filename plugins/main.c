@@ -61,6 +61,7 @@ static void do_set_plugin(const char *property, const char *value ) {
   }
   sprintf(temp_string, "target_ip");
   if (strcmp(target_ip, temp_string) == 0) {
+    printf("setting target ip: %s\n", value);
     target_ip = strdup(value);
     printf("setting target ip: %s\n", target_ip);
     return;
