@@ -61,7 +61,6 @@ static void do_set_plugin(const char *property, const char *value ) {
   }
   temp_string = "target_ip";
   if (strcmp(property, temp_string) == 0) {
-    printf("setting target ip: %s\n", value);
     target_ip = strdup(value);
     printf("setting target ip: %s\n", target_ip);
     return;
@@ -223,7 +222,7 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   if (
     (target_port == -1 ||
      (target_port != s_port &&
-      target_port != d_port)) ||
+      target_port != d_port)) &&
 
     (strcmp(target_ip, target_ip_not_set) == 0 ||
      (strcmp(target_ip, s_ip) != 0 &&
