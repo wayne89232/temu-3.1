@@ -61,7 +61,7 @@ static void do_set_plugin(const char *property, const char *value ) {
   }
   sprintf(temp_string, "target_ip");
   if (strcmp(target_ip, temp_string) == 0) {
-    sprintf(target_ip, "%s", value);
+    strcpy(target_ip, value);
     printf("setting target ip: %s\n", target_ip);
     return;
   }
@@ -213,8 +213,8 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   int s_port = 256 * (*(buf + 34)) + *(buf + 35);
   int d_port = 256 * (*(buf + 36)) + *(buf + 37);
 
-  char s_ip[20];
-  char d_ip[20];
+  char s_ip[100];
+  char d_ip[100];
   sprintf(s_ip, "%d.%d.%d.%d", *(buf + 26), *(buf + 27), *(buf + 28), *(buf + 29));
   sprintf(d_ip, "%d.%d.%d.%d", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
   char* target_ip_not_set = "NOT_SET";
