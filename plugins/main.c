@@ -14,6 +14,7 @@ const char *nic_target_port = NULL;
 
 typedef enum { false = 0, true = !false } bool;
 int target_port = -1;
+char* target_ip = 'NOT_SET';
 
 bool enable_print_packet = false;
 bool enable_log = false;
@@ -53,28 +54,34 @@ static void test()
 static void do_set_plugin(const char *property, const char *value ) {
   char* temp_string;
   temp_string = "target_port";
-  if(strcmp(property, temp_string)==0){
+  if (strcmp(property, temp_string) == 0) {
     target_port = atoi(value);
     printf("setting target port: %d\n", target_port);
+    return;
+  }
+  temp_string = "target_ip";
+  if (strcmp(target_ip, temp_string) == 0) {
+    target_ip = value;
+    printf("setting target ip: %s\n", target_ip);
     return;
   }
 }
 static void do_toggle_plugin(const char *property) {
   char* temp_string;
   temp_string = "enable_print_packet";
-  if(strcmp(property, temp_string)==0){
+  if (strcmp(property, temp_string) == 0) {
     enable_print_packet = !enable_print_packet;
     printf("toggle enable_print_packet: %d\n", enable_print_packet);
     return;
   }
   temp_string = "enable_log";
-  if(strcmp(property, temp_string)==0){
+  if (strcmp(property, temp_string) == 0) {
     enable_log = !enable_log;
     printf("toggle enable_log: %d\n", enable_log);
     return;
   }
   temp_string = "enable_pcap_log";
-  if(strcmp(property, temp_string)==0){
+  if (strcmp(property, temp_string) == 0) {
     enable_pcap_log = !enable_pcap_log;
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
     return;
@@ -191,13 +198,13 @@ static void print_packet(const uint8_t *buf, size_t size) {
 }
 
 static void get_logged(const uint8_t *buf, size_t size) {
-  if(enable_print_packet){
+  if (enable_print_packet) {
     print_packet(buf, size);
   }
-  if(enable_log){
+  if (enable_log) {
     log_packet_readable(buf, size);
   }
-  if(enable_pcap_log){
+  if (enable_pcap_log) {
     log_packet_pcap(buf, size);
   }
 }
@@ -205,7 +212,22 @@ static void get_logged(const uint8_t *buf, size_t size) {
 static void get_packet(const uint8_t *buf, size_t size, int mode) {
   int s_port = 256 * (*(buf + 34)) + *(buf + 35);
   int d_port = 256 * (*(buf + 36)) + *(buf + 37);
-  if (target_port == -1 || (target_port != s_port && target_port != d_port)) {
+
+  char s_ip[20];
+  char d_ip[20];
+  sprintf(s_ip, "%d.%d.%d.%d", *(buf + 26), *(buf + 27), *(buf + 28), *(buf + 29));
+  sprintf(d_ip, "%d.%d.%d.%d", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
+  char* target_ip_not_set = "NOT_SET";
+
+  if (
+    (target_port == -1 ||
+     (target_port != s_port &&
+      target_port != d_port)) ||
+
+    (strcmp(target_ip, target_ip_not_set) == 0 ||
+     (strcmp(target_ip, s_ip) != 0 &&
+      strcmp(target_ip, d_ip) != 0 ))
+  ) {
     return;
   }
   get_logged(buf, size);
