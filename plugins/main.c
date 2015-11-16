@@ -14,7 +14,7 @@ const char *nic_target_port = NULL;
 
 typedef enum { false = 0, true = !false } bool;
 int target_port = -1;
-char* target_ip = 'NOT_SET';
+char* target_ip = "NOT_SET";
 
 bool enable_print_packet = false;
 bool enable_log = false;
