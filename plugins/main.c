@@ -53,34 +53,34 @@ static void test()
 
 static void do_set_plugin(const char *property, const char *value ) {
   char* temp_string;
-  temp_string = "target_port";
+  sprintf(temp_string, "target_port");
   if (strcmp(property, temp_string) == 0) {
     target_port = atoi(value);
     printf("setting target port: %d\n", target_port);
     return;
   }
-  temp_string = "target_ip";
+  sprintf(temp_string, "target_ip");
   if (strcmp(target_ip, temp_string) == 0) {
-    target_ip = value;
+    sprintf(target_ip, "%s", value);
     printf("setting target ip: %s\n", target_ip);
     return;
   }
 }
 static void do_toggle_plugin(const char *property) {
   char* temp_string;
-  temp_string = "enable_print_packet";
+  sprintf(temp_string, "enable_print_packet");
   if (strcmp(property, temp_string) == 0) {
     enable_print_packet = !enable_print_packet;
     printf("toggle enable_print_packet: %d\n", enable_print_packet);
     return;
   }
-  temp_string = "enable_log";
+  sprintf(temp_string, "enable_log");
   if (strcmp(property, temp_string) == 0) {
     enable_log = !enable_log;
     printf("toggle enable_log: %d\n", enable_log);
     return;
   }
-  temp_string = "enable_pcap_log";
+  sprintf(temp_string, "enable_pcap_log");
   if (strcmp(property, temp_string) == 0) {
     enable_pcap_log = !enable_pcap_log;
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
