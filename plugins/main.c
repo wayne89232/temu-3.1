@@ -75,8 +75,8 @@ static void do_set_plugin(const char *property, const char *value ) {
   }
 
   temp_string = "target_protocol_number";
-    target_protocol_number = strdup(value);
-    printf("setting target protocol number: %s\n", target_protocol_number);
+    target_protocol_number = atoi(value);
+    printf("setting target protocol number: %d\n", target_protocol_number);
     if (target_protocol_number == 6){
       printf("Protocol: 6(tcp)\n");
     }
