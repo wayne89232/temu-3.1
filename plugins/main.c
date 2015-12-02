@@ -13,8 +13,10 @@ FILE *my_log;
 const char *nic_target_port = NULL;
 
 typedef enum { false = 0, true = !false } bool;
+int PDU_bytes = 128;
 int target_port = -1;
 char* target_ip = "NOT_SET";
+char* target_protocol_number = -1;
 
 bool enable_print_packet = false;
 bool enable_log = false;
@@ -59,10 +61,34 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting target port: %d\n", target_port);
     return;
   }
+  temp_string = "PDU_bytes";
+  if (strcmp(property, temp_string) == 0) {
+    PDU_bytes = atoi(value);
+    printf("setting PDU bytes: %d\n", PDU_bytes);
+    return;
+  }
   temp_string = "target_ip";
   if (strcmp(property, temp_string) == 0) {
     target_ip = strdup(value);
     printf("setting target ip: %s\n", target_ip);
+    return;
+  }
+
+  temp_string = "target_protocol_number";
+    target_protocol_number = strdup(value);
+    printf("setting target protocol number: %s\n", target_protocol_number);
+    if (target_protocol_number == 6){
+      printf("Protocol: 6(tcp)\n");
+    }
+    else if (target_protocol_number == 17){
+      printf("Protocol: 17(udp)\n");
+    }
+    else if (target_protocol_number == 1){
+      printf("Protocol: 128(icmp)\n");
+    }
+    else{
+      printf("Protocol number:%d\n", target_protocol_number);
+    }
     return;
   }
 }
@@ -111,14 +137,14 @@ static void log_packet_pcap(const uint8_t *buf, size_t size) {
   // fwrite( &timestamp, sizeof( timestamp ), 1, fp );
 
   int Caplen;
-  if (size <= 128) {
+  if (size <= PDU_bytes) {
     Caplen = size;
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
   }
   else {
     int len = size;
-    Caplen = 128;
+    Caplen = PDU_bytes;
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
     fwrite( &len, sizeof( len ), 1, fp );
   }
@@ -210,6 +236,14 @@ static void get_logged(const uint8_t *buf, size_t size) {
 }
 
 static void get_packet(const uint8_t *buf, size_t size, int mode) {
+  if(
+      !enable_print_packet &&
+      !enable_log &&
+      !enable_pcap_log 
+    )
+  {
+    return;
+  }
   int s_port = 256 * (*(buf + 34)) + *(buf + 35);
   int d_port = 256 * (*(buf + 36)) + *(buf + 37);
 
@@ -219,14 +253,26 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   sprintf(d_ip, "%d.%d.%d.%d", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
   char* target_ip_not_set = "NOT_SET";
 
-  if (
-    (target_port == -1 ||
-     (target_port != s_port &&
-      target_port != d_port)) &&
+  int protocol_number = *(buf + 23);
 
-    (strcmp(target_ip, target_ip_not_set) == 0 ||
-     (strcmp(target_ip, s_ip) != 0 &&
-      strcmp(target_ip, d_ip) != 0 ))
+  if ((
+      target_port != -1 
+      && (
+        target_port != s_port &&
+        target_port != d_port
+      )
+    ) 
+    || (
+      strcmp(target_ip, target_ip_not_set) != 0 
+      && (
+        strcmp(target_ip, s_ip) != 0 &&
+        strcmp(target_ip, d_ip) != 0 
+      )
+    ) 
+    || (
+      target_protocol_number != -1 &&
+      protocol_number != target_protocol_number
+    )
   ) {
     return;
   }
