@@ -16,7 +16,7 @@ typedef enum { false = 0, true = !false } bool;
 int PDU_bytes = 128;
 int target_port = -1;
 char* target_ip = "NOT_SET";
-char* target_protocol_number = -1;
+int target_protocol_number = -1;
 
 bool enable_print_packet = false;
 bool enable_log = false;
