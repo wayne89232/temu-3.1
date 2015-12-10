@@ -1,9 +1,9 @@
 #!/bin/zsh
 # $1 = argv -> filename 
 
-entry=$(ifind -n "$1" win7_test.img -o 206848)
+entry=$(ifind -n "$1" ./install/bin/win7_test.img -o 206848)
 
-info=$(istat -o 206848 win7_test.img $entry) 
+info=$(istat -o 206848 ./install/bin/win7_test.img $entry) 
 
 cluster=$(sed -n '/init_size/{n;p}' <<<"$info")
 
