@@ -24,6 +24,7 @@ bool enable_pcap_log = false;
 
 bool enable_traceblk = false;
 bool enable_print_blkio = false;
+bool first_file = 1;
 
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
@@ -54,6 +55,7 @@ static void temp_function()
 }
 
 static void get_sectornum(char* filename);
+static void saveFile(NODES* list, char* fname);
 
 static mon_cmd_t my_term_cmds[] = {
   {
@@ -156,7 +158,7 @@ static void do_toggle_plugin(const char *property) {
   return;
  } 
 
- temp_string = "filelist"
+ temp_string = "filelist";
  if(strcmp(property, temp_string) == 0){
   printf("Print current file list: \n");
   print_lists(list);
@@ -413,7 +415,7 @@ static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
   get_blockio(sector_num, base, len, 0);
 }
 
-void insertNode(NODES *node, char fname[], int data)
+static void insertNode(NODES *node, char fname[], int data)
 {
      NODES *newNode = (NODES *)malloc(sizeof(NODES));
      newNode->data = data;
@@ -423,7 +425,7 @@ void insertNode(NODES *node, char fname[], int data)
 
 }  
 
-void print_lists(NODES *node)
+static void print_lists(NODES *node)
 {
     NODES* n = node;
 
@@ -436,7 +438,7 @@ void print_lists(NODES *node)
 
 }
 
-void freeList(NODES* head)
+static void freeList(NODES* head)
 {
    NODES* tmp;
 
@@ -448,7 +450,7 @@ void freeList(NODES* head)
     }
 }
 
-void saveFile(NODES* list, char* fname)
+static void saveFile(NODES* list, char* fname)
 {
   int sector = fname2sector(fname);
   if(first_file){
