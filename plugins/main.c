@@ -28,14 +28,15 @@ bool enable_print_blkio = false;
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
 
-NODES *list = (NODES *)malloc(sizeof(NODES));
-
 typedef struct node
 {
    int data;
    char fname[50];
    struct node* next;
 } NODES;
+
+NODES *list = (NODES *)malloc(sizeof(NODES));
+
 
 typedef struct mon_cmd_t {
   const char *name;
