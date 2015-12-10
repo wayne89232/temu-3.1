@@ -372,7 +372,7 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
  // printf("hi2\n");
   if((sector_number == 0) || (sector_number != sector_num))
   {
-    printf("Nothing!\n");
+    //printf("Nothing!\n");
     return;
   }
   log_blkio(sector_num, base, len, dir);
