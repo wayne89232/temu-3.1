@@ -35,6 +35,7 @@ typedef struct node
    char fname[50];
    struct node* next;
 } NODES, *list;
+list head = NULL;
 list next = NULL;
 //NODES *list;
 
