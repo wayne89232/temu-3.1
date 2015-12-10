@@ -1714,6 +1714,7 @@ STEXI
 @item plugin_set @var{property} @var{value}
 Set plugin configuration
 ETEXI
+
     {
         .name       = "plugin_reset",
         .args_type  = "property:s",
