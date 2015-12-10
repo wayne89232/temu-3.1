@@ -1,7 +1,7 @@
 #!/bin/zsh
 # $1 = argv -> filename 
 
-entry=$(ifind -n "$1" win7.img -o 206848)
+entry=$(ifind -n "$1" win7_test.img -o 206848)
 
 info=$(istat -o 206848 win7.img $entry) 
 
