@@ -54,7 +54,24 @@ static void temp_function()
 }
 
 static void get_sectornum(char* filename);
-static void saveFile(NODES* list, char* fname);
+static void saveFile(NODES* list, char* fname)
+{
+   get_sectornum(fname);
+   int sector = (int) sector_number;
+  if(first_file){
+    if(sector != 0){
+      NODES *list = (NODES *)malloc(sizeof(NODES));
+      strcpy(list->fname, fname);
+      list->data = sector;
+      list->next = NULL;
+      first_file =  0;
+    }
+  }else{
+
+    insertNode(list, fname, sector);
+  }
+
+}
 static void print_lists(NODES *node);
 
 
@@ -453,24 +470,7 @@ static void freeList(NODES* head)
     }
 }
 
-static void saveFile(NODES* list, char* fname)
-{
-   get_sectornum(fname);
-   int sector = (int) sector_number;
-  if(first_file){
-    if(sector != 0){
-      NODES *list = (NODES *)malloc(sizeof(NODES));
-      strcpy(list->fname, fname);
-      list->data = sector;
-      list->next = NULL;
-      first_file =  0;
-    }
-  }else{
 
-    insertNode(list, fname, sector);
-  }
-
-}
 
 
 static void create_logfile(void) {
