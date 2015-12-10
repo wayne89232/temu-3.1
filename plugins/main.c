@@ -319,7 +319,7 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
 static void get_sectornum(char* filename){
   char buf[30];  
   FILE *fp;
-  printf("%s\n","hi" );
+  //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
   char* bash = "bash ../../fname2sector_singl.sh ";  
   char* file = filename;
@@ -341,7 +341,8 @@ static void get_sectornum(char* filename){
   int sector = atoi(buf);
   
   sector_number = (uint64_t) sector;
-  printf("get sector num:%d\n",sector );
+  printf("get sector num:%"PRIu64"\n",sector_number);
+  //get
 }
 
 
@@ -372,6 +373,7 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
     return;
   if((sector_number == 0) || (sector_number != sector_num))
   {
+    printf("Nothing!\n");
     return;
   }
   log_blkio(sector_num, base, len, dir);
