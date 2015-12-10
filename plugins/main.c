@@ -36,7 +36,7 @@ typedef struct node
    struct node* next;
 } NODES;
 
-NODES *list = (NODES *)malloc(sizeof(NODES));
+const NODES *list = (NODES *)malloc(sizeof(NODES));
 
 
 typedef struct mon_cmd_t {
@@ -56,6 +56,8 @@ static void temp_function()
 
 static void get_sectornum(char* filename);
 static void saveFile(NODES* list, char* fname);
+static void print_lists(NODES *node);
+
 
 static mon_cmd_t my_term_cmds[] = {
   {
