@@ -131,7 +131,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     saveFile(list, file);
     return;
   }
-  temp_string = "filelist";
+  temp_string = "file_list";
   if(strcmp(property, temp_string) == 0){
     printf("Print current file list: \n");
     print_lists(list);
@@ -378,7 +378,9 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
   struct tm * timeinfo;
   time ( &rawtime );
   timeinfo = localtime ( &rawtime );
+  printf("\n");
   printf("[io time]%s\n", asctime(timeinfo));
+  printf("filename: %s\n",target_file_name);
   printf("sector number: %"PRIu64"\n", sector_num);
   printf("base: %"PRIu64"\n", base);
   printf("length: %"PRIu64"\n", len);
