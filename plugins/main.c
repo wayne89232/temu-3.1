@@ -319,9 +319,9 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
 static void get_sectornum(char* filename){
   char buf[30];  
   FILE *fp;
-
+  printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ./fname2sector_singl.sh ";  
+  char* bash = "bash ../../fname2sector_singl.sh ";  
   char* file = filename;
 
   char *s = malloc(strlen(bash)+strlen(file)+1);
