@@ -22,6 +22,12 @@ bool enable_print_packet = false;
 bool enable_log = false;
 bool enable_pcap_log = false;
 
+bool enable_traceblk = false;
+bool enable_print_blkio = false;
+
+uint64_t sector_number = 0;
+char* target_file_name = "NOT_SET";
+
 typedef struct mon_cmd_t {
   const char *name;
   const char *args_type;
@@ -36,6 +42,8 @@ static void temp_function()
 {
   printf("nic_target_port\n");
 }
+
+static void get_sectornum(char* filename);
 
 static mon_cmd_t my_term_cmds[] = {
   {
@@ -92,6 +100,17 @@ static void do_set_plugin(const char *property, const char *value ) {
     }
     return;
   }
+
+  temp_string = "target_file_name";
+  if(strcmp(property, temp_string) == 0) {
+    target_file_name = strdup(value);
+    printf("setting target file name: %s\n", target_file_name);
+    char * file;
+    file = strdup(value);
+    get_sectornum(file);
+    return;
+  }
+
 }
 static void do_toggle_plugin(const char *property) {
   char* temp_string;
@@ -113,6 +132,19 @@ static void do_toggle_plugin(const char *property) {
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
     return;
   }
+ temp_string = "enable_traceblk";
+ if(strcmp(property, temp_string) ==0) {
+    enable_traceblk = !enable_traceblk;
+    printf(" enable_traceblk: %d\n", enable_traceblk );
+    return;
+
+ }
+ temp_string = "enable_print_blkio";
+ if(strcmp(property, temp_string) == 0){
+  enable_print_blkio = !enable_print_blkio;
+  printf("enable_print_blkio\n");
+  return;
+ } 
 }
 
 static void log_packet_pcap(const uint8_t *buf, size_t size) {
@@ -284,12 +316,83 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   get_logged(buf, size);
 }
 
+static void get_sectornum(char* filename){
+  char buf[30];  
+  FILE *fp;
+
+  // bash ./fname2sector.sh filename
+  char* bash = "bash ./fname2sector_singl.sh ";  
+  char* file = filename;
+
+  char *s = malloc(strlen(bash)+strlen(file)+1);
+  strcpy(s, bash);
+  strcat(s, file);
+
+  if ((fp = popen(s, "r")) == NULL) {  
+      printf("popen() error!\n");  
+      exit(1);  
+  }   
+  // run the shell script with popen
+  fgets(buf, sizeof buf, fp);
+  // fgets the first sector info
+  //printf("%s", buf);
+  pclose(fp);  
+  free(s);
+  int sector = atoi(buf);
+  
+  sector_number = (uint64_t) sector;
+}
+
+
+static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir) {
+  time_t rawtime;
+  struct tm * timeinfo;
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+  printf("[io time]%s\n", asctime(timeinfo));
+  printf("sector number: %"PRIu64"\n", sector_num);
+  printf("base: %"PRIu64"\n", base);
+  printf("length: %"PRIu64"\n", len);
+  if(dir == 1)
+    printf("IO Write\n");
+  else if(dir == 0)
+    printf("IO Read\n");
+}
+
+
+static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
+  if(enable_print_blkio)
+    print_blockio(sector_num, base, len, dir);
+
+}
+
+static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
+  if(!enable_traceblk)
+    return;
+  if((sector_number == 0) || (sector_number != sector_num))
+  {
+    return;
+  }
+  log_blkio(sector_num, base, len, dir);
+}
+
+
+
+
 static void do_nic_receive(const uint8_t *buf, size_t size) {
   get_packet(buf, size, 0);
 }
 
 static void do_nic_send(const uint8_t *buf, size_t size) {
   get_packet(buf, size, 1);
+}
+
+static void do_blk_write(uint64_t sector_num, uint64_t base, uint64_t len) {
+  get_blockio(sector_num, base, len, 1);
+}
+
+static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
+  get_blockio(sector_num, base, len, 0);
 }
 
 static void create_logfile(void) {
@@ -317,7 +420,8 @@ plugin_interface_t * init_plugin()
   create_logfile();
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
-
+  my_interface.blk_write = do_blk_write;
+  my_interface.blk_read = do_blk_read;
   // my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
