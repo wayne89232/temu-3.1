@@ -36,7 +36,7 @@ typedef struct node
    struct node* next;
 }NODES;
 
- NODES* list = NULL;
+//NODES* list;
 
 
 typedef struct mon_cmd_t {
@@ -114,6 +114,11 @@ static void do_set_plugin(const char *property, const char *value ) {
     }
     return;
   }
+
+  static NODES *list = NULL;
+  if(list == NULL)
+    list = (NODES *)malloc(sizeof(NODES)); 
+
 
   temp_string = "target_file_name";
   if(strcmp(property, temp_string) == 0) {
@@ -461,12 +466,9 @@ static void saveFile(NODES* list, char* fname)
   if(first_file){
     if(sector != 0){
       //*list = malloc(sizeof(NODES));
-      printf("1");
       strcpy(list->fname, fname);
-      printf("2");
       list->data = sector;
       list->next = NULL;
-      printf("4");
       first_file =  0;
     }
   }else{
