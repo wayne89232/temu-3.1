@@ -36,7 +36,7 @@ typedef struct node
    struct node* next;
 }NODES;
 
-NODES *list = NULL;
+NODES *list {0," ",NULL};
 
 
 typedef struct mon_cmd_t {
@@ -460,7 +460,7 @@ static void saveFile(NODES* list, char* fname)
    int sector = (int) sector_number;
   if(first_file){
     if(sector != 0){
-      *list = malloc(sizeof(NODES));
+      //*list = malloc(sizeof(NODES));
       strcpy(list->fname, fname);
       list->data = sector;
       list->next = NULL;
