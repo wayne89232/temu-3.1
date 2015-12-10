@@ -455,7 +455,8 @@ static void freeList(NODES* head)
 
 static void saveFile(NODES* list, char* fname)
 {
-  int sector = get_sectornum(fname);
+   get_sectornum(fname);
+   int sector = (int) sector_number;
   if(first_file){
     if(sector != 0){
       strcpy(list->fname, fname);
