@@ -408,12 +408,17 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
 
   while (tmp != NULL)
     {
-      if((sector_num == 0) || (sector_num != tmp->data))
+      if(sector_num == 0 )
       {
-        ;//return;
+        return;
       }
+      else if (sector_num != tmp->data)
+      {
+        tmp = tmp->next;
+      }
+      else if(sector_num == tmp->data)
       log_blkio(sector_num, base, len, dir);
-      tmp = tmp->next;
+      
     }
 }
 
