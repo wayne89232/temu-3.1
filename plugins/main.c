@@ -28,6 +28,15 @@ bool enable_print_blkio = false;
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
 
+NODES *list = (NODES *)malloc(sizeof(NODES));
+
+typedef struct node
+{
+   int data;
+   char fname[50];
+   struct node* next;
+} NODES;
+
 typedef struct mon_cmd_t {
   const char *name;
   const char *args_type;
@@ -107,7 +116,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting target file name: %s\n", target_file_name);
     char * file;
     file = strdup(value);
-    get_sectornum(file);
+    saveFile(list, file);
     return;
   }
 
@@ -145,6 +154,12 @@ static void do_toggle_plugin(const char *property) {
   printf("enable_print_blkio\n");
   return;
  } 
+
+ temp_string = "filelist"
+ if(strcmp(property, temp_string) == 0){
+  printf("Print current file list: \n");
+  print_lists(list);
+ }
 }
 
 static void log_packet_pcap(const uint8_t *buf, size_t size) {
@@ -396,6 +411,59 @@ static void do_blk_write(uint64_t sector_num, uint64_t base, uint64_t len) {
 static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
   get_blockio(sector_num, base, len, 0);
 }
+
+void insertNode(NODES *node, char fname[], int data)
+{
+     NODES *newNode = (NODES *)malloc(sizeof(NODES));
+     newNode->data = data;
+     strcpy(newNode->fname, fname);
+     newNode->next = node->next;
+     node->next = newNode;
+
+}  
+
+void print_lists(NODES *node)
+{
+    NODES* n = node;
+
+    while (n != NULL)
+    {
+        printf("%s: %d\n", n->fname, n->data);
+
+        n = n->next;
+    }
+
+}
+
+void freeList(NODES* head)
+{
+   NODES* tmp;
+
+   while (head != NULL)
+    {
+       tmp = head;
+       head = head->next;
+       free(tmp);
+    }
+}
+
+void saveFile(NODES* list, char* fname)
+{
+  int sector = fname2sector(fname);
+  if(first_file){
+    if(sector != 0){
+      strcpy(list->fname, fname);
+      list->data = sector;
+      list->next = NULL;
+      first_file =  0;
+    }
+  }else{
+
+    insertNode(list, fname, sector);
+  }
+
+}
+
 
 static void create_logfile(void) {
   remove("packet_log.pcap");
