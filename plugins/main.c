@@ -36,7 +36,7 @@ typedef struct node
    struct node* next;
 }NODES;
 
-
+NODES* list;
 
 
 typedef struct mon_cmd_t {
