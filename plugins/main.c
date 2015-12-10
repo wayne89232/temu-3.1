@@ -120,8 +120,8 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting target file name: %s\n", target_file_name);
     char * file;
     file = strdup(value);
-    if(first_file == 1)
-      NODES *list = (NODES *)malloc(sizeof(NODES));
+    //if(first_file == 1)
+      
     saveFile(list, file);
     return;
   }
@@ -494,6 +494,7 @@ plugin_interface_t * init_plugin()
     return NULL;
   }
   create_logfile();
+  NODES *list = (NODES *)malloc(sizeof(NODES));
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
   my_interface.blk_write = do_blk_write;
