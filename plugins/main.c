@@ -413,11 +413,11 @@ static void create_logfile(void) {
 
 plugin_interface_t * init_plugin()
 {
-  if (!(my_log = fopen("plugin.log", "w"))) {
-    fprintf(stderr, "cannot create plugin.log\n");
-    return NULL;
-  }
-  create_logfile();
+  // if (!(my_log = fopen("plugin.log", "w"))) {
+  //   fprintf(stderr, "cannot create plugin.log\n");
+  //   return NULL;
+  // }
+  // create_logfile();
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
   my_interface.blk_write = do_blk_write;
