@@ -497,7 +497,7 @@ plugin_interface_t * init_plugin()
     return NULL;
   }
   create_logfile();
-  NODES *list = (NODES *)malloc(sizeof(NODES));
+  //NODES *list = (NODES *)malloc(sizeof(NODES));
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
   my_interface.blk_write = do_blk_write;
