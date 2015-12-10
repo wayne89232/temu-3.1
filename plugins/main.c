@@ -35,6 +35,25 @@ typedef struct node
    char fname[50];
    struct node* next;
 } NODES;
+plugin_interface_t * init_plugin()
+{
+  if (!(my_log = fopen("plugin.log", "w"))) {
+    fprintf(stderr, "cannot create plugin.log\n");
+    return NULL;
+  }
+  create_logfile();
+  NODES *list = (NODES *)malloc(sizeof(NODES));
+  my_interface.nic_send = do_nic_send;
+  my_interface.nic_recv = do_nic_receive;
+  my_interface.blk_write = do_blk_write;
+  my_interface.blk_read = do_blk_read;
+  // my_interface.term_cmds = my_term_cmds;
+
+  my_interface.test = test;
+  my_interface.set_plugin = do_set_plugin;
+  my_interface.toggle_plugin = do_toggle_plugin;
+  return &my_interface;
+}
 
 //NODES *list;
 
@@ -54,24 +73,7 @@ static void temp_function()
 }
 
 static void get_sectornum(char* filename);
-static void saveFile(NODES* list, char* fname)
-{
-   get_sectornum(fname);
-   int sector = (int) sector_number;
-  if(first_file){
-    if(sector != 0){
-      NODES *list = (NODES *)malloc(sizeof(NODES));
-      strcpy(list->fname, fname);
-      list->data = sector;
-      list->next = NULL;
-      first_file =  0;
-    }
-  }else{
-
-    insertNode(list, fname, sector);
-  }
-
-}
+static void saveFile(NODES* list, char* fname);
 static void print_lists(NODES *node);
 
 
@@ -470,7 +472,24 @@ static void freeList(NODES* head)
     }
 }
 
+static void saveFile(NODES* list, char* fname)
+{
+   get_sectornum(fname);
+   int sector = (int) sector_number;
+  if(first_file){
+    if(sector != 0){
+      NODES *list = (NODES *)malloc(sizeof(NODES));
+      strcpy(list->fname, fname);
+      list->data = sector;
+      list->next = NULL;
+      first_file =  0;
+    }
+  }else{
 
+    insertNode(list, fname, sector);
+  }
+
+}
 
 
 static void create_logfile(void) {
@@ -489,24 +508,6 @@ static void create_logfile(void) {
   fclose(fp);
 }
 
-plugin_interface_t * init_plugin()
-{
-  if (!(my_log = fopen("plugin.log", "w"))) {
-    fprintf(stderr, "cannot create plugin.log\n");
-    return NULL;
-  }
-  create_logfile();
-  //
-  my_interface.nic_send = do_nic_send;
-  my_interface.nic_recv = do_nic_receive;
-  my_interface.blk_write = do_blk_write;
-  my_interface.blk_read = do_blk_read;
-  // my_interface.term_cmds = my_term_cmds;
 
-  my_interface.test = test;
-  my_interface.set_plugin = do_set_plugin;
-  my_interface.toggle_plugin = do_toggle_plugin;
-  return &my_interface;
-}
 
 
