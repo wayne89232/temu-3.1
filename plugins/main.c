@@ -131,7 +131,11 @@ static void do_set_plugin(const char *property, const char *value ) {
     saveFile(list, file);
     return;
   }
-
+  temp_string = "filelist";
+  if(strcmp(property, temp_string) == 0){
+    printf("Print current file list: \n");
+    print_lists(list);
+  }
 }
 static void do_toggle_plugin(const char *property) {
   char* temp_string;
@@ -167,11 +171,7 @@ static void do_toggle_plugin(const char *property) {
   return;
  } 
 
- temp_string = "filelist";
- if(strcmp(property, temp_string) == 0){
-  printf("Print current file list: \n");
-  print_lists(list);
- }
+ 
 }
 
 static void log_packet_pcap(const uint8_t *buf, size_t size) {
