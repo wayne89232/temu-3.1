@@ -29,7 +29,7 @@ bool first_file = 1;
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
 
-typedef struct node
+static typedef struct node
 {
    int data;
    char fname[50];
@@ -121,7 +121,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     char * file;
     file = strdup(value);
     if(first_file == 1)
-      NODES *list = malloc(sizeof(NODES));
+      NODES *list = (NODES *)malloc(sizeof(NODES));
     saveFile(list, file);
     return;
   }
