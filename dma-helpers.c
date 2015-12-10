@@ -215,7 +215,7 @@ BlockAIOCB *dma_blk_io(
     qemu_iovec_init(&dbs->iov, sg->nsg);
     dma_blk_cb(dbs, 0);
 
-    printf("hi\n");
+   // printf("hi\n");
     uint64_t base;
     uint64_t len;
     base = sg->sg->base;
