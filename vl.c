@@ -4328,10 +4328,7 @@ int main(int argc, char **argv, char **envp){
         do_load_plugin(load_plugin);
 
 
-    if(plugin){
-        plugin->test();
-    }
-    else{
+    if(!plugin){
         printf("No plugin loaded\n");
     }
     //end plugin implementation
