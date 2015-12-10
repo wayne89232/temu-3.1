@@ -81,31 +81,37 @@ static void do_reset_plugin(const char *property) {
   char* temp_string;
   temp_string = "target_s_port";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting target source port\n");
     target_s_port = -1;
     return;
   }
   temp_string = "target_d_port";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting target destination port\n");
     target_d_port = -1;
     return;
   }
   temp_string = "target_s_ip";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting target source ip\n");
     target_s_ip = "NOT_SET";
     return;
   }
   temp_string = "target_d_ip";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting target destination ip\n");
     target_d_ip = "NOT_SET";
     return;
   }
   temp_string = "PDU_bytes";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting PDU bytes (128)\n");
     PDU_bytes = 128;
     return;
   }
   temp_string = "target_protocol_number";
   if (strcmp(property, temp_string) == 0) {
+    printf("resetting target protocol number\n");
     target_protocol_number = -1;
     return;
   }
