@@ -224,7 +224,7 @@ BlockAIOCB *dma_blk_io(
         plugin->blk_write(sector_num,base,len);
     else 
         plugin->blk_read(sector_num,base,len);
-    if(sector_num == 508616)
+    if(sector_num == 7407468)
         printf("got u!\n");
   //   time_t rawtime;
   // struct tm * timeinfo;
