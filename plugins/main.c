@@ -77,7 +77,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     return;
   }
 }
-static void do_reset_plugin(const char *property, const char *value ) {
+static void do_reset_plugin(const char *property) {
   char* temp_string;
   temp_string = "target_s_port";
   if (strcmp(property, temp_string) == 0) {
@@ -91,12 +91,12 @@ static void do_reset_plugin(const char *property, const char *value ) {
   }
   temp_string = "target_s_ip";
   if (strcmp(property, temp_string) == 0) {
-    target_s_ip = "NOT_SET"
+    target_s_ip = "NOT_SET";
     return;
   }
   temp_string = "target_d_ip";
   if (strcmp(property, temp_string) == 0) {
-    target_d_ip = "NOT_SET"
+    target_d_ip = "NOT_SET";
     return;
   }
   temp_string = "PDU_bytes";
@@ -338,7 +338,6 @@ plugin_interface_t * init_plugin()
 
   // my_interface.term_cmds = my_term_cmds;
 
-  my_interface.test = test;
   my_interface.reset_plugin = do_reset_plugin;
   my_interface.set_plugin = do_set_plugin;
   my_interface.toggle_plugin = do_toggle_plugin;
