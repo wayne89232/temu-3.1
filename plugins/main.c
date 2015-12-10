@@ -37,10 +37,7 @@ typedef struct node
 }NODES;
 
 //NODES* list;
-static NODES *list = NULL;
-  if(list == NULL)
-    list = (NODES *)malloc(sizeof(NODES)); 
-
+ static NODES *list = NULL;
 
 typedef struct mon_cmd_t {
   const char *name;
@@ -118,7 +115,8 @@ static void do_set_plugin(const char *property, const char *value ) {
     return;
   }
 
-  
+ 
+ 
 
 
   temp_string = "target_file_name";
@@ -507,7 +505,8 @@ plugin_interface_t * init_plugin()
   create_logfile();
   //NODES *list = (NODES *)malloc(sizeof(NODES));
   //static NODES *list = NULL;
-
+ if(list == NULL)
+    list = (NODES *)malloc(sizeof(NODES)); 
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
   my_interface.blk_write = do_blk_write;
