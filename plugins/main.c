@@ -115,9 +115,9 @@ static void do_set_plugin(const char *property, const char *value ) {
     return;
   }
 
-  static NODES *list = NULL;
-  if(list == NULL)
-    list = (NODES *)malloc(sizeof(NODES)); 
+  // static NODES *list = NULL;
+  // if(list == NULL)
+  //   list = (NODES *)malloc(sizeof(NODES)); 
 
 
   temp_string = "target_file_name";
@@ -131,11 +131,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     saveFile(list, file);
     return;
   }
-  temp_string = "file_list";
-  if(strcmp(property, temp_string) == 0){
-    printf("Print current file list: \n");
-    print_lists(list);
-  }
+
 }
 static void do_toggle_plugin(const char *property) {
   char* temp_string;
@@ -171,7 +167,11 @@ static void do_toggle_plugin(const char *property) {
   return;
  } 
 
- 
+ temp_string = "filelist";
+ if(strcmp(property, temp_string) == 0){
+  printf("Print current file list: \n");
+  print_lists(list);
+ }
 }
 
 static void log_packet_pcap(const uint8_t *buf, size_t size) {
@@ -378,9 +378,7 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
   struct tm * timeinfo;
   time ( &rawtime );
   timeinfo = localtime ( &rawtime );
-  printf("\n");
   printf("[io time]%s\n", asctime(timeinfo));
-  printf("filename: %s\n",target_file_name);
   printf("sector number: %"PRIu64"\n", sector_num);
   printf("base: %"PRIu64"\n", base);
   printf("length: %"PRIu64"\n", len);
@@ -512,6 +510,10 @@ plugin_interface_t * init_plugin()
   my_interface.blk_write = do_blk_write;
   my_interface.blk_read = do_blk_read;
   // my_interface.term_cmds = my_term_cmds;
+
+  static NODES *list = NULL; ////////////////////////
+  if(list == NULL)
+  list = (NODES *)malloc(sizeof(NODES)); /////////////
 
   my_interface.test = test;
   my_interface.set_plugin = do_set_plugin;
