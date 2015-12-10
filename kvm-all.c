@@ -1668,13 +1668,13 @@ static void kvm_handle_io(uint16_t port, void *data, int direction, int size,
     if (ptr != NULL)
    // printf("%02x\n",(uint8_t*)data);
    // printf("%p\n",data);
-        printf("new\n");
+       // printf("new\n");
         //printf("%"PRIu32"\n",count);
     for (i = 0; i < count; i++) {
         address_space_rw(&address_space_io, port, ptr, size,
                          direction == KVM_EXIT_IO_OUT);
         ptr += size;
-        printf("old\n");
+        //printf("old\n");
     }
 }
 
