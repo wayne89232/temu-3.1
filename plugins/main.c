@@ -121,7 +121,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     char * file;
     file = strdup(value);
     if(first_file == 1)
-      NODES *list = (NODES *)malloc(sizeof(NODES));
+      NODES *list = malloc(sizeof(NODES));
     saveFile(list, file);
     return;
   }
