@@ -34,27 +34,8 @@ typedef struct node
    int data;
    char fname[50];
    struct node* next;
-} NODES;
-plugin_interface_t * init_plugin()
-{
-  if (!(my_log = fopen("plugin.log", "w"))) {
-    fprintf(stderr, "cannot create plugin.log\n");
-    return NULL;
-  }
-  create_logfile();
-  NODES *list = (NODES *)malloc(sizeof(NODES));
-  my_interface.nic_send = do_nic_send;
-  my_interface.nic_recv = do_nic_receive;
-  my_interface.blk_write = do_blk_write;
-  my_interface.blk_read = do_blk_read;
-  // my_interface.term_cmds = my_term_cmds;
-
-  my_interface.test = test;
-  my_interface.set_plugin = do_set_plugin;
-  my_interface.toggle_plugin = do_toggle_plugin;
-  return &my_interface;
-}
-
+} NODES, *list;
+list next = NULL;
 //NODES *list;
 
 typedef struct mon_cmd_t {
@@ -508,6 +489,24 @@ static void create_logfile(void) {
   fclose(fp);
 }
 
+plugin_interface_t * init_plugin()
+{
+  if (!(my_log = fopen("plugin.log", "w"))) {
+    fprintf(stderr, "cannot create plugin.log\n");
+    return NULL;
+  }
+  create_logfile();
+  NODES *list = (NODES *)malloc(sizeof(NODES));
+  my_interface.nic_send = do_nic_send;
+  my_interface.nic_recv = do_nic_receive;
+  my_interface.blk_write = do_blk_write;
+  my_interface.blk_read = do_blk_read;
+  // my_interface.term_cmds = my_term_cmds;
 
+  my_interface.test = test;
+  my_interface.set_plugin = do_set_plugin;
+  my_interface.toggle_plugin = do_toggle_plugin;
+  return &my_interface;
+}
 
 
