@@ -460,16 +460,16 @@ static void saveFile(NODES* list, char* fname)
    int sector = (int) sector_number;
   if(first_file){
     if(sector != 0){
-      //*list = malloc(sizeof(NODES));
-      strcpy(list->fname, fname);
-      list->data = sector;
-      list->next = NULL;
+      // //*list = malloc(sizeof(NODES));
+      // strcpy(list->fname, fname);
+      // list->data = sector;
+      // list->next = NULL;
       first_file =  0;
     }
-  }else{
+  }//else{
 
     insertNode(list, fname, sector);
-  }
+  //}
 
 }
 
