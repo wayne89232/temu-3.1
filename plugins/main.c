@@ -29,7 +29,7 @@ bool first_file = 1;
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
 
-static typedef struct node
+typedef struct node
 {
    int data;
    char fname[50];
