@@ -341,6 +341,7 @@ static void get_sectornum(char* filename){
   int sector = atoi(buf);
   
   sector_number = (uint64_t) sector;
+  printf("get sector num:%d\n",sector );
 }
 
 
