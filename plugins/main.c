@@ -36,7 +36,6 @@ typedef struct node
    struct node* next;
 } NODES;
 
-const NODES *list = (NODES *)malloc(sizeof(NODES));
 
 
 typedef struct mon_cmd_t {
@@ -121,6 +120,8 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting target file name: %s\n", target_file_name);
     char * file;
     file = strdup(value);
+    if(first_file == 1)
+      NODES *list = (NODES *)malloc(sizeof(NODES));
     saveFile(list, file);
     return;
   }
