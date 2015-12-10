@@ -1714,6 +1714,18 @@ STEXI
 @item plugin_set @var{property} @var{value}
 Set plugin configuration
 ETEXI
+    {
+        .name       = "plugin_reset",
+        .args_type  = "property:s",
+        .params     = "property",
+        .help       = "reset plugin configuration",
+        .mhandler.cmd = hmp_plugin_reset,
+    },
+
+STEXI
+@item plugin_reset @var{property}
+Reset plugin configuration
+ETEXI
 
     {
         .name       = "plugin_toggle",

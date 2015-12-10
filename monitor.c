@@ -972,6 +972,11 @@ static void hmp_plugin_set(Monitor *mon, const QDict *qdict)
     const char *value = qdict_get_str(qdict, "value");
     plugin->set_plugin(property,value);
 }
+static void hmp_plugin_reset(Monitor *mon, const QDict *qdict)
+{
+    const char *property = qdict_get_str(qdict, "property");
+    plugin->reset_plugin(property,value);
+}
 static void hmp_plugin_toggle(Monitor *mon, const QDict *qdict)
 {
     const char *property = qdict_get_str(qdict, "property");

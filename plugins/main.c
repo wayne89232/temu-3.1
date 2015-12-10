@@ -10,55 +10,46 @@
 
 static plugin_interface_t my_interface;
 FILE *my_log;
-const char *nic_target_port = NULL;
 
 typedef enum { false = 0, true = !false } bool;
 int PDU_bytes = 128;
-int target_port = -1;
-char* target_ip = "NOT_SET";
+
+int target_s_port = -1;
+int target_d_port = -1;
+
+char* target_s_ip = "NOT_SET";
+char* target_d_ip = "NOT_SET";
+
 int target_protocol_number = -1;
 
 bool enable_print_packet = false;
 bool enable_log = false;
 bool enable_pcap_log = false;
 
-typedef struct mon_cmd_t {
-  const char *name;
-  const char *args_type;
-  const char *params;
-  const char *help;
-  union {
-    void (*cmd);
-  } mhandler;
-} mon_cmd_t;
-
-static void temp_function()
-{
-  printf("nic_target_port\n");
-}
-
-static mon_cmd_t my_term_cmds[] = {
-  {
-    .name       = "temp_function",
-    .args_type  = "",
-    .params     = "",
-    .help       = "temp_function",
-    .mhandler.cmd = temp_function
-  },
-  {NULL, NULL},
-};
-
-static void test()
-{
-  printf("test\n");
-}
-
 static void do_set_plugin(const char *property, const char *value ) {
   char* temp_string;
-  temp_string = "target_port";
+  temp_string = "target_s_port";
   if (strcmp(property, temp_string) == 0) {
-    target_port = atoi(value);
-    printf("setting target port: %d\n", target_port);
+    target_s_port = atoi(value);
+    printf("setting target source port: %d\n", target_s_port);
+    return;
+  }
+  temp_string = "target_d_port";
+  if (strcmp(property, temp_string) == 0) {
+    target_d_port = atoi(value);
+    printf("setting target destination port: %d\n", target_d_port);
+    return;
+  }
+  temp_string = "target_s_ip";
+  if (strcmp(property, temp_string) == 0) {
+    target_s_ip = strdup(value);
+    printf("setting target source ip: %s\n", target_s_ip);
+    return;
+  }
+  temp_string = "target_d_ip";
+  if (strcmp(property, temp_string) == 0) {
+    target_d_ip = strdup(value);
+    printf("setting target destination ip: %s\n", target_d_ip);
     return;
   }
   temp_string = "PDU_bytes";
@@ -67,13 +58,6 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting PDU bytes: %d\n", PDU_bytes);
     return;
   }
-  temp_string = "target_ip";
-  if (strcmp(property, temp_string) == 0) {
-    target_ip = strdup(value);
-    printf("setting target ip: %s\n", target_ip);
-    return;
-  }
-
   temp_string = "target_protocol_number";
   if (strcmp(property, temp_string) == 0) {
     target_protocol_number = atoi(value);
@@ -90,6 +74,39 @@ static void do_set_plugin(const char *property, const char *value ) {
     else{
       printf("Protocol number:%d\n", target_protocol_number);
     }
+    return;
+  }
+}
+static void do_reset_plugin(const char *property, const char *value ) {
+  char* temp_string;
+  temp_string = "target_s_port";
+  if (strcmp(property, temp_string) == 0) {
+    target_s_port = -1;
+    return;
+  }
+  temp_string = "target_d_port";
+  if (strcmp(property, temp_string) == 0) {
+    target_d_port = -1;
+    return;
+  }
+  temp_string = "target_s_ip";
+  if (strcmp(property, temp_string) == 0) {
+    target_s_ip = "NOT_SET"
+    return;
+  }
+  temp_string = "target_d_ip";
+  if (strcmp(property, temp_string) == 0) {
+    target_d_ip = "NOT_SET"
+    return;
+  }
+  temp_string = "PDU_bytes";
+  if (strcmp(property, temp_string) == 0) {
+    PDU_bytes = 128;
+    return;
+  }
+  temp_string = "target_protocol_number";
+  if (strcmp(property, temp_string) == 0) {
+    target_protocol_number = -1;
     return;
   }
 }
@@ -261,18 +278,19 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   int protocol_number = *(buf + 23);
 
   if ((
-      target_port != -1 
-      && (
-        target_port != s_port &&
-        target_port != d_port
+      (
+        target_s_port != -1 && 
+        target_s_port != s_port
+      ) && (
+        target_d_port != -1 &&
+        target_d_port != d_port
       )
     ) 
     || (
-      strcmp(target_ip, target_ip_not_set) != 0 
-      && (
-        strcmp(target_ip, s_ip) != 0 &&
-        strcmp(target_ip, d_ip) != 0 
-      )
+      strcmp(target_s_ip, target_ip_not_set) != 0 && 
+      strcmp(target_s_ip, s_ip) != 0 &&
+      strcmp(target_d_ip, target_ip_not_set) != 0 &&
+      strcmp(target_d_ip, d_ip) != 0 
     ) 
     || (
       target_protocol_number != -1 &&
@@ -321,6 +339,7 @@ plugin_interface_t * init_plugin()
   // my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
+  my_interface.reset_plugin = do_reset_plugin;
   my_interface.set_plugin = do_set_plugin;
   my_interface.toggle_plugin = do_toggle_plugin;
   return &my_interface;
