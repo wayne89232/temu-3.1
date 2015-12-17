@@ -282,21 +282,29 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   char* target_ip_not_set = "NOT_SET";
 
   int protocol_number = *(buf + 23);
-
+  // printf("----------------------------------\n");
+  // printf("%s\n", target_s_ip);
+  // printf("%s\n", s_ip);
+  // printf("%d\n", strcmp(target_s_ip, target_ip_not_set));
+  // printf("%d\n", strcmp(target_s_ip, s_ip));
+  // printf("----------------------------------\n");
   if ((
       (
         target_s_port != -1 && 
         target_s_port != s_port
-      ) && (
+      ) || (
         target_d_port != -1 &&
         target_d_port != d_port
       )
     ) 
     || (
-      strcmp(target_s_ip, target_ip_not_set) != 0 && 
-      strcmp(target_s_ip, s_ip) != 0 &&
-      strcmp(target_d_ip, target_ip_not_set) != 0 &&
-      strcmp(target_d_ip, d_ip) != 0 
+      (
+        strcmp(target_s_ip, target_ip_not_set) != 0 && 
+        strcmp(target_s_ip, s_ip) != 0
+      ) || (
+        strcmp(target_d_ip, target_ip_not_set) != 0 &&
+        strcmp(target_d_ip, d_ip) != 0 
+      )
     ) 
     || (
       target_protocol_number != -1 &&
