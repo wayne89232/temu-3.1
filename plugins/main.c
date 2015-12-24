@@ -9,10 +9,11 @@
 #include "../static_structs_test.h"
 #include "../plugin.h"
 
+
 static plugin_interface_t my_interface;
 FILE *my_log;
 
-static void tests(p_cmdline* opaque)
+static void tests(void* opaque)
 {
   printf("testing\n");
 }
@@ -32,7 +33,7 @@ static uint64_t my_memory_dump_printd(CPUArchState *env, hwaddr addr)
     len = 8;
 
     
-    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
                 return -1;
     }  
     v = ldq_p(buf);
@@ -49,7 +50,7 @@ static void my_memory_dump_printc(CPUArchState *env, hwaddr addr)
     i = 0;
    // char name[16];
 
-    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
              printf( " Cannot get ProcessName.\n");
     }
     while (i < len) {
@@ -73,7 +74,7 @@ static uint64_t my_memory_dump(CPUArchState *env, hwaddr addr)
     uint64_t v; 
     len = 8; 
     
-    if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
                 return -1;
     }else{   
                 v = ldq_p(buf);
@@ -96,7 +97,7 @@ static uint64_t findKDBG(CPUArchState *env)
     return start_addr - KDBG_offset ;  //if not found,return end_addr
 }
 
-static void getcr3(p_cmdline* opaque)
+static void getcr3(void* opaque)
 {
     target_ulong KDBG_addr;
     target_ulong pshead_addr ; 
@@ -109,7 +110,7 @@ static void getcr3(p_cmdline* opaque)
     target_ulong cr3_value;
     target_ulong cr3_addr;  
     
-    CPUArchState *env = opaque->env;
+    CPUArchState *env = ((p_cmdline*)opaque)->env;
     
     KDBG_addr = findKDBG(env);
 
@@ -169,6 +170,13 @@ static plugin_cmd my_term_cmds[] = {
         .params     = "",
         .help       = "do some tests",
         .cmd_handler = tests,
+    },
+    {
+        .name       = "getcr3",
+        .args_type  = "",
+        .params     = "",
+        .help       = "cr3",
+        .cmd_handler = getcr3,
     },
 };
 
