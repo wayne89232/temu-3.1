@@ -120,9 +120,9 @@ int main(int argc, char **argv)
 #include "qom/object_interfaces.h"
 #include "qapi-event.h"
 
-// #include "plugin.h"
+#include "plugin.h"
 
-#define DEFAULT_RAM_SIZE 128
+// #define DEFAULT_RAM_SIZE 128
 
 #define MAX_VIRTIO_CONSOLES 1
 #define MAX_SCLP_CONSOLES 1
@@ -2745,9 +2745,9 @@ int main(int argc, char **argv, char **envp){
     const char *loadvm = NULL;
     // const char *load_plugin = NULL;
     MachineClass *machine_class;
-    const char *cpu_model;
-    const char *vga_model = NULL;
-    const char *qtest_chrdev = NULL;
+    // const char *cpu_model;
+    // const char *vga_model = NULL;
+    // const char *qtest_chrdev = NULL;
     const char *qtest_log = NULL;
     const char *pid_file = NULL;
     const char *incoming = NULL;
@@ -3371,10 +3371,10 @@ int main(int argc, char **argv, char **envp){
                 break;
             // case QEMU_OPTION_load_plugin:
             //     load_plugin = optarg;
+            // //     break;
+            // case QEMU_OPTION_full_screen:
+            //     full_screen = 1;
             //     break;
-            case QEMU_OPTION_full_screen:
-                full_screen = 1;
-                break;
             case QEMU_OPTION_no_frame:
                 no_frame = 1;
                 break;
@@ -4324,8 +4324,8 @@ int main(int argc, char **argv, char **envp){
 
     //plugin loading
 
-    // if(loadvm == NULL && load_plugin)
-    //     do_load_plugin(load_plugin);
+    if(loadvm == NULL && load_plugin)
+        do_load_plugin(load_plugin);
 
 
     if(!plugin){
