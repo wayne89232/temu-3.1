@@ -1639,7 +1639,9 @@ static void pool_files(Monitor *mon)
 
 static void pool_nets(Monitor *mon)
 {
-  target_ulong tcp_tag = 0x0000000054637045; 
+  target_ulong tcp_tag = 0x54637045; 
+  target_ulong small_tcp_tag = 0x45360754; 
+  target_ulong store   = 0x00000000;
   target_ulong start_addr = 0xFFFFFa8000D00004;
   //0xFFFFF8a000500000
   //0xFFFFF8a002000000
@@ -1649,12 +1651,12 @@ static void pool_nets(Monitor *mon)
   // target_ulong last_addr;
 
    while(start_addr < end_addr){
-        
-        if(my_memory_dump(start_addr) == tcp_tag){
+        store = my_memory_dump(start_addr);
+        if(store == tcp_tag || store == ){
             monitor_printf(mon,  "Dump : 0x"TARGET_FMT_lx "\n" ,start_addr);
             my_memory_dump_printc(mon, start_addr);
         }
-         start_addr += pool_offset;
+         start_addr += 0x1;
    }
     monitor_printf(mon, "Traverse done!\n");  
 }
