@@ -1650,6 +1650,29 @@ static void hmp_pslist(Monitor *mon, const QDict *qdict)
     }
 }
 
+static void pool_nets(Monitor *mon)
+{
+  target_ulong tcp_tag = 0x0000000054637045; 
+  target_ulong start_addr = 0xFFFFFa8000D00004;
+  //0xFFFFF8a000500000
+  //0xFFFFF8a002000000
+  target_ulong end_addr = 0xFFFFFa8003000004;
+  // target_ulong end_addr = 0xFFFFF8bFFFFFFFFF; 0xFFFFF8a000D20000
+  // target_ulong tcp_tag = 0x00000000e56c6946;
+  // target_ulong last_addr;
+
+   while(start_addr < end_addr){
+        
+        if(my_memory_dump(start_addr) == tcp_tag){
+            monitor_printf(mon,  "Dump : 0x"TARGET_FMT_lx "\n" ,start_addr);
+            my_memory_dump_printc(mon, start_addr);
+        }
+         start_addr += 0x1;
+   }
+    monitor_printf(mon, "Traverse done!\n");  
+}
+
+
 
 static void hmp_pool_files(Monitor *mon, const QDict *qdict)
 {
@@ -1662,6 +1685,10 @@ static void hmp_pool_files(Monitor *mon, const QDict *qdict)
     }else{
              pool_files(mon);
     } 
+}
+static void hmp_pool_net(Monitor *mon, const QDict *qdict)
+{
+    pool_nets(mon);
 }
 static void hmp_getcr3(Monitor *mon, const QDict *qdict)
 {
