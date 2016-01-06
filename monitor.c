@@ -84,7 +84,7 @@
 #endif
 #include "hw/lm32/lm32_pic.h"
 
-// #include "plugin.h"
+#include "plugin.h"
 
 //#define DEBUG
 //#define DEBUG_COMPLETION
