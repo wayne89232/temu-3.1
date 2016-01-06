@@ -1,18 +1,11 @@
-include ../config-host.mak
+# include ../config-host.mak
 
-DEFINES=-I. -I.. -I$(SRC_PATH) -I$(SRC_PATH)/include -I$(SRC_PATH)/x86_64-softmmu -I$(SRC_PATH)/target-i386 -I$(SRC_PATH)/fpu 
-DEFINES+=-D_GNU_SOURCE
-
-CFLAGS=-Wall -O4 -g -fPIC -MMD 
-LDFLAGS=-g -Wl -shared 
-LIBS=
-
-LIBS+=-lm 
+# DEFINES=-I. -I.. 
 
 PLUGIN = plugin.so
 
 all: main.c 
-	gcc -shared -o $(PLUGIN) $(CFLAGS) $(DEFINES)  main.c 
+	gcc -shared -o $(PLUGIN) -fPIC main.c
 	
 # %.o: %.c 
 # 	gcc  -c -o $@ $<
@@ -25,5 +18,4 @@ all: main.c
 
 clean:
 	rm -f *.o *.so *~ $(PLUGIN)
-
 
