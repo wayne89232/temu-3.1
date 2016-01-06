@@ -1701,6 +1701,45 @@ STEXI
 @item info @var{subcommand}
 @findex info
 Show various information about the system state.
+ETEXI
+
+    {
+        .name       = "plugin_set",
+        .args_type  = "property:s,value:s",
+        .params     = "property value",
+        .help       = "set plugin configuration",
+        .mhandler.cmd = hmp_plugin_set,
+    },
+
+STEXI
+@item plugin_set @var{property} @var{value}
+Set plugin configuration
+ETEXI
+
+    {
+        .name       = "plugin_reset",
+        .args_type  = "property:s",
+        .params     = "property",
+        .help       = "reset plugin configuration",
+        .mhandler.cmd = hmp_plugin_reset,
+    },
+
+STEXI
+@item plugin_reset @var{property}
+Reset plugin configuration
+ETEXI
+
+    {
+        .name       = "plugin_toggle",
+        .args_type  = "property:s",
+        .params     = "property",
+        .help       = "set plugin configuration",
+        .mhandler.cmd = hmp_plugin_toggle,
+    },
+
+STEXI
+@item plugin_toggle @var{property}
+Set plugin configuration
 
 
 

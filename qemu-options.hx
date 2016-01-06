@@ -3037,7 +3037,6 @@ STEXI
 do something on loading plugin
 ETEXI
 
-
 #ifndef _WIN32
 DEF("daemonize", 0, QEMU_OPTION_daemonize, \
     "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
