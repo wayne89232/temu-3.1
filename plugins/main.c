@@ -6,12 +6,7 @@
 #include <time.h>
 // #include "../config.h"
 #include "main.h"
-#include <stdint.h>
-#include "../include/exec/hwaddr.h"
-#include <inttypes.h>
-#include "../static_structs_test.h"
 #include "../plugin.h"
-
 
 static plugin_interface_t my_interface;
 FILE *my_log;
@@ -362,5 +357,4 @@ plugin_interface_t * init_plugin()
   my_interface.toggle_plugin = do_toggle_plugin;
   return &my_interface;
 }
-
 
