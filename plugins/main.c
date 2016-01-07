@@ -434,7 +434,7 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
   //   }
   // if (sector_num == 0)
   //   return;
-  if(list != NULL)
+  if(count != 0)
   {  
   if(searchfile(list,sector_num))
     log_blkio(sector_num, base, len, dir);
