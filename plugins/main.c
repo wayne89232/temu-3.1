@@ -421,28 +421,28 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
   //   return;
   // }
   // log_blkio(sector_num, base, len, dir);
-  // // NODES* tmp = list;
+   NODES* tmp = list;
 
-  // while (tmp != NULL)
-  //   {
-  //     if((sector_num == 0) || (sector_num != tmp->data))
-  //     {
-  //       return;
-  //     }
-  //     log_blkio(sector_num, base, len, dir);
-  //     tmp = tmp->next;
-  //   }
+  while (tmp != NULL)
+    {
+      if((sector_num == 0) || (sector_num != tmp->data))
+      {
+        return;
+      }
+      log_blkio(sector_num, base, len, dir);
+      tmp = tmp->next;
+    }
   // if (sector_num == 0)
+  // //   return;
+  // if(count != 0)
+  // {  
+  // if(searchfile(list,sector_num))
+  //   log_blkio(sector_num, base, len, dir);
+  // else
   //   return;
-  if(count != 0)
-  {  
-  if(searchfile(list,sector_num))
-    log_blkio(sector_num, base, len, dir);
-  else
-    return;
-  }
-  else
-    return;
+  // }
+  // else
+  //   return;
 }
 
 
