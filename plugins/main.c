@@ -373,14 +373,14 @@ static void get_sectornum(char* filename){
 }
 
 
-static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir) {
+static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname) {
   time_t rawtime;
   struct tm * timeinfo;
   time ( &rawtime );
   timeinfo = localtime ( &rawtime );
   printf("\n");
   printf("[io time]%s\n", asctime(timeinfo));
-  printf("filename: %s\n",target_file_name);
+  printf("filename: %s\n",fname);
   printf("sector number: %"PRIu64"\n", sector_num);
   printf("base: %"PRIu64"\n", base);
   printf("length: %"PRIu64"\n", len);
@@ -391,10 +391,10 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
 }
 
 
-static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
+static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname){
   //if(enable_print_blkio)
  // printf("say\n");
-    print_blockio(sector_num, base, len, dir);
+    print_blockio(sector_num, base, len, dir, fname);
 
 }
 static bool searchfile(NODES *list, uint64_t key)
@@ -430,7 +430,7 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
         return;
       }
       if(sector_num == tmp->data)
-        log_blkio(sector_num, base, len, dir);
+        log_blkio(sector_num, base, len, dir, tmp->fname);
       tmp = tmp->next;
     }
   // if (sector_num == 0)
