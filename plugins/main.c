@@ -25,6 +25,7 @@ bool enable_pcap_log = false;
 bool enable_traceblk = false;
 bool enable_print_blkio = false;
 bool first_file = 1;
+int count = 0;
 
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
@@ -431,13 +432,15 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
   //     tmp = tmp->next;}
   if (sector_num == 0)
     return;
-  if(list != NULL)
+  if(count != 0)
   {  
   if(searchfile(list,sector_num))
     log_blkio(sector_num, base, len, dir);
   else
     return;
   }
+  else
+    return;
 }
 
 
@@ -509,6 +512,7 @@ static void saveFile(NODES* list, char* fname)
   }else{
 
     insertNode(list, fname, sector);
+    count ++;
   }
 
 }
