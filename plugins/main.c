@@ -395,6 +395,18 @@ static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir)
     print_blockio(sector_num, base, len, dir);
 
 }
+static bool searchfile(NODES *list, uint64_t key)
+{
+  while (list != NULL)
+  {
+    if (list->data == key)
+    {
+      return true;
+    }
+    list = list -> next;
+  }
+  return false;
+}
 
 static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
  // printf("hi2\n");
@@ -404,22 +416,23 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
   //   return;
   // }
   // log_blkio(sector_num, base, len, dir);
-  NODES* tmp = list;
+  // NODES* tmp = list;
 
-  while (tmp != NULL)
-    {
-      if(sector_num == 0 )
-      {
-        return;
-      }
-      else if (sector_num != tmp->data)
-      {
-        tmp = tmp->next;
-      }
-      else if(sector_num == tmp->data)
-      log_blkio(sector_num, base, len, dir);
-      
-    }
+  // while (tmp != NULL)
+  //   {
+  //     if((sector_num == 0) || (sector_num != tmp->data))
+  //     {
+  //       return;
+  //     }
+  //     log_blkio(sector_num, base, len, dir);
+  //     tmp = tmp->next;}
+  if (sector_num == 0)
+    return;
+  if(searchfile(list,sector_num))
+    log_blkio(sector_num, base, len, dir);
+  else
+    return;
+    
 }
 
 
