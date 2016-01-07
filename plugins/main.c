@@ -397,14 +397,17 @@ static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir)
 }
 static bool searchfile(NODES *list, uint64_t key)
 {
+
   while (list != NULL)
   {
     if (list->data == key)
     {
+      printf("hi\n");
       return true;
     }
     list = list -> next;
   }
+  printf("here\n");
   return false;
 }
 
