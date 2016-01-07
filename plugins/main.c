@@ -413,7 +413,7 @@ static bool searchfile(NODES *list, uint64_t key)
 }
 
 static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
- printf("hi2\n");
+ //printf("hi2\n");
   if((sector_number == 0) || (sector_number != sector_num))
   {
     //printf("Nothing!\n");
