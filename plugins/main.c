@@ -429,9 +429,10 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
       {
         return;
       }
-      log_blkio(sector_num, base, len, dir);
+      if(sector_num == tmp->data)
+        log_blkio(sector_num, base, len, dir);
       tmp = tmp->next;
-    }
+    
   // if (sector_num == 0)
   // //   return;
   // if(count != 0)
