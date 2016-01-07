@@ -1381,6 +1381,35 @@ static void my_memory_dump_printc(Monitor *mon, hwaddr addr)
     //monitor_printf(mon, " %s\n, name");
 }
 
+/*print the char for a given addr*/
+static void memory_dump_string(Monitor *mon, hwaddr addr, int length)
+{
+    CPUArchState *env;
+    int  i, len;
+    uint8_t buf[1000];
+    uint64_t v;
+    len = length; 
+    i = 0;
+   // char name[16];
+
+    env = mon_get_cpu();
+    cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0);
+    // if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
+    //          monitor_printf(mon, " Cannot get ProcessName.\n");
+    // }
+    while (i < len) {
+              v = ldub_p(buf + i);         
+              if (v >= 32 && v <= 126) { //from space to ~
+                     monitor_printf(mon, "%c", (int) v);       
+                    // snprintf(name[i], 16,"%c",(int)v);
+              }  else{
+                     monitor_printf(mon, " ");       
+              }
+              i ++;
+     }
+    // monitor_printf(mon, " %s\n, name");
+}
+
 /*return the hex value for a given addr*/
 static uint64_t my_memory_dump(hwaddr addr)
 { 
@@ -1495,13 +1524,17 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
                             target_ulong object_addr = (my_memory_dump(handle_entry)&~0x7)|0x8000000000000000;
                             target_ulong object_type = object_addr+0x18;
                             target_ulong object_body = object_addr+0x30;
-                            // monitor_printf(mon,  "Object_type: 0x" TARGET_FMT_lx " \n" ,my_memory_dump(object_type)&0xff);
-                            if((my_memory_dump(object_type)&0xff) == 0x1c){
-                                //is file
-                                monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
-                                monitor_printf(mon,  "   ");
-                                my_memory_dump_printc(mon, object_body+0x58);
-                                monitor_printf(mon,  "\n");
+                            if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                                // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                                int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                                
+                                //At 0x58: +0x000 length  / +0x008 buffer
+                                if(length != 0){
+                                    monitor_printf(mon,  "   ");
+                                    monitor_printf(mon,  "length: %d   ", length);
+                                    memory_dump_string(mon, my_memory_dump(object_body+0x60), length);    
+                                    monitor_printf(mon,  "\n");                                    
+                                }
                             }
                             handle_entry += 0x10;
                             i++;
@@ -1509,13 +1542,35 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
                         
                     }
                     else if((table_code & 7) == 1){
-                        int i = 0;
+                        int i = 1;
                         while(my_memory_dump(handle_entry)!=0){
-                            monitor_printf(mon,  "1Table: 0x" TARGET_FMT_lx " \n" ,my_memory_dump(handle_entry));
+                            monitor_printf(mon,  "Table num: %d \n",i);
+                            target_ulong lv2_handle_entry = my_memory_dump(handle_entry);
+                            int j = 0;
+                            while(j < 256){ //256 entries
+                                target_ulong object_addr = (my_memory_dump(lv2_handle_entry)&~0x7)|0x8000000000000000;
+                                target_ulong object_type = object_addr+0x18;
+                                target_ulong object_body = object_addr+0x30;
+                                if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                                    // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                                    int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                                    
+                                    //At 0x58: +0x000 length  / +0x008 buffer
+                                    if(length != 0){
+                                        monitor_printf(mon,  "   ");
+                                        monitor_printf(mon,  "length: %d   ", length);
+                                        memory_dump_string(mon, my_memory_dump(object_body+0x60), length);    
+                                        monitor_printf(mon,  "\n");                                    
+                                    }
+                                }
+                                lv2_handle_entry += 0x10;
+                                j++;
+                            }
+
                             i++;
                             handle_entry += 0x8;
                         }
-                        monitor_printf(mon,  "Table num: %d \n",i);
+                        
 
                     }
                     else
