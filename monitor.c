@@ -84,7 +84,7 @@
 #endif
 #include "hw/lm32/lm32_pic.h"
 
-// #include "plugin.h"
+#include "plugin.h"
 
 //#define DEBUG
 //#define DEBUG_COMPLETION
@@ -216,7 +216,7 @@ struct Monitor {
     void *password_opaque;
     mon_cmd_t *cmd_table;
     QError *error;
-    QLIST_HEAD(, mon_fd_t) fds;
+    QLIST_HEAD(,mon_fd_t) fds;
     QLIST_ENTRY(Monitor) entry;
 };
 
@@ -324,7 +324,7 @@ static void monitor_flush_locked(Monitor *mon)
             mon->outbuf = tmp;
         }
         if (mon->out_watch == 0) {
-            mon->out_watch = qemu_chr_fe_add_watch(mon->chr, G_IO_OUT | G_IO_HUP,
+            mon->out_watch = qemu_chr_fe_add_watch(mon->chr, G_IO_OUT|G_IO_HUP,
                                                    monitor_unblocked, mon);
         }
     }
@@ -343,7 +343,7 @@ static void monitor_puts(Monitor *mon, const char *str)
     char c;
 
     qemu_mutex_lock(&mon->out_lock);
-    for (;;) {
+    for(;;) {
         c = *str++;
         if (c == '\0')
             break;
@@ -383,7 +383,7 @@ void monitor_printf(Monitor *mon, const char *fmt, ...)
 }
 
 static int GCC_FMT_ATTR(2, 3) monitor_fprintf(FILE *stream,
-        const char *fmt, ...)
+                                              const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -414,7 +414,7 @@ static void monitor_json_emitter(Monitor *mon, const QObject *data)
     QString *json;
 
     json = mon->flags & MONITOR_USE_PRETTY ? qobject_to_json_pretty(data) :
-           qobject_to_json(data);
+                                             qobject_to_json(data);
     assert(json != NULL);
 
     qstring_append_chr(json, '\n');
@@ -511,7 +511,7 @@ monitor_qapi_event_queue(QAPIEvent event, QDict *data, Error **errp)
     } else {
         int64_t delta = now - evstate->last;
         if (evstate->data ||
-                delta < evstate->rate) {
+            delta < evstate->rate) {
             /* If there's an existing event pending, replace
              * it with the new event, otherwise schedule a
              * timer for delayed emission
@@ -668,7 +668,7 @@ static int compare_cmd(const char *name, const char *list)
     int len;
     len = strlen(name);
     p = list;
-    for (;;) {
+    for(;;) {
         pstart = p;
         p = strchr(p, '|');
         if (!p)
@@ -694,7 +694,7 @@ static int get_str(char *buf, int buf_size, const char **pp)
         p++;
     }
     if (*p == '\0') {
-fail:
+    fail:
         *q = '\0';
         *pp = p;
         return -1;
@@ -804,7 +804,7 @@ static int parse_cmdline(const char *cmdline,
     *pnb_args = nb_args;
     return 0;
 
-fail:
+ fail:
     free_cmdline_args(args, nb_args);
     return -1;
 }
@@ -924,7 +924,7 @@ static void hmp_trace_file(Monitor *mon, const QDict *qdict)
 
 static void user_monitor_complete(void *opaque, QObject *ret_data)
 {
-    MonitorCompletionData *data = (MonitorCompletionData *)opaque;
+    MonitorCompletionData *data = (MonitorCompletionData *)opaque; 
 
     if (ret_data) {
         data->user_print(data->mon, ret_data);
@@ -971,6 +971,11 @@ static void hmp_plugin_set(Monitor *mon, const QDict *qdict)
     const char *property = qdict_get_str(qdict, "property");
     const char *value = qdict_get_str(qdict, "value");
     plugin->set_plugin(property,value);
+}
+static void hmp_plugin_reset(Monitor *mon, const QDict *qdict)
+{
+    const char *property = qdict_get_str(qdict, "property");
+    plugin->reset_plugin(property);
 }
 static void hmp_plugin_toggle(Monitor *mon, const QDict *qdict)
 {
@@ -1070,7 +1075,7 @@ static void hmp_info_history(Monitor *mon, const QDict *qdict)
     if (!mon->rs)
         return;
     i = 0;
-    for (;;) {
+    for(;;) {
         str = readline_get_history(mon->rs, i);
         if (!str)
             break;
@@ -1198,8 +1203,8 @@ static void hmp_watchdog_action(Monitor *mon, const QDict *qdict)
 
 static void monitor_printc(Monitor *mon, int c)
 {
-    monitor_printf(mon, ".");
-    switch (c) {
+   monitor_printf(mon, ".");
+    switch(c) {
     case '\'':
         monitor_printf(mon, "\\'");
         break;
@@ -1213,11 +1218,11 @@ static void monitor_printc(Monitor *mon, int c)
         monitor_printf(mon, "\\r");
         break;
     default:
-        if (c >= 32 && c <= 126) { //from space to ~
-            monitor_printf(mon, "%c", c);
-        } else {
-            // monitor_printf(mon, "\\x%02x", c);
-        }
+       if (c >= 32 && c <= 126) { //from space to ~
+           monitor_printf(mon, "%c", c);
+       } else {
+          // monitor_printf(mon, "\\x%02x", c);
+       }
         break;
     }
     //monitor_printf(mon, "'");
@@ -1246,12 +1251,12 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
             if (env) {
 #ifdef TARGET_X86_64
                 if ((env->efer & MSR_EFER_LMA) &&
-                        (env->segs[R_CS].flags & DESC_L_MASK))
+                    (env->segs[R_CS].flags & DESC_L_MASK))
                     flags = 2;
                 else
 #endif
-                    if (!(env->segs[R_CS].flags & DESC_B_MASK))
-                        flags = 1;
+                if (!(env->segs[R_CS].flags & DESC_B_MASK))
+                    flags = 1;
             }
         }
 #endif
@@ -1270,7 +1275,7 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
         line_size = 16;
     max_digits = 0;
 
-    switch (format) {
+    switch(format) {
     case 'o':
         max_digits = (wsize * 8 + 2) / 3;
         break;
@@ -1306,7 +1311,7 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
         }
         i = 0;
         while (i < l) { //i<16
-            switch (wsize) {
+            switch(wsize) {
             default:
             case 1:
                 v = ldub_p(buf + i);
@@ -1322,7 +1327,7 @@ static void memory_dump(Monitor *mon, int count, int format, int wsize,
                 break;
             }
             monitor_printf(mon, " ");
-            switch (format) {
+            switch(format) {
             case 'o': //octal
                 monitor_printf(mon, "%#*" PRIo64, max_digits, v);
                 break;
@@ -1679,6 +1684,30 @@ static void pool_files(Monitor *mon)
     monitor_printf(mon, "Traverse done!\n");  
 }
 
+static void pool_nets(Monitor *mon)
+{
+  target_ulong tcp_tag = 0x54637045; 
+  target_ulong small_tcp_tag = 0x45360754; 
+  target_ulong store   = 0x00000000;
+  target_ulong start_addr = 0xFFFFFa8000D00004;
+  //0xFFFFF8a000500000
+  //0xFFFFF8a002000000
+  target_ulong end_addr = 0xFFFFFa8003000004;
+  // target_ulong end_addr = 0xFFFFF8bFFFFFFFFF; 0xFFFFF8a000D20000
+  // target_ulong tcp_tag = 0x00000000e56c6946;
+  // target_ulong last_addr;
+
+   while(start_addr < end_addr){
+        store = my_memory_dump(start_addr);
+        if(store == tcp_tag || store == ){
+            monitor_printf(mon,  "Dump : 0x"TARGET_FMT_lx "\n" ,start_addr);
+            my_memory_dump_printc(mon, start_addr);
+        }
+         start_addr += 0x1;
+   }
+    monitor_printf(mon, "Traverse done!\n");  
+}
+
     // //for debugging purpose
     // const char *filename = "windows7.dump";
     // FILE* fp = fopen("/home/a110605/volatility-2.4/windows7.dump", "r");
@@ -1722,6 +1751,10 @@ static void hmp_pool_files(Monitor *mon, const QDict *qdict)
              pool_files(mon);
     } 
 }
+static void hmp_pool_nets(Monitor *mon, const QDict *qdict)
+{
+    pool_nets(mon);
+}
 static void hmp_getcr3(Monitor *mon, const QDict *qdict)
 {
     const char *arg = qdict_get_try_str(qdict, "command");
@@ -1734,7 +1767,6 @@ static void hmp_getcr3(Monitor *mon, const QDict *qdict)
              getcr3(mon);
     } 
 }
-
 static void hmp_memory_dump(Monitor *mon, const QDict *qdict)
 {
     int count = qdict_get_int(qdict, "count");
@@ -1756,7 +1788,7 @@ static void hmp_physical_memory_dump(Monitor *mon, const QDict *qdict)
     int format = qdict_get_int(qdict, "format");
     int size = qdict_get_int(qdict, "size");
     target_long addr = qdict_get_int(qdict, "addr");
-
+    
     // printf("count : %d\n",count);
     // printf("format : %d\n",format);
     // printf("size : %d\n",size);
@@ -1770,7 +1802,7 @@ static void do_print(Monitor *mon, const QDict *qdict)
     int format = qdict_get_int(qdict, "format");
     hwaddr val = qdict_get_int(qdict, "val");
 
-    switch (format) {
+    switch(format) {
     case 'o':
         monitor_printf(mon, "%#" HWADDR_PRIo, val);
         break;
@@ -1799,7 +1831,7 @@ static void hmp_sum(Monitor *mon, const QDict *qdict)
     uint32_t size = qdict_get_int(qdict, "size");
 
     sum = 0;
-    for (addr = start; addr < (start + size); addr++) {
+    for(addr = start; addr < (start + size); addr++) {
         uint8_t val = ldub_phys(&address_space_memory, addr);
         /* BSD sum algorithm ('sum' Unix command) */
         sum = (sum >> 1) | (sum << 15);
@@ -1866,7 +1898,7 @@ static void hmp_ioport_read(Monitor *mon, const QDict *qdict)
     }
     addr &= 0xffff;
 
-    switch (size) {
+    switch(size) {
     default:
     case 1:
         val = cpu_inb(addr);
@@ -1952,7 +1984,7 @@ static void tlb_info_32(Monitor *mon, CPUArchState *env)
     uint32_t pgd, pde, pte;
 
     pgd = env->cr[3] & ~0xfff;
-    for (l1 = 0; l1 < 1024; l1++) {
+    for(l1 = 0; l1 < 1024; l1++) {
         cpu_physical_memory_read(pgd + l1 * 4, &pde, 4);
         pde = le32_to_cpu(pde);
         if (pde & PG_PRESENT_MASK) {
@@ -1960,7 +1992,7 @@ static void tlb_info_32(Monitor *mon, CPUArchState *env)
                 /* 4M pages */
                 print_pte(mon, (l1 << 22), pde, ~((1 << 21) - 1));
             } else {
-                for (l2 = 0; l2 < 1024; l2++) {
+                for(l2 = 0; l2 < 1024; l2++) {
                     cpu_physical_memory_read((pde & ~0xfff) + l2 * 4, &pte, 4);
                     pte = le32_to_cpu(pte);
                     if (pte & PG_PRESENT_MASK) {
@@ -2128,7 +2160,7 @@ static void mem_info_32(Monitor *mon, CPUArchState *env)
     pgd = env->cr[3] & ~0xfff;
     last_prot = 0;
     start = -1;
-    for (l1 = 0; l1 < 1024; l1++) {
+    for(l1 = 0; l1 < 1024; l1++) {
         cpu_physical_memory_read(pgd + l1 * 4, &pde, 4);
         pde = le32_to_cpu(pde);
         end = l1 << 22;
@@ -2137,13 +2169,13 @@ static void mem_info_32(Monitor *mon, CPUArchState *env)
                 prot = pde & (PG_USER_MASK | PG_RW_MASK | PG_PRESENT_MASK);
                 mem_print(mon, &start, &last_prot, end, prot);
             } else {
-                for (l2 = 0; l2 < 1024; l2++) {
+                for(l2 = 0; l2 < 1024; l2++) {
                     cpu_physical_memory_read((pde & ~0xfff) + l2 * 4, &pte, 4);
                     pte = le32_to_cpu(pte);
                     end = (l1 << 22) + (l2 << 12);
                     if (pte & PG_PRESENT_MASK) {
                         prot = pte & pde &
-                               (PG_USER_MASK | PG_RW_MASK | PG_PRESENT_MASK);
+                            (PG_USER_MASK | PG_RW_MASK | PG_PRESENT_MASK);
                     } else {
                         prot = 0;
                     }
@@ -2262,7 +2294,7 @@ static void mem_info_64(Monitor *mon, CPUArchState *env)
                                                                  &pte, 8);
                                         pte = le64_to_cpu(pte);
                                         end = (l1 << 39) + (l2 << 30) +
-                                              (l3 << 21) + (l4 << 12);
+                                            (l3 << 21) + (l4 << 12);
                                         if (pte & PG_PRESENT_MASK) {
                                             prot = pte & (PG_USER_MASK | PG_RW_MASK |
                                                           PG_PRESENT_MASK);
@@ -3036,7 +3068,7 @@ static mon_cmd_t info_cmds[] = {
         .args_type  = "nodes:-n,verbose:-v,device:B?",
         .params     = "[-n] [-v] [device]",
         .help       = "show info of one block device or all block devices "
-        "(-n: show named nodes; -v: show details)",
+                      "(-n: show named nodes; -v: show details)",
         .mhandler.cmd = hmp_info_block,
     },
     {
@@ -3770,14 +3802,14 @@ static int get_monitor_def(target_long *pval, const char *name)
     const MonitorDef *md;
     void *ptr;
 
-    for (md = monitor_defs; md->name != NULL; md++) {
+    for(md = monitor_defs; md->name != NULL; md++) {
         if (compare_cmd(name, md->name)) {
             if (md->get_value) {
                 *pval = md->get_value(md, md->offset);
             } else {
                 CPUArchState *env = mon_get_cpu();
                 ptr = (uint8_t *)env + md->offset;
-                switch (md->type) {
+                switch(md->type) {
                 case MD_I32:
                     *pval = *(int32_t *)ptr;
                     break;
@@ -3812,7 +3844,7 @@ static int64_t expr_unary(Monitor *mon)
     char *p;
     int ret;
 
-    switch (*pch) {
+    switch(*pch) {
     case '+':
         next();
         n = expr_unary(mon);
@@ -3844,29 +3876,29 @@ static int64_t expr_unary(Monitor *mon)
         next();
         break;
     case '$':
-    {
-        char buf[128], *q;
-        target_long reg = 0;
+        {
+            char buf[128], *q;
+            target_long reg=0;
 
-        pch++;
-        q = buf;
-        while ((*pch >= 'a' && *pch <= 'z') ||
-                (*pch >= 'A' && *pch <= 'Z') ||
-                (*pch >= '0' && *pch <= '9') ||
-                *pch == '_' || *pch == '.') {
-            if ((q - buf) < sizeof(buf) - 1)
-                *q++ = *pch;
             pch++;
+            q = buf;
+            while ((*pch >= 'a' && *pch <= 'z') ||
+                   (*pch >= 'A' && *pch <= 'Z') ||
+                   (*pch >= '0' && *pch <= '9') ||
+                   *pch == '_' || *pch == '.') {
+                if ((q - buf) < sizeof(buf) - 1)
+                    *q++ = *pch;
+                pch++;
+            }
+            while (qemu_isspace(*pch))
+                pch++;
+            *q = 0;
+            ret = get_monitor_def(&reg, buf);
+            if (ret < 0)
+                expr_error(mon, "unknown register");
+            n = reg;
         }
-        while (qemu_isspace(*pch))
-            pch++;
-        *q = 0;
-        ret = get_monitor_def(&reg, buf);
-        if (ret < 0)
-            expr_error(mon, "unknown register");
-        n = reg;
-    }
-    break;
+        break;
     case '\0':
         expr_error(mon, "unexpected end of expression");
         n = 0;
@@ -3895,13 +3927,13 @@ static int64_t expr_prod(Monitor *mon)
     int op;
 
     val = expr_unary(mon);
-    for (;;) {
+    for(;;) {
         op = *pch;
         if (op != '*' && op != '/' && op != '%')
             break;
         next();
         val2 = expr_unary(mon);
-        switch (op) {
+        switch(op) {
         default:
         case '*':
             val *= val2;
@@ -3926,13 +3958,13 @@ static int64_t expr_logic(Monitor *mon)
     int op;
 
     val = expr_prod(mon);
-    for (;;) {
+    for(;;) {
         op = *pch;
         if (op != '&' && op != '|' && op != '^')
             break;
         next();
         val2 = expr_prod(mon);
-        switch (op) {
+        switch(op) {
         default:
         case '&':
             val &= val2;
@@ -3954,7 +3986,7 @@ static int64_t expr_sum(Monitor *mon)
     int op;
 
     val = expr_logic(mon);
-    for (;;) {
+    for(;;) {
         op = *pch;
         if (op != '+' && op != '-')
             break;
@@ -4084,17 +4116,17 @@ static int default_fmt_size = 4;
 static int is_valid_option(const char *c, const char *typestr)
 {
     char option[3];
-
+  
     option[0] = '-';
     option[1] = *c;
     option[2] = '\0';
-
+  
     typestr = strstr(typestr, option);
     return (typestr != NULL);
 }
 
 static const mon_cmd_t *search_dispatch_table(const mon_cmd_t *disp_table,
-        const char *cmdname)
+                                              const char *cmdname)
 {
     const mon_cmd_t *cmd;
 
@@ -4125,10 +4157,10 @@ static const mon_cmd_t *qmp_find_cmd(const char *cmdname)
  * when the command is a sub-command.
  */
 static const mon_cmd_t *monitor_parse_command(Monitor *mon,
-        const char *cmdline,
-        int start,
-        mon_cmd_t *table,
-        QDict *qdict)
+                                              const char *cmdline,
+                                              int start,
+                                              mon_cmd_t *table,
+                                              QDict *qdict)
 {
     const char *p, *typestr;
     int c;
@@ -4154,19 +4186,20 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
 
     cmd = search_dispatch_table(table, cmdname);
 
-    if(plugin&&!cmd) {
-        // printf("searching command %s from temu side...\n", cmdname);
-        plugin_cmd *cmd2;
-        for(cmd2 = plugin->term_cmds; cmd2->name != NULL; cmd2++) {
-            if (compare_cmd(cmdname, cmd2->name)) {
-                p = get_plugin_param(p, handle->params, sizeof(handle->params));
-                printf("cmd%s get param: %s\n",cmdname, handle->params);
-                handle->env = mon_get_cpu();
-                cmd2->cmd_handler(handle);
-                return NULL;
-            }
-        }
-    }
+    // if(plugin&&!cmd) {
+    //     printf("searching command %s from temu side...\n", cmdname);
+    //     plugin_cmd *cmd2;
+    //     for(cmd2 = plugin->term_cmds; cmd2->name != NULL; cmd2++) {
+    //         if (compare_cmd(cmdname, cmd2->name)) {
+    //             p = get_plugin_param(p, handle->params, sizeof(handle->params));
+    //             printf("cmd%s get param: %s\n",cmdname, handle->params);
+    //             handle->env = mon_get_cpu();
+    //             cmd2->cmd_handler(handle);
+    //             return NULL;
+    //         }
+    //     }
+    // }
+    
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
                        (int)(p - cmdline), cmdline);
@@ -4190,333 +4223,333 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
     }
     /* parse the parameters */
     typestr = cmd->args_type;
-    for (;;) {
+    for(;;) {
         typestr = key_get_info(typestr, &key);
         if (!typestr)
             break;
         c = *typestr;
         typestr++;
-        switch (c) {
+        switch(c) {
         case 'F':
         case 'B':
         case 's':
-        {
-            int ret;
+            {
+                int ret;
 
-            while (qemu_isspace(*p))
-                p++;
-            if (*typestr == '?') {
-                typestr++;
-                if (*p == '\0') {
-                    /* no optional string: NULL argument */
-                    break;
-                }
-            }
-            ret = get_str(buf, sizeof(buf), &p);
-            if (ret < 0) {
-                switch (c) {
-                case 'F':
-                    monitor_printf(mon, "%s: filename expected\n",
-                                   cmdname);
-                    break;
-                case 'B':
-                    monitor_printf(mon, "%s: block device name expected\n",
-                                   cmdname);
-                    break;
-                default:
-                    monitor_printf(mon, "%s: string expected\n", cmdname);
-                    break;
-                }
-                goto fail;
-            }
-            qdict_put(qdict, key, qstring_from_str(buf));
-        }
-        break;
-        case 'O':
-        {
-            QemuOptsList *opts_list;
-            QemuOpts *opts;
-
-            opts_list = qemu_find_opts(key);
-            if (!opts_list || opts_list->desc->name) {
-                goto bad_type;
-            }
-            while (qemu_isspace(*p)) {
-                p++;
-            }
-            if (!*p)
-                break;
-            if (get_str(buf, sizeof(buf), &p) < 0) {
-                goto fail;
-            }
-            opts = qemu_opts_parse(opts_list, buf, 1);
-            if (!opts) {
-                goto fail;
-            }
-            qemu_opts_to_qdict(opts, qdict);
-            qemu_opts_del(opts);
-        }
-        break;
-        case '/':
-        {
-            int count, format, size;
-
-            while (qemu_isspace(*p))
-                p++;
-            if (*p == '/') {
-                /* format found */
-                p++;
-                count = 1;
-                if (qemu_isdigit(*p)) {
-                    count = 0;
-                    while (qemu_isdigit(*p)) {
-                        count = count * 10 + (*p - '0');
-                        p++;
+                while (qemu_isspace(*p))
+                    p++;
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
+                        /* no optional string: NULL argument */
+                        break;
                     }
                 }
-                size = -1;
-                format = -1;
-                for (;;) {
-                    switch (*p) {
-                    case 'o':
-                    case 'd':
-                    case 'u':
-                    case 'x':
-                    case 'i':
-                    case 'c':
-                        format = *p++;
+                ret = get_str(buf, sizeof(buf), &p);
+                if (ret < 0) {
+                    switch(c) {
+                    case 'F':
+                        monitor_printf(mon, "%s: filename expected\n",
+                                       cmdname);
                         break;
-                    case 'b':
-                        size = 1;
-                        p++;
-                        break;
-                    case 'h':
-                        size = 2;
-                        p++;
-                        break;
-                    case 'w':
-                        size = 4;
-                        p++;
-                        break;
-                    case 'g':
-                    case 'L':
-                        size = 8;
-                        p++;
+                    case 'B':
+                        monitor_printf(mon, "%s: block device name expected\n",
+                                       cmdname);
                         break;
                     default:
-                        goto next;
+                        monitor_printf(mon, "%s: string expected\n", cmdname);
+                        break;
                     }
-                }
-next:
-                if (*p != '\0' && !qemu_isspace(*p)) {
-                    monitor_printf(mon, "invalid char in format: '%c'\n",
-                                   *p);
                     goto fail;
                 }
-                if (format < 0)
-                    format = default_fmt_format;
-                if (format != 'i') {
-                    /* for 'i', not specifying a size gives -1 as size */
-                    if (size < 0)
-                        size = default_fmt_size;
-                    default_fmt_size = size;
-                }
-                default_fmt_format = format;
-            } else {
-                count = 1;
-                format = default_fmt_format;
-                if (format != 'i') {
-                    size = default_fmt_size;
-                } else {
-                    size = -1;
-                }
+                qdict_put(qdict, key, qstring_from_str(buf));
             }
-            qdict_put(qdict, "count", qint_from_int(count));
-            qdict_put(qdict, "format", qint_from_int(format));
-            qdict_put(qdict, "size", qint_from_int(size));
-        }
-        break;
+            break;
+        case 'O':
+            {
+                QemuOptsList *opts_list;
+                QemuOpts *opts;
+
+                opts_list = qemu_find_opts(key);
+                if (!opts_list || opts_list->desc->name) {
+                    goto bad_type;
+                }
+                while (qemu_isspace(*p)) {
+                    p++;
+                }
+                if (!*p)
+                    break;
+                if (get_str(buf, sizeof(buf), &p) < 0) {
+                    goto fail;
+                }
+                opts = qemu_opts_parse(opts_list, buf, 1);
+                if (!opts) {
+                    goto fail;
+                }
+                qemu_opts_to_qdict(opts, qdict);
+                qemu_opts_del(opts);
+            }
+            break;
+        case '/':
+            {
+                int count, format, size;
+
+                while (qemu_isspace(*p))
+                    p++;
+                if (*p == '/') {
+                    /* format found */
+                    p++;
+                    count = 1;
+                    if (qemu_isdigit(*p)) {
+                        count = 0;
+                        while (qemu_isdigit(*p)) {
+                            count = count * 10 + (*p - '0');
+                            p++;
+                        }
+                    }
+                    size = -1;
+                    format = -1;
+                    for(;;) {
+                        switch(*p) {
+                        case 'o':
+                        case 'd':
+                        case 'u':
+                        case 'x':
+                        case 'i':
+                        case 'c':
+                            format = *p++;
+                            break;
+                        case 'b':
+                            size = 1;
+                            p++;
+                            break;
+                        case 'h':
+                            size = 2;
+                            p++;
+                            break;
+                        case 'w':
+                            size = 4;
+                            p++;
+                            break;
+                        case 'g':
+                        case 'L':
+                            size = 8;
+                            p++;
+                            break;
+                        default:
+                            goto next;
+                        }
+                    }
+                next:
+                    if (*p != '\0' && !qemu_isspace(*p)) {
+                        monitor_printf(mon, "invalid char in format: '%c'\n",
+                                       *p);
+                        goto fail;
+                    }
+                    if (format < 0)
+                        format = default_fmt_format;
+                    if (format != 'i') {
+                        /* for 'i', not specifying a size gives -1 as size */
+                        if (size < 0)
+                            size = default_fmt_size;
+                        default_fmt_size = size;
+                    }
+                    default_fmt_format = format;
+                } else {
+                    count = 1;
+                    format = default_fmt_format;
+                    if (format != 'i') {
+                        size = default_fmt_size;
+                    } else {
+                        size = -1;
+                    }
+                }
+                qdict_put(qdict, "count", qint_from_int(count));
+                qdict_put(qdict, "format", qint_from_int(format));
+                qdict_put(qdict, "size", qint_from_int(size));
+            }
+            break;
         case 'i':
         case 'l':
         case 'M':
-        {
-            int64_t val;
+            {
+                int64_t val;
 
-            while (qemu_isspace(*p))
-                p++;
-            if (*typestr == '?' || *typestr == '.') {
-                if (*typestr == '?') {
-                    if (*p == '\0') {
-                        typestr++;
-                        break;
-                    }
-                } else {
-                    if (*p == '.') {
-                        p++;
-                        while (qemu_isspace(*p))
-                            p++;
+                while (qemu_isspace(*p))
+                    p++;
+                if (*typestr == '?' || *typestr == '.') {
+                    if (*typestr == '?') {
+                        if (*p == '\0') {
+                            typestr++;
+                            break;
+                        }
                     } else {
-                        typestr++;
+                        if (*p == '.') {
+                            p++;
+                            while (qemu_isspace(*p))
+                                p++;
+                        } else {
+                            typestr++;
+                            break;
+                        }
+                    }
+                    typestr++;
+                }
+                if (get_expr(mon, &val, &p))
+                    goto fail;
+                /* Check if 'i' is greater than 32-bit */
+                if ((c == 'i') && ((val >> 32) & 0xffffffff)) {
+                    monitor_printf(mon, "\'%s\' has failed: ", cmdname);
+                    monitor_printf(mon, "integer is for 32-bit values\n");
+                    goto fail;
+                } else if (c == 'M') {
+                    if (val < 0) {
+                        monitor_printf(mon, "enter a positive value\n");
+                        goto fail;
+                    }
+                    val <<= 20;
+                }
+                qdict_put(qdict, key, qint_from_int(val));
+            }
+            break;
+        case 'o':
+            {
+                int64_t val;
+                char *end;
+
+                while (qemu_isspace(*p)) {
+                    p++;
+                }
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
                         break;
                     }
                 }
-                typestr++;
-            }
-            if (get_expr(mon, &val, &p))
-                goto fail;
-            /* Check if 'i' is greater than 32-bit */
-            if ((c == 'i') && ((val >> 32) & 0xffffffff)) {
-                monitor_printf(mon, "\'%s\' has failed: ", cmdname);
-                monitor_printf(mon, "integer is for 32-bit values\n");
-                goto fail;
-            } else if (c == 'M') {
+                val = strtosz(p, &end);
                 if (val < 0) {
-                    monitor_printf(mon, "enter a positive value\n");
+                    monitor_printf(mon, "invalid size\n");
                     goto fail;
                 }
-                val <<= 20;
+                qdict_put(qdict, key, qint_from_int(val));
+                p = end;
             }
-            qdict_put(qdict, key, qint_from_int(val));
-        }
-        break;
-        case 'o':
-        {
-            int64_t val;
-            char *end;
-
-            while (qemu_isspace(*p)) {
-                p++;
-            }
-            if (*typestr == '?') {
-                typestr++;
-                if (*p == '\0') {
-                    break;
-                }
-            }
-            val = strtosz(p, &end);
-            if (val < 0) {
-                monitor_printf(mon, "invalid size\n");
-                goto fail;
-            }
-            qdict_put(qdict, key, qint_from_int(val));
-            p = end;
-        }
-        break;
+            break;
         case 'T':
-        {
-            double val;
+            {
+                double val;
 
-            while (qemu_isspace(*p))
-                p++;
-            if (*typestr == '?') {
-                typestr++;
-                if (*p == '\0') {
-                    break;
-                }
-            }
-            if (get_double(mon, &val, &p) < 0) {
-                goto fail;
-            }
-            if (p[0] && p[1] == 's') {
-                switch (*p) {
-                case 'm':
-                    val /= 1e3; p += 2; break;
-                case 'u':
-                    val /= 1e6; p += 2; break;
-                case 'n':
-                    val /= 1e9; p += 2; break;
-                }
-            }
-            if (*p && !qemu_isspace(*p)) {
-                monitor_printf(mon, "Unknown unit suffix\n");
-                goto fail;
-            }
-            qdict_put(qdict, key, qfloat_from_double(val));
-        }
-        break;
-        case 'b':
-        {
-            const char *beg;
-            int val;
-
-            while (qemu_isspace(*p)) {
-                p++;
-            }
-            beg = p;
-            while (qemu_isgraph(*p)) {
-                p++;
-            }
-            if (p - beg == 2 && !memcmp(beg, "on", p - beg)) {
-                val = 1;
-            } else if (p - beg == 3 && !memcmp(beg, "off", p - beg)) {
-                val = 0;
-            } else {
-                monitor_printf(mon, "Expected 'on' or 'off'\n");
-                goto fail;
-            }
-            qdict_put(qdict, key, qbool_from_int(val));
-        }
-        break;
-        case '-':
-        {
-            const char *tmp = p;
-            int skip_key = 0;
-            /* option */
-
-            c = *typestr++;
-            if (c == '\0')
-                goto bad_type;
-            while (qemu_isspace(*p))
-                p++;
-            if (*p == '-') {
-                p++;
-                if (c != *p) {
-                    if (!is_valid_option(p, typestr)) {
-
-                        monitor_printf(mon, "%s: unsupported option -%c\n",
-                                       cmdname, *p);
-                        goto fail;
-                    } else {
-                        skip_key = 1;
+                while (qemu_isspace(*p))
+                    p++;
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
+                        break;
                     }
                 }
-                if (skip_key) {
-                    p = tmp;
-                } else {
-                    /* has option */
+                if (get_double(mon, &val, &p) < 0) {
+                    goto fail;
+                }
+                if (p[0] && p[1] == 's') {
+                    switch (*p) {
+                    case 'm':
+                        val /= 1e3; p += 2; break;
+                    case 'u':
+                        val /= 1e6; p += 2; break;
+                    case 'n':
+                        val /= 1e9; p += 2; break;
+                    }
+                }
+                if (*p && !qemu_isspace(*p)) {
+                    monitor_printf(mon, "Unknown unit suffix\n");
+                    goto fail;
+                }
+                qdict_put(qdict, key, qfloat_from_double(val));
+            }
+            break;
+        case 'b':
+            {
+                const char *beg;
+                int val;
+
+                while (qemu_isspace(*p)) {
                     p++;
-                    qdict_put(qdict, key, qbool_from_int(1));
+                }
+                beg = p;
+                while (qemu_isgraph(*p)) {
+                    p++;
+                }
+                if (p - beg == 2 && !memcmp(beg, "on", p - beg)) {
+                    val = 1;
+                } else if (p - beg == 3 && !memcmp(beg, "off", p - beg)) {
+                    val = 0;
+                } else {
+                    monitor_printf(mon, "Expected 'on' or 'off'\n");
+                    goto fail;
+                }
+                qdict_put(qdict, key, qbool_from_int(val));
+            }
+            break;
+        case '-':
+            {
+                const char *tmp = p;
+                int skip_key = 0;
+                /* option */
+
+                c = *typestr++;
+                if (c == '\0')
+                    goto bad_type;
+                while (qemu_isspace(*p))
+                    p++;
+                if (*p == '-') {
+                    p++;
+                    if(c != *p) {
+                        if(!is_valid_option(p, typestr)) {
+                  
+                            monitor_printf(mon, "%s: unsupported option -%c\n",
+                                           cmdname, *p);
+                            goto fail;
+                        } else {
+                            skip_key = 1;
+                        }
+                    }
+                    if(skip_key) {
+                        p = tmp;
+                    } else {
+                        /* has option */
+                        p++;
+                        qdict_put(qdict, key, qbool_from_int(1));
+                    }
                 }
             }
-        }
-        break;
+            break;
         case 'S':
-        {
-            /* package all remaining string */
-            int len;
+            {
+                /* package all remaining string */
+                int len;
 
-            while (qemu_isspace(*p)) {
-                p++;
-            }
-            if (*typestr == '?') {
-                typestr++;
-                if (*p == '\0') {
-                    /* no remaining string: NULL argument */
+                while (qemu_isspace(*p)) {
+                    p++;
+                }
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
+                        /* no remaining string: NULL argument */
+                        break;
+                    }
+                }
+                len = strlen(p);
+                if (len <= 0) {
+                    monitor_printf(mon, "%s: string expected\n",
+                                   cmdname);
                     break;
                 }
+                qdict_put(qdict, key, qstring_from_str(p));
+                p += len;
             }
-            len = strlen(p);
-            if (len <= 0) {
-                monitor_printf(mon, "%s: string expected\n",
-                               cmdname);
-                break;
-            }
-            qdict_put(qdict, key, qstring_from_str(p));
-            p += len;
-        }
-        break;
+            break;
         default:
-bad_type:
+        bad_type:
             monitor_printf(mon, "%s: unknown type '%c'\n", cmdname, c);
             goto fail;
         }
@@ -4600,7 +4633,7 @@ static void cmd_completion(Monitor *mon, const char *name, const char *list)
     int len;
 
     p = list;
-    for (;;) {
+    for(;;) {
         pstart = p;
         p = strchr(p, '|');
         if (!p)
@@ -4648,7 +4681,7 @@ static void file_completion(Monitor *mon, const char *input)
     ffs = opendir(path);
     if (!ffs)
         return;
-    for (;;) {
+    for(;;) {
         struct stat sb;
         d = readdir(ffs);
         if (!d)
@@ -4749,7 +4782,7 @@ void device_add_completion(ReadLineState *rs, int nb_args, const char *str)
         name = object_class_get_name(OBJECT_CLASS(dc));
 
         if (!dc->cannot_instantiate_with_device_add_yet
-                && !strncmp(name, str, len)) {
+            && !strncmp(name, str, len)) {
             readline_add_completion(rs, name);
         }
         elt = elt->next;
@@ -4782,7 +4815,7 @@ void object_add_completion(ReadLineState *rs, int nb_args, const char *str)
 }
 
 static void peripheral_device_del_completion(ReadLineState *rs,
-        const char *str, size_t len)
+                                             const char *str, size_t len)
 {
     Object *peripheral = container_get(qdev_get_machine(), "/peripheral");
     GSList *list, *item;
@@ -4894,7 +4927,7 @@ void object_del_completion(ReadLineState *rs, int nb_args, const char *str)
         ObjectPropertyInfo *info = list->value;
 
         if (!strncmp(info->type, "child<", 5)
-                && !strncmp(info->name, str, len)) {
+            && !strncmp(info->name, str, len)) {
             readline_add_completion(rs, info->name);
         }
         list = list->next;
@@ -5054,7 +5087,7 @@ void host_net_remove_completion(ReadLineState *rs, int nb_args, const char *str)
             const char *name;
 
             if (ncs[i]->info->type == NET_CLIENT_OPTIONS_KIND_HUBPORT ||
-                    net_hub_id_for_client(ncs[i], &id)) {
+                net_hub_id_for_client(ncs[i], &id)) {
                 continue;
             }
             name = ncs[i]->name;
@@ -5114,9 +5147,9 @@ void loadvm_completion(ReadLineState *rs, int nb_args, const char *str)
 }
 
 static void monitor_find_completion_by_table(Monitor *mon,
-        const mon_cmd_t *cmd_table,
-        char **args,
-        int nb_args)
+                                             const mon_cmd_t *cmd_table,
+                                             char **args,
+                                             int nb_args)
 {
     const char *cmdname;
     int i;
@@ -5157,7 +5190,7 @@ static void monitor_find_completion_by_table(Monitor *mon,
         }
 
         ptype = next_arg_type(cmd->args_type);
-        for (i = 0; i < nb_args - 2; i++) {
+        for(i = 0; i < nb_args - 2; i++) {
             if (*ptype != '\0') {
                 ptype = next_arg_type(ptype);
                 while (*ptype == '?')
@@ -5168,7 +5201,7 @@ static void monitor_find_completion_by_table(Monitor *mon,
         while (*ptype == '-' && ptype[1] != '\0') {
             ptype = next_arg_type(ptype);
         }
-        switch (*ptype) {
+        switch(*ptype) {
         case 'F':
             /* file completion */
             readline_set_completion_index(mon->rs, strlen(str));
@@ -5180,7 +5213,7 @@ static void monitor_find_completion_by_table(Monitor *mon,
             for (bs = bdrv_next(NULL); bs; bs = bdrv_next(bs)) {
                 name = bdrv_get_device_name(bs);
                 if (str[0] == '\0' ||
-                        !strncmp(name, str, strlen(str))) {
+                    !strncmp(name, str, strlen(str))) {
                     readline_add_completion(mon->rs, name);
                 }
             }
@@ -5263,7 +5296,7 @@ static int check_client_args_type(const QDict *client_args,
 {
     const QDictEntry *ent;
 
-    for (ent = qdict_first(client_args); ent; ent = qdict_next(client_args, ent)) {
+    for (ent = qdict_first(client_args); ent;ent = qdict_next(client_args,ent)){
         QObject *obj;
         QString *arg_type;
         const QObject *client_arg = qdict_entry_value(ent);
@@ -5293,7 +5326,7 @@ static int check_client_args_type(const QDict *client_args,
                               "string");
                 return -1;
             }
-            break;
+        break;
         case 'i':
         case 'l':
         case 'M':
@@ -5301,15 +5334,15 @@ static int check_client_args_type(const QDict *client_args,
             if (qobject_type(client_arg) != QTYPE_QINT) {
                 qerror_report(QERR_INVALID_PARAMETER_TYPE, client_arg_name,
                               "int");
-                return -1;
+                return -1; 
             }
             break;
         case 'T':
             if (qobject_type(client_arg) != QTYPE_QINT &&
-                    qobject_type(client_arg) != QTYPE_QFLOAT) {
+                qobject_type(client_arg) != QTYPE_QFLOAT) {
                 qerror_report(QERR_INVALID_PARAMETER_TYPE, client_arg_name,
                               "number");
-                return -1;
+               return -1; 
             }
             break;
         case 'b':
@@ -5317,7 +5350,7 @@ static int check_client_args_type(const QDict *client_args,
             if (qobject_type(client_arg) != QTYPE_QBOOL) {
                 qerror_report(QERR_INVALID_PARAMETER_TYPE, client_arg_name,
                               "bool");
-                return -1;
+               return -1; 
             }
             break;
         case 'O':
@@ -5328,10 +5361,10 @@ static int check_client_args_type(const QDict *client_args,
             break;
         case '/':
         case '.':
-        /*
-         * These types are not supported by QMP and thus are not
-         * handled here. Fall through.
-         */
+            /*
+             * These types are not supported by QMP and thus are not
+             * handled here. Fall through.
+             */
         default:
             abort();
         }
@@ -5390,22 +5423,22 @@ static QDict *qdict_from_args_type(const char *args_type)
 
     for (i = 0;; i++) {
         switch (args_type[i]) {
-        case ',':
-        case '\0':
-            qdict_put(qdict, qstring_get_str(key), type);
-            QDECREF(key);
-            if (args_type[i] == '\0') {
-                goto out;
-            }
-            type = qstring_new(); /* qdict has ref */
-            cur_qs = key = qstring_new();
-            break;
-        case ':':
-            cur_qs = type;
-            break;
-        default:
-            qstring_append_chr(cur_qs, args_type[i]);
-            break;
+            case ',':
+            case '\0':
+                qdict_put(qdict, qstring_get_str(key), type);
+                QDECREF(key);
+                if (args_type[i] == '\0') {
+                    goto out;
+                }
+                type = qstring_new(); /* qdict has ref */
+                cur_qs = key = qstring_new();
+                break;
+            case ':':
+                cur_qs = type;
+                break;
+            default:
+                qstring_append_chr(cur_qs, args_type[i]);
+                break;
         }
     }
 
@@ -5464,7 +5497,7 @@ static QDict *qmp_check_input_obj(QObject *input_obj)
 
     input_dict = qobject_to_qdict(input_obj);
 
-    for (ent = qdict_first(input_dict); ent; ent = qdict_next(input_dict, ent)) {
+    for (ent = qdict_first(input_dict); ent; ent = qdict_next(input_dict, ent)){
         const char *arg_name = qdict_entry_key(ent);
         const QObject *arg_obj = qdict_entry_value(ent);
 
@@ -5642,7 +5675,7 @@ static QObject *get_qmp_greeting(void)
     QObject *ver = NULL;
 
     qmp_marshal_input_query_version(NULL, NULL, &ver);
-    return qobject_from_jsonf("{'QMP':{'version': %p,'capabilities': []}}", ver);
+    return qobject_from_jsonf("{'QMP':{'version': %p,'capabilities': []}}",ver);
 }
 
 /**
@@ -5725,7 +5758,7 @@ static int
 compare_mon_cmd(const void *a, const void *b)
 {
     return strcmp(((const mon_cmd_t *)a)->name,
-                  ((const mon_cmd_t *)b)->name);
+            ((const mon_cmd_t *)b)->name);
 }
 
 static void sortcmdlist(void)
@@ -5733,10 +5766,10 @@ static void sortcmdlist(void)
     int array_num;
     int elem_size = sizeof(mon_cmd_t);
 
-    array_num = sizeof(mon_cmds) / elem_size - 1;
+    array_num = sizeof(mon_cmds)/elem_size-1;
     qsort((void *)mon_cmds, array_num, elem_size, compare_mon_cmd);
 
-    array_num = sizeof(info_cmds) / elem_size - 1;
+    array_num = sizeof(info_cmds)/elem_size-1;
     qsort((void *)info_cmds, array_num, elem_size, compare_mon_cmd);
 }
 
@@ -5753,7 +5786,7 @@ static void sortcmdlist(void)
  * could cast function pointers but that discards compiler checks.
  */
 static void GCC_FMT_ATTR(2, 3) monitor_readline_printf(void *opaque,
-        const char *fmt, ...)
+                                                       const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -5894,13 +5927,13 @@ QemuOptsList qemu_mon_opts = {
         {
             .name = "mode",
             .type = QEMU_OPT_STRING,
-        }, {
+        },{
             .name = "chardev",
             .type = QEMU_OPT_STRING,
-        }, {
+        },{
             .name = "default",
             .type = QEMU_OPT_BOOL,
-        }, {
+        },{
             .name = "pretty",
             .type = QEMU_OPT_BOOL,
         },

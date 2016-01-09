@@ -1,14 +1,4 @@
 
-// typedef struct plugin_cmd {
-//     const char *name;
-//     const char *args_type;
-//     const char *params;
-//     const char *help;
-//     void (*cmd_handler)(void* opaque);
-// } plugin_cmd;
-
-
-
 //structure for plugin
 typedef struct plugin_interface_t {
 
@@ -17,6 +7,7 @@ typedef struct plugin_interface_t {
     void *info_cmds;
     long long cr3_addr;
     int taint_record_size;
+    void (*reset_plugin)(const char *property);
     void (*set_plugin)(const char *property, const char *value );
     void (*toggle_plugin)(const char *property);
 
@@ -30,8 +21,6 @@ typedef struct plugin_interface_t {
 
 } plugin_interface_t;
 extern plugin_interface_t *plugin;
-// // extern char cur_plugin_path[100];
-// // extern void *plugin_handle;
 
 void do_load_plugin(const char *plugin_path);
 void do_unload_plugin(void);

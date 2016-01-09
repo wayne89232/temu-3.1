@@ -1717,6 +1717,19 @@ Set plugin configuration
 ETEXI
 
     {
+        .name       = "plugin_reset",
+        .args_type  = "property:s",
+        .params     = "property",
+        .help       = "reset plugin configuration",
+        .mhandler.cmd = hmp_plugin_reset,
+    },
+
+STEXI
+@item plugin_reset @var{property}
+Reset plugin configuration
+ETEXI
+
+    {
         .name       = "plugin_toggle",
         .args_type  = "property:s",
         .params     = "property",
@@ -1838,7 +1851,6 @@ STEXI
 List the active process cr3 value.
 
 ETEXI
-
 {
         .name       = "pool_files",
         .args_type  = "command:s?",
@@ -1851,6 +1863,20 @@ STEXI
 @item pool_files @var{command}
 @findex pool_files
 List the active files.
+
+ETEXI
+{
+        .name       = "pool_nets",
+        .args_type  = "command:s?",
+        .params     = "pool_nets [command]",
+        .help       = "List the nets.",
+        .mhandler.cmd = hmp_pool_nets,
+},
+
+STEXI
+@item pool_nets @var{command}
+@findex pool_nets
+List all active nets.
 
 ETEXI
 

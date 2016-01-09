@@ -1,18 +1,19 @@
-// #include "config.h"
-// #include <dlfcn.h>
-// #include <assert.h>
-// #include "sysemu/sysemu.h"
-// #include "plugin.h"
+#include "config.h"
+#include <dlfcn.h>
+#include <assert.h>
+#include "sysemu/sysemu.h"
+#include "plugin.h"
 
 
-// plugin_interface_t *plugin = NULL;
-// static FILE *load_plugin_log = NULL;
-// static void *plugin_handle = NULL;
-// static char cur_plugin_path[100]="";
+
+plugin_interface_t *plugin = NULL;
+static FILE *load_plugin_log = NULL;
+static void *plugin_handle = NULL;
+static char cur_plugin_path[100] = "";
 
 void do_load_plugin(const char *plugin_path)
 {
-    printf("Start loading plugin from %s\n",plugin_path);
+    printf("Start loading plugin \n");
     plugin_interface_t *(*init_plugin) (void);
     char *error;
 
@@ -24,12 +25,13 @@ void do_load_plugin(const char *plugin_path)
 
     plugin_handle = dlopen(plugin_path, RTLD_NOW | RTLD_GLOBAL);
     if(NULL == plugin_handle) {
+    // plugin_handle = dlopen(plugin_path, RTLD_NOW);
+    // if (NULL == plugin_handle) {
         printf("%s\n", dlerror());
         return;
     }
 
     dlerror();
-
 
     init_plugin = dlsym(plugin_handle, "init_plugin");
     if ((error = dlerror()) != NULL) {
