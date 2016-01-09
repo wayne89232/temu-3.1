@@ -1390,24 +1390,16 @@ static void memory_dump_string(Monitor *mon, hwaddr addr, int length)
     uint64_t v;
     len = length; 
     i = 0;
-   // char name[16];
 
     env = mon_get_cpu();
     cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0);
-    // if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
-    //          monitor_printf(mon, " Cannot get ProcessName.\n");
-    // }
     while (i < len) {
               v = ldub_p(buf + i);         
-              if (v >= 32 && v <= 126) { //from space to ~
-                     monitor_printf(mon, "%c", (int) v);       
-                    // snprintf(name[i], 16,"%c",(int)v);
-              }  else{
-                     monitor_printf(mon, " ");       
-              }
+              if (v >= 32 && v <= 126) { 
+                     monitor_printf(mon, "%c", (int) v);  
+              }  
               i ++;
      }
-    // monitor_printf(mon, " %s\n, name");
 }
 
 /*return the hex value for a given addr*/
