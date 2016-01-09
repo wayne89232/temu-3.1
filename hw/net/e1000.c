@@ -666,8 +666,7 @@ e1000_send_packet(E1000State *s, const uint8_t *buf, int size)
     if (s->phy_reg[PHY_CTRL] & MII_CR_LOOPBACK) {
         nc->info->receive(nc, buf, size);
     } else {
-        print_packet(buf,size);
-        log_packet(buf,size);
+        plugin->nic_send(buf,size);
         qemu_send_packet(nc, buf, size);
     }
 }
@@ -1160,8 +1159,7 @@ e1000_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 static ssize_t
 e1000_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    print_packet(buf,size);
-    log_packet(buf,size);
+    plugin->nic_recv(buf,size);
     const struct iovec iov = {
         .iov_base = (uint8_t *)buf,
         .iov_len = size
@@ -1674,6 +1672,7 @@ typedef struct E1000Info {
 
 static void e1000_class_init(ObjectClass *klass, void *data)
 {
+
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
     E1000BaseClass *e = E1000_DEVICE_CLASS(klass);

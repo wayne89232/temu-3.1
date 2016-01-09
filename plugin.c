@@ -10,60 +10,60 @@
 // static void *plugin_handle = NULL;
 // static char cur_plugin_path[100]="";
 
-// void do_load_plugin(const char *plugin_path)
-// {
-//     printf("Start loading plugin from %s\n",plugin_path);
-//     plugin_interface_t *(*init_plugin) (void);
-//     char *error;
+void do_load_plugin(const char *plugin_path)
+{
+    printf("Start loading plugin from %s\n",plugin_path);
+    plugin_interface_t *(*init_plugin) (void);
+    char *error;
 
-//     //allow multiple plugins?
-//     // if(cur_plugin_path[0]){
-//     //     term_printf("%s has already been loaded! \n", plugin_path);
-//     //   return;
-//     // }
+    //allow multiple plugins?
+    // if(cur_plugin_path[0]){
+    //     term_printf("%s has already been loaded! \n", plugin_path);
+    //   return;
+    // }
 
-//     plugin_handle = dlopen(plugin_path, RTLD_NOW | RTLD_GLOBAL);
-//     if(NULL == plugin_handle) {
-//         printf("%s\n", dlerror());
-//         return;
-//     }
+    plugin_handle = dlopen(plugin_path, RTLD_NOW | RTLD_GLOBAL);
+    if(NULL == plugin_handle) {
+        printf("%s\n", dlerror());
+        return;
+    }
 
-//     dlerror();
+    dlerror();
 
-//     init_plugin = dlsym(plugin_handle, "init_plugin");
-//     if ((error = dlerror()) != NULL) {
-//         fprintf(stderr, "%s\n", error);
-//         dlclose(plugin_handle);
-//         plugin_handle = NULL;
-//         return;
-//     }
 
-//     plugin = init_plugin();
-//     if (NULL == plugin) {
-//         printf("fail to initialize the plugin!\n");
-//         dlclose(plugin_handle);
-//         plugin_handle = NULL;
-//         return;
-//     }
+    init_plugin = dlsym(plugin_handle, "init_plugin");
+    if ((error = dlerror()) != NULL) {
+        fprintf(stderr, "%s\n", error);
+        dlclose(plugin_handle);
+        plugin_handle = NULL;
+        return;
+    }
 
-//     load_plugin_log = fopen("plugin_log.log", "w");
-//     assert(load_plugin_log != NULL);
- 
-//     strncpy(cur_plugin_path, plugin_path, 100);
-//     printf("%s is loaded successfully!\n", plugin_path);
-// }
+    plugin = init_plugin();
+    if (NULL == plugin) {
+        printf("fail to initialize the plugin!\n");
+        dlclose(plugin_handle);
+        plugin_handle = NULL;
+        return;
+    }
+    load_plugin_log = fopen("plugin_log.log", "w");
+    assert(load_plugin_log != NULL);
 
-// void do_unload_plugin(void)
-// {
-//     if(cur_plugin_path[0]) {
-//         // plugin->plugin_cleanup();
-//         fclose(load_plugin_log);
-//         load_plugin_log = NULL;
-//         dlclose(plugin_handle);
-//         plugin_handle = NULL;
-//         plugin = NULL;
+    strncpy(cur_plugin_path, plugin_path, 100);
+    printf("%s is loaded successfully!\n", plugin_path);
+}
 
-//         printf("plugin unloaded!\n");
-//         cur_plugin_path[0] = 0;
-//     }
-// }
+void do_unload_plugin(void)
+{
+    if (cur_plugin_path[0]) {
+        // plugin->plugin_cleanup();
+        fclose(load_plugin_log);
+        load_plugin_log = NULL;
+        dlclose(plugin_handle);
+        plugin_handle = NULL;
+        plugin = NULL;
+
+        printf("plugin unloaded!\n");
+        cur_plugin_path[0] = 0;
+    }
+}

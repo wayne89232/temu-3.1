@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
+#include <time.h>
+// #include "../config.h"
 #include "main.h"
 #include <stdint.h>
 #include "../include/exec/hwaddr.h"
@@ -12,174 +15,533 @@
 
 static plugin_interface_t my_interface;
 FILE *my_log;
+const char *nic_target_port = NULL;
 
-static void tests(void* opaque)
+typedef enum { false = 0, true = !false } bool;
+int PDU_bytes = 128;
+int target_port = -1;
+char* target_ip = "NOT_SET";
+int target_protocol_number = -1;
+
+bool enable_print_packet = false;
+bool enable_log = false;
+bool enable_pcap_log = false;
+
+bool enable_traceblk = false;
+bool enable_print_blkio = false;
+bool first_file = 1;
+int count = 0;
+
+uint64_t sector_number = 0;
+char* target_file_name = "NOT_SET";
+
+typedef struct node
 {
-  printf("testing\n");
+   int data;
+   char fname[50];
+   struct node* next;
+}NODES;
+
+//NODES* list;
+ static NODES *list = NULL;
+
+typedef struct mon_cmd_t {
+  const char *name;
+  const char *args_type;
+  const char *params;
+  const char *help;
+  union {
+    void (*cmd);
+  } mhandler;
+} mon_cmd_t;
+
+static void temp_function()
+{
+  printf("nic_target_port\n");
 }
 
+static void get_sectornum(char* filename);
+static void saveFile(NODES* list, char* fname);
+static void print_lists(NODES *node);
+
+
+static mon_cmd_t my_term_cmds[] = {
+  {
+    .name       = "temp_function",
+    .args_type  = "",
+    .params     = "",
+    .help       = "temp_function",
+    .mhandler.cmd = temp_function
+  },
+  {NULL, NULL},
+};
 
 static void test()
 {
   printf("test on booting\n");
 }
 
-// /*return the integer for a given addr*/
-static uint64_t my_memory_dump_printd(CPUArchState *env, hwaddr addr)
-{
-    int  len;
-    uint8_t buf[16];
-    uint64_t v;
-    len = 8;
+static void do_set_plugin(const char *property, const char *value ) {
+  char* temp_string;
+  temp_string = "target_port";
+  if (strcmp(property, temp_string) == 0) {
+    target_port = atoi(value);
+    printf("setting target port: %d\n", target_port);
+    return;
+  }
+  temp_string = "PDU_bytes";
+  if (strcmp(property, temp_string) == 0) {
+    PDU_bytes = atoi(value);
+    printf("setting PDU bytes: %d\n", PDU_bytes);
+    return;
+  }
+  temp_string = "target_ip";
+  if (strcmp(property, temp_string) == 0) {
+    target_ip = strdup(value);
+    printf("setting target ip: %s\n", target_ip);
+    return;
+  }
 
-    
-    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
-                return -1;
-    }  
-    v = ldq_p(buf);
-    return v;
-}
-
-/*print the char for a given addr*/
-static void my_memory_dump_printc(CPUArchState *env, hwaddr addr)
-{
-    int  i, len;
-    uint8_t buf[16];
-    uint64_t v;
-    len = 16; 
-    i = 0;
-   // char name[16];
-
-    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
-             printf( " Cannot get ProcessName.\n");
+  temp_string = "target_protocol_number";
+  if (strcmp(property, temp_string) == 0) {
+    target_protocol_number = atoi(value);
+    printf("setting target protocol number: %d\n", target_protocol_number);
+    if (target_protocol_number == 6){
+      printf("Protocol: 6(tcp)\n");
     }
-    while (i < len) {
-              v = ldub_p(buf + i);         
-              if (v >= 32 && v <= 126) { //from space to ~
-                     printf( "%c", (int) v);       
-                    // snprintf(name[i], 16,"%c",(int)v);
-              }  else{
-                     printf(" ");       
-              }
-              i ++;
-     }
-    //printf( " %s\n, name");
+    else if (target_protocol_number == 17){
+      printf("Protocol: 17(udp)\n");
+    }
+    else if (target_protocol_number == 1){
+      printf("Protocol: 128(icmp)\n");
+    }
+    else{
+      printf("Protocol number:%d\n", target_protocol_number);
+    }
+    return;
+  }
+
+ 
+ 
+
+
+  temp_string = "target_file_name";
+  if(strcmp(property, temp_string) == 0) {
+    target_file_name = strdup(value);
+    printf("setting target file name: %s\n", target_file_name);
+    char * file;
+    file = strdup(value);
+    //if(first_file == 1)
+      
+    saveFile(list, file);
+    return;
+  }
+  temp_string = "file_list";
+  if(strcmp(property, temp_string) == 0){
+    printf("Print current file list: \n");
+    print_lists(list);
+  }
+}
+static void do_toggle_plugin(const char *property) {
+  char* temp_string;
+  temp_string = "enable_print_packet";
+  if (strcmp(property, temp_string) == 0) {
+    enable_print_packet = !enable_print_packet;
+    printf("toggle enable_print_packet: %d\n", enable_print_packet);
+    return;
+  }
+  temp_string = "enable_log";
+  if (strcmp(property, temp_string) == 0) {
+    enable_log = !enable_log;
+    printf("toggle enable_log: %d\n", enable_log);
+    return;
+  }
+  temp_string = "enable_pcap_log";
+  if (strcmp(property, temp_string) == 0) {
+    enable_pcap_log = !enable_pcap_log;
+    printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
+    return;
+  }
+ temp_string = "enable_traceblk";
+ if(strcmp(property, temp_string) ==0) {
+    enable_traceblk = !enable_traceblk;
+    printf(" enable_traceblk: %d\n", enable_traceblk );
+    return;
+
+ }
+ temp_string = "enable_print_blkio";
+ if(strcmp(property, temp_string) == 0){
+  enable_print_blkio = !enable_print_blkio;
+  printf("enable_print_blkio\n");
+  return;
+ } 
+
+ 
 }
 
-/*return the hex value for a given addr*/
-static uint64_t my_memory_dump(CPUArchState *env, hwaddr addr)
-{ 
-    int  len;
-    uint8_t buf[16]; 
-    uint64_t v; 
-    len = 8; 
-    
-    if (cpu_memory_rw_debug(env, addr, buf, len, 0) < 0) {
-                return -1;
-    }else{   
-                v = ldq_p(buf);
-                return v;
+static void log_packet_pcap(const uint8_t *buf, size_t size) {
+  // return;
+  FILE * fp;
+
+  // time_t rawtime;
+  // struct tm * timeinfo;
+  // time ( &rawtime );
+  // timeinfo = localtime ( &rawtime );
+
+  fp = fopen ("packet_log.pcap", "ab"); //use time
+
+  struct timeval tv;
+  unsigned int timestamp;
+  gettimeofday(&tv, NULL);
+  timestamp = tv.tv_sec;
+  fwrite( &timestamp, sizeof( timestamp ), 1, fp );
+
+  timestamp = tv.tv_usec;
+  fwrite( &timestamp, sizeof( timestamp ), 1, fp );
+
+  // fwrite( &timestamp, sizeof( timestamp ), 1, fp );
+
+  int Caplen;
+  if (size <= PDU_bytes) {
+    Caplen = size + 4;//test for wireshark process name
+    fwrite( &Caplen, sizeof( Caplen ), 1, fp );
+    fwrite( &Caplen, sizeof( Caplen ), 1, fp );
+  }
+  else {
+    int len = size;
+    Caplen = PDU_bytes + 4;//test for wireshark process name
+    fwrite( &Caplen, sizeof( Caplen ), 1, fp );
+    fwrite( &len, sizeof( len ), 1, fp );
+  }
+  int i = 0;
+  char content;
+  for (i = 0; i < Caplen - 4; i++) {
+
+    content = *(buf + i);
+    fwrite( &content, sizeof( content ), 1, fp );
+
+  }
+  //wiret WORM for wireshark process name test
+  int j;
+  j = 0x4D524F57;
+  fwrite( &j, sizeof( j ), 1, fp );
+
+  chmod("packet_log.pcap", 0777);
+  fclose(fp);
+}
+static void log_packet_readable(const uint8_t *buf, size_t size) {
+  FILE * fp;
+
+  time_t rawtime;
+  struct tm * timeinfo;
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+
+  fp = fopen ("packet_log", "a"); //use time
+
+  fprintf(fp, "[packet received]%s\n", asctime(timeinfo));
+  fprintf(fp, "Source IP:%d.%d.%d.%d\n", *(buf + 26), *(buf + 27), *(buf + 28), *(buf + 29));
+  fprintf(fp, "Source Port:%d\n", 256 * (*(buf + 34)) + * (buf + 35));
+  fprintf(fp, "Destination IP:%d.%d.%d.%d\n", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
+  fprintf(fp, "Destination Port:%d\n", 256 * (*(buf + 36)) + * (buf + 37));
+  if (*(buf + 23) == 6)
+    fprintf(fp, "Protocol: 6(tcp)\n");
+  else if (*(buf + 23) == 17)
+    fprintf(fp, "Protocol: 17(udp)\n");
+  else if (*(buf + 23) == 1)
+    fprintf(fp, "Protocol: 128(icmp)\n");
+  else
+    fprintf(fp, "Protocol number:%d\n", *(buf + 23));
+  fprintf(fp, "pdu: ");
+  int i;
+  for (i = 0; i < size; i++) {
+    if (i % 2 == 0)
+      fprintf(fp, " ");
+    fprintf(fp, "%02x", *(buf + i));
+  }
+  fprintf(fp, "     -end\r\n");
+  fprintf(fp, "---------------------------------------\r\n");
+  chmod("packet_log", 0777);
+  fclose(fp);
+}
+
+static void print_packet(const uint8_t *buf, size_t size) {
+  time_t rawtime;
+  struct tm * timeinfo;
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+  printf("[packet received]%s\n", asctime(timeinfo));
+  printf("Source IP:%d.%d.%d.%d\n", *(buf + 26), *(buf + 27), *(buf + 28), *(buf + 29));
+  printf("Source Port:%d\n", 256 * (*(buf + 34)) + * (buf + 35));
+  printf("Destination IP:%d.%d.%d.%d\n", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
+  printf("Destination Port:%d\n", 256 * (*(buf + 36)) + * (buf + 37));
+  if (*(buf + 23) == 6)
+    printf("Protocol: tcp\n");
+  else if (*(buf + 23) == 17)
+    printf("Protocol: udp\n");
+  else if (*(buf + 23) == 1)
+    printf("Protocol: icmp\n");
+  else
+    printf("Protocol number:%d\n", *(buf + 23));
+
+  printf("pdu: ");
+  int i;
+  for (i = 0; i < size; i++) {
+    printf("%02x ", *(buf + i));
+  }
+  printf("\n---------------------------------------\n");
+}
+
+static void get_logged(const uint8_t *buf, size_t size) {
+  if (enable_print_packet) {
+    print_packet(buf, size);
+  }
+  if (enable_log) {
+    log_packet_readable(buf, size);
+  }
+  if (enable_pcap_log) {
+    log_packet_pcap(buf, size);
+  }
+}
+
+static void get_packet(const uint8_t *buf, size_t size, int mode) {
+  if(
+      !enable_print_packet &&
+      !enable_log &&
+      !enable_pcap_log 
+    )
+  {
+    return;
+  }
+  int s_port = 256 * (*(buf + 34)) + *(buf + 35);
+  int d_port = 256 * (*(buf + 36)) + *(buf + 37);
+
+  char s_ip[100];
+  char d_ip[100];
+  sprintf(s_ip, "%d.%d.%d.%d", *(buf + 26), *(buf + 27), *(buf + 28), *(buf + 29));
+  sprintf(d_ip, "%d.%d.%d.%d", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
+  char* target_ip_not_set = "NOT_SET";
+
+
+  int protocol_number = *(buf + 23);
+
+  if ((
+      target_port != -1 
+      && (
+        target_port != s_port &&
+        target_port != d_port
+      )
+    ) 
+    || (
+      strcmp(target_ip, target_ip_not_set) != 0 
+      && (
+        strcmp(target_ip, s_ip) != 0 &&
+        strcmp(target_ip, d_ip) != 0 
+      )
+    ) 
+    || (
+      target_protocol_number != -1 &&
+      protocol_number != target_protocol_number
+    )
+  ) {
+    return;
+  }
+  get_logged(buf, size);
+}
+
+static void get_sectornum(char* filename){
+  char buf[30];  
+  FILE *fp;
+  //printf("%s\n","hi" );
+  // bash ./fname2sector.sh filename
+  char* bash = "bash ../../fname2sector_singl.sh ";  
+  char* file = filename;
+
+  char *s = malloc(strlen(bash)+strlen(file)+1);
+  strcpy(s, bash);
+  strcat(s, file);
+
+  if ((fp = popen(s, "r")) == NULL) {  
+      printf("popen() error!\n");  
+      exit(1);  
+  }   
+  // run the shell script with popen
+  fgets(buf, sizeof buf, fp);
+  // fgets the first sector info
+  //printf("%s", buf);
+  pclose(fp);  
+  free(s);
+  int sector = atoi(buf);
+  
+  sector_number = (uint64_t) sector;
+  printf("get sector num:%"PRIu64"\n",sector_number);
+  //get
+}
+
+
+static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname) {
+  time_t rawtime;
+  struct tm * timeinfo;
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+  printf("\n");
+  printf("[io time]%s\n", asctime(timeinfo));
+  printf("filename: %s\n",fname);
+  printf("sector number: %"PRIu64"\n", sector_num);
+  printf("base: %"PRIu64"\n", base);
+  printf("length: %"PRIu64"\n", len);
+  if(dir == 1)
+    printf("IO Write\n");
+  else if(dir == 0)
+    printf("IO Read\n");
+}
+
+
+static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname){
+  //if(enable_print_blkio)
+ // printf("say\n");
+    print_blockio(sector_num, base, len, dir, fname);
+
+}
+static bool searchfile(NODES *list, uint64_t key)
+{
+
+  while (list != NULL)
+  {
+    if (list->data == key)
+    {
+      printf("hi\n");
+      return true;
+    }
+    list = list -> next;
+  }
+  printf("here\n");
+  return false;
+}
+
+static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
+ //printf("hi2\n");
+  // if((sector_number == 0) || (sector_number != sector_num))
+  // {
+  //  // printf("Nothing!\n");
+  //   return;
+  // }
+  // log_blkio(sector_num, base, len, dir);
+   NODES* tmp = list;
+
+  while (tmp != NULL)
+    {
+      if((sector_num == 0))
+      {
+        return;
+      }
+      if(sector_num == tmp->data)
+        log_blkio(sector_num, base, len, dir, tmp->fname);
+      tmp = tmp->next;
+    }
+  // if (sector_num == 0)
+  // //   return;
+  // if(count != 0)
+  // {  
+  // if(searchfile(list,sector_num))
+  //   log_blkio(sector_num, base, len, dir);
+  // else
+  //   return;
+  // }
+  // else
+  //   return;
+}
+
+
+
+
+static void do_nic_receive(const uint8_t *buf, size_t size) {
+  get_packet(buf, size, 0);
+}
+
+static void do_nic_send(const uint8_t *buf, size_t size) {
+  get_packet(buf, size, 1);
+}
+
+static void do_blk_write(uint64_t sector_num, uint64_t base, uint64_t len) {
+  get_blockio(sector_num, base, len, 1);
+}
+
+static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
+  get_blockio(sector_num, base, len, 0);
+}
+
+static void insertNode(NODES *node, char fname[], int data)
+{
+     NODES *newNode = (NODES *)malloc(sizeof(NODES));
+     newNode->data = data;
+     strcpy(newNode->fname, fname);
+     newNode->next = node->next;
+     node->next = newNode;
+
+}  
+
+static void print_lists(NODES *node)
+{
+    NODES* n = node;
+
+    while (n != NULL)
+    {
+        printf("%s: %d\n", n->fname, n->data);
+
+        n = n->next;
+    }
+
+}
+
+static void freeList(NODES* head)
+{
+   NODES* tmp;
+
+   while (head != NULL)
+    {
+       tmp = head;
+       head = head->next;
+       free(tmp);
     }
 }
 
-/*find KDBG address between start_addr and end_addr*/
-static uint64_t findKDBG(CPUArchState *env)
-{ 
-  target_ulong start_addr = 0xfffff80003b00000;
-  target_ulong end_addr = 0xfffff80004000000; 
-  target_ulong kdbg_value = 0x000003404742444b;
-
-   while(start_addr != end_addr){
-           start_addr += KDBG_offset; 
-            if(my_memory_dump(env, start_addr) == kdbg_value)            
-                   break;
-   }
-    return start_addr - KDBG_offset ;  //if not found,return end_addr
-}
-
-static void getcr3(void* opaque)
+static void saveFile(NODES* list, char* fname)
 {
-    target_ulong KDBG_addr;
-    target_ulong pshead_addr ; 
-    target_ulong eprocess_actproclink_addr; 
-    target_ulong eprocess_next_actproclink_addr ;
-    target_ulong pcb_addr;//eprocess_head_addr = pcb
-    target_ulong imagefilename ;
-    target_ulong pid_addr , pid_value ;
-    target_ulong pshead_value; 
-    target_ulong cr3_value;
-    target_ulong cr3_addr;  
-    
-    CPUArchState *env = ((p_cmdline*)opaque)->env;
-    
-    KDBG_addr = findKDBG(env);
+   get_sectornum(fname);
+   int sector = (int) sector_number;
+  if(first_file){
+    if(sector != 0){
+      //*list = malloc(sizeof(NODES));
+      strcpy(list->fname, fname);
+      list->data = sector;
+      list->next = NULL;
+      first_file =  0;
+    }
+  }else{
 
-    if(KDBG_addr + KDBG_offset == 0xfffff80004000000)
-    {
-             printf("Could not found KDBG address.\n");
-    }else{           
-             pshead_addr  = KDBG_addr + PsActiveProcessHead;
-             pshead_value = my_memory_dump(env, pshead_addr); 
-               
-             //first process 
-             eprocess_actproclink_addr = my_memory_dump(env, pshead_value) ; //pshead_value 's value = eprocess_actkink_addr
-             pcb_addr = eprocess_actproclink_addr - PCB;
-             cr3_addr = pcb_addr + CR3;
-             cr3_value = my_memory_dump(env, cr3_addr) ; 
-             imagefilename = pcb_addr + ImageFileName;
-             pid_addr = pcb_addr + PID; 
-             pid_value = my_memory_dump_printd(env, pid_addr);
+    insertNode(list, fname, sector);
+    count ++;
+  }
 
-             printf(  "-----------------Process CR3-----------------\n");
-             printf(  "ProcessName:");
-             my_memory_dump_printc(env, imagefilename);
-             printf(  "PID:%i %lu   ",4,(unsigned long)pid_value);
-             printf(  "CR3=0x%lu\n", (unsigned long)cr3_value);
-
-             while(my_memory_dump(env, eprocess_actproclink_addr) != pshead_value)
-             {
-                    eprocess_next_actproclink_addr = my_memory_dump(env, eprocess_actproclink_addr) ; 
-                    pcb_addr = eprocess_next_actproclink_addr - PCB;
-                    imagefilename  = pcb_addr + ImageFileName;
-                    cr3_addr = pcb_addr + CR3;
-                    cr3_value = my_memory_dump(env, cr3_addr) ; 
-                    pid_addr = pcb_addr +PID; 
-                    pid_value = my_memory_dump_printd(env, pid_addr);
-
-                    if(pid_value ==0)
-                        break; //break for last process
-             
-                   printf(  "ProcessName:");
-                   my_memory_dump_printc(env, imagefilename);
-                   printf(  "PID:%i %lu   ",4,(unsigned long)pid_value);
-                   printf("CR3=0x%lu\n", (unsigned long)(cr3_value));
-              
-                   eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
-             }
-                printf( "---------------------------------------------\n");
-                
-                printf(  "Current vcpu CR3 = 0x%lu (physical addr)\n", (unsigned long)(env->cr[3])); 
-             }
 }
 
 
-static plugin_cmd my_term_cmds[] = {
-    {
-        .name       = "tests",
-        .args_type  = "",
-        .params     = "",
-        .help       = "do some tests",
-        .cmd_handler = tests,
-    },
-    {
-        .name       = "getcr3",
-        .args_type  = "",
-        .params     = "",
-        .help       = "cr3",
-        .cmd_handler = getcr3,
-    },
-};
+static void create_logfile(void) {
+  remove("packet_log.pcap");
+  FILE * fp;
+  long int header;
+  fp = fopen ("packet_log.pcap", "ab"); //use time
+  // const char *header = "d4c3 b2a1 0200 0400 0000 0000 0000 0000\nffff 0000 0100 0000 ";
+  header = 0x00040002a1b2c3d4;
+  fwrite( &header, sizeof( header ), 1, fp );
+  header = 0x0000000000000000;
+  fwrite( &header, sizeof( header ), 1, fp );
+  header = 0x000000010000ffff;
+  fwrite( &header, sizeof( header ), 1, fp );
 
+  fclose(fp);
+}
 
 plugin_interface_t * init_plugin()
 {
@@ -187,10 +549,20 @@ plugin_interface_t * init_plugin()
     fprintf(stderr, "cannot create plugin.log\n");
     return NULL;
   }
-
-  my_interface.term_cmds = my_term_cmds;
+  create_logfile();
+  //NODES *list = (NODES *)malloc(sizeof(NODES));
+  //static NODES *list = NULL;
+ if(list == NULL)
+    list = (NODES *)malloc(sizeof(NODES)); 
+  my_interface.nic_send = do_nic_send;
+  my_interface.nic_recv = do_nic_receive;
+  my_interface.blk_write = do_blk_write;
+  my_interface.blk_read = do_blk_read;
+  // my_interface.term_cmds = my_term_cmds;
 
   my_interface.test = test;
+  my_interface.set_plugin = do_set_plugin;
+  my_interface.toggle_plugin = do_toggle_plugin;
   return &my_interface;
 }
 

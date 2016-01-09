@@ -2729,9 +2729,7 @@ static void set_memory_options(uint64_t *ram_slots, ram_addr_t *maxram_size)
         exit(EXIT_FAILURE);
     }
 }
-
-int main(int argc, char **argv, char **envp)
-{  
+int main(int argc, char **argv, char **envp){
     int i;
     int snapshot, linux_boot;
     const char *initrd_filename;
