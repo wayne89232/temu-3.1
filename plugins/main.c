@@ -79,7 +79,7 @@ static void test()
   printf("test\n");
 }
 
-static void do_set_plugin(const char *property, const char *value ) {
+static void set_plugin(const char *property, const char *value ) {
   char* temp_string;
   temp_string = "target_s_port";
   if (strcmp(property, temp_string) == 0) {
@@ -111,6 +111,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     printf("setting PDU bytes: %d\n", PDU_bytes);
     return;
   }
+
   temp_string = "target_protocol_number";
   if (strcmp(property, temp_string) == 0) {
     target_protocol_number = atoi(value);
@@ -130,8 +131,6 @@ static void do_set_plugin(const char *property, const char *value ) {
     return;
   }
 
- 
-
   temp_string = "target_file_name";
   if(strcmp(property, temp_string) == 0) {
     target_file_name = strdup(value);
@@ -149,7 +148,7 @@ static void do_set_plugin(const char *property, const char *value ) {
     print_lists(list);
   }
 }
-static void do_reset_plugin(const char *property) {
+static void reset_plugin(const char *property) {
   char* temp_string;
   temp_string = "target_s_port";
   if (strcmp(property, temp_string) == 0) {
@@ -188,7 +187,7 @@ static void do_reset_plugin(const char *property) {
     return;
   }
 }
-static void do_toggle_plugin(const char *property) {
+static void toggle_plugin(const char *property) {
   char* temp_string;
   temp_string = "enable_print_packet";
   if (strcmp(property, temp_string) == 0) {
@@ -369,12 +368,7 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   char* target_ip_not_set = "NOT_SET";
 
   int protocol_number = *(buf + 23);
-  // printf("----------------------------------\n");
-  // printf("%s\n", target_s_ip);
-  // printf("%s\n", s_ip);
-  // printf("%d\n", strcmp(target_s_ip, target_ip_not_set));
-  // printf("%d\n", strcmp(target_s_ip, s_ip));
-  // printf("----------------------------------\n");
+
   if ((
       (
         target_s_port != -1 && 
@@ -433,14 +427,14 @@ static void get_sectornum(char* filename){
 }
 
 
-static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir) {
+static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname) {
   time_t rawtime;
   struct tm * timeinfo;
   time ( &rawtime );
   timeinfo = localtime ( &rawtime );
   printf("\n");
   printf("[io time]%s\n", asctime(timeinfo));
-  printf("filename: %s\n",target_file_name);
+  printf("filename: %s\n",fname);
   printf("sector number: %"PRIu64"\n", sector_num);
   printf("base: %"PRIu64"\n", base);
   printf("length: %"PRIu64"\n", len);
@@ -451,37 +445,35 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
 }
 
 
-static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
- // if(enable_print_blkio)
-    print_blockio(sector_num, base, len, dir);
+static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname){
+  //if(enable_print_blkio)
+ // printf("say\n");
+    print_blockio(sector_num, base, len, dir, fname);
 
 }
 
+
 static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
- // printf("hi2\n");
+ //printf("hi2\n");
   // if((sector_number == 0) || (sector_number != sector_num))
   // {
-  //   //printf("Nothing!\n");
+  //  // printf("Nothing!\n");
   //   return;
   // }
   // log_blkio(sector_num, base, len, dir);
-  NODES* tmp = list;
+   NODES* tmp = list;
 
   while (tmp != NULL)
     {
-      if(sector_num == 0 )
+      if((sector_num == 0))
       {
         return;
       }
-      else if (sector_num != tmp->data)
-      {
-        tmp = tmp->next;
-      }
-      else if(sector_num == tmp->data)
-      log_blkio(sector_num, base, len, dir);
-      
+      if(sector_num == tmp->data)
+        log_blkio(sector_num, base, len, dir, tmp->fname);
+      tmp = tmp->next;
     }
-}
+  }
 
 
 
@@ -552,6 +544,7 @@ static void saveFile(NODES* list, char* fname)
   }else{
 
     insertNode(list, fname, sector);
+    count ++;
   }
 
 }
@@ -590,9 +583,11 @@ plugin_interface_t * init_plugin()
   my_interface.blk_read = do_blk_read;
   // my_interface.term_cmds = my_term_cmds;
 
-  my_interface.reset_plugin = do_reset_plugin;
-  my_interface.set_plugin = do_set_plugin;
-  my_interface.toggle_plugin = do_toggle_plugin;
+  my_interface.test = test;
+  my_interface.set_plugin = set_plugin;
+  my_interface.toggle_plugin = toggle_plugin;
+  my_interface.reset_plugin = reset_plugin;
   return &my_interface;
 }
+
 
