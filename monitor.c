@@ -1679,10 +1679,7 @@ static void hmp_pool_files(Monitor *mon, const QDict *qdict)
              pool_files(mon);
     } 
 }
-static void hmp_pool_nets(Monitor *mon, const QDict *qdict)
-{
-    pool_nets(mon);
-}
+
 static void hmp_getcr3(Monitor *mon, const QDict *qdict)
 {
     const char *arg = qdict_get_try_str(qdict, "command");
