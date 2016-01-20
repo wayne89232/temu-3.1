@@ -15,3 +15,4 @@ then
 else
     let sector="${clusters[0]}*8+206848"
     echo $sector
+fi
