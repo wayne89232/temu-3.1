@@ -25,7 +25,7 @@ bool enable_pcap_log = false;
 bool enable_traceblk = false;
 bool enable_print_blkio = false;
 bool first_file = 1;
-//int count = 0;
+int count = 0;
 
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
