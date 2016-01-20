@@ -9,6 +9,9 @@ cluster=$(sed -n '/init_size/{n;p}' <<<"$info")
  
 clusters=($cluster)
  
-let sector="${clusters[0]}*8+206848"
- 
-echo $sector
+if [ "${clusters[0]}" == "" ]
+then
+    echo "-1000"
+else
+    let sector="${clusters[0]}*8+206848"
+    echo $sector

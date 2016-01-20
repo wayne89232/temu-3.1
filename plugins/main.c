@@ -25,7 +25,7 @@ bool enable_pcap_log = false;
 bool enable_traceblk = false;
 bool enable_print_blkio = false;
 bool first_file = 1;
-int count = 0;
+//int count = 0;
 
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
@@ -344,7 +344,8 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
 }
 
 static void get_sectornum(char* filename){
-  char buf[30];  
+  char buf[30]; 
+  char buff[30]; 
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
@@ -365,7 +366,26 @@ static void get_sectornum(char* filename){
   //printf("%s", buf);
   pclose(fp);  
   free(s);
-  int sector = atoi(buf);
+
+  if (atoi(buf) == -1000)
+  {
+    char* c  ="../../fname2sector_res ../../win7_test.img"
+    char* s = malloc(strlen(c)+1);
+    strcpy(s,c);
+    strcpy(s,file);
+    if ((fp = popen(s, "r")) == NULL) {  
+      printf("popen() error!\n");  
+      exit(1);
+    }
+    fgets(buff,sizeof buff, fp);
+    pclose(fp);
+    free(s);
+  }
+  int sector;
+  if(atoi(buf) == -1000)
+    sector = atoi(buff);
+  else
+    sector = atoi(buf);
   
   sector_number = (uint64_t) sector;
   printf("get sector num:%"PRIu64"\n",sector_number);
@@ -397,21 +417,7 @@ static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir,
     print_blockio(sector_num, base, len, dir, fname);
 
 }
-static bool searchfile(NODES *list, uint64_t key)
-{
 
-  while (list != NULL)
-  {
-    if (list->data == key)
-    {
-      printf("hi\n");
-      return true;
-    }
-    list = list -> next;
-  }
-  printf("here\n");
-  return false;
-}
 
 static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
  //printf("hi2\n");
@@ -433,18 +439,7 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
         log_blkio(sector_num, base, len, dir, tmp->fname);
       tmp = tmp->next;
     }
-  // if (sector_num == 0)
-  // //   return;
-  // if(count != 0)
-  // {  
-  // if(searchfile(list,sector_num))
-  //   log_blkio(sector_num, base, len, dir);
-  // else
-  //   return;
-  // }
-  // else
-  //   return;
-}
+  }
 
 
 
