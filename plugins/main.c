@@ -369,7 +369,7 @@ static void get_sectornum(char* filename){
 
   if (atoi(buf) == -1000)
   {
-    char* c  ="../../fname2sector_res ../../win7_test.img"
+    char* c  ="../../fname2sector_res ../../win7_test.img";
     char* s = malloc(strlen(c)+1);
     strcpy(s,c);
     strcpy(s,file);
