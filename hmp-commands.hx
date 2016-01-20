@@ -1865,20 +1865,6 @@ STEXI
 List the active files.
 
 ETEXI
-{
-        .name       = "pool_nets",
-        .args_type  = "command:s?",
-        .params     = "pool_nets [command]",
-        .help       = "List the nets.",
-        .mhandler.cmd = hmp_pool_nets,
-},
-
-STEXI
-@item pool_nets @var{command}
-@findex pool_nets
-List all active nets.
-
-ETEXI
 
 STEXI
 @end table
