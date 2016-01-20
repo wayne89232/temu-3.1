@@ -29,19 +29,20 @@ bool enable_pcap_log = false;
 bool enable_traceblk = false;
 bool enable_print_blkio = false;
 bool first_file = 1;
+int count = 0;
 
 uint64_t sector_number = 0;
 char* target_file_name = "NOT_SET";
 
 typedef struct node
 {
-   int data;
-   char fname[50];
-   struct node* next;
-}NODES;
+  int data;
+  char fname[50];
+  struct node* next;
+} NODES;
 
 //NODES* list;
- static NODES *list = NULL;
+static NODES *list = NULL;
 
 typedef struct mon_cmd_t {
   const char *name;
@@ -116,34 +117,34 @@ static void set_plugin(const char *property, const char *value ) {
   if (strcmp(property, temp_string) == 0) {
     target_protocol_number = atoi(value);
     printf("setting target protocol number: %d\n", target_protocol_number);
-    if (target_protocol_number == 6){
+    if (target_protocol_number == 6) {
       printf("Protocol: 6(tcp)\n");
     }
-    else if (target_protocol_number == 17){
+    else if (target_protocol_number == 17) {
       printf("Protocol: 17(udp)\n");
     }
-    else if (target_protocol_number == 1){
+    else if (target_protocol_number == 1) {
       printf("Protocol: 128(icmp)\n");
     }
-    else{
+    else {
       printf("Protocol number:%d\n", target_protocol_number);
     }
     return;
   }
 
   temp_string = "target_file_name";
-  if(strcmp(property, temp_string) == 0) {
+  if (strcmp(property, temp_string) == 0) {
     target_file_name = strdup(value);
     printf("setting target file name: %s\n", target_file_name);
     char * file;
     file = strdup(value);
     //if(first_file == 1)
-      
+
     saveFile(list, file);
     return;
   }
   temp_string = "file_list";
-  if(strcmp(property, temp_string) == 0){
+  if (strcmp(property, temp_string) == 0) {
     printf("Print current file list: \n");
     print_lists(list);
   }
@@ -207,21 +208,21 @@ static void toggle_plugin(const char *property) {
     printf("toggle enable_pcap_log: %d\n", enable_pcap_log);
     return;
   }
- temp_string = "enable_traceblk";
- if(strcmp(property, temp_string) ==0) {
+  temp_string = "enable_traceblk";
+  if (strcmp(property, temp_string) == 0) {
     enable_traceblk = !enable_traceblk;
     printf(" enable_traceblk: %d\n", enable_traceblk );
     return;
 
- }
- temp_string = "enable_print_blkio";
- if(strcmp(property, temp_string) == 0){
-  enable_print_blkio = !enable_print_blkio;
-  printf("enable_print_blkio\n");
-  return;
- } 
+  }
+  temp_string = "enable_print_blkio";
+  if (strcmp(property, temp_string) == 0) {
+    enable_print_blkio = !enable_print_blkio;
+    printf("enable_print_blkio\n");
+    return;
+  }
 
- 
+
 }
 
 static void log_packet_pcap(const uint8_t *buf, size_t size) {
@@ -350,11 +351,11 @@ static void get_logged(const uint8_t *buf, size_t size) {
 }
 
 static void get_packet(const uint8_t *buf, size_t size, int mode) {
-  if(
-      !enable_print_packet &&
-      !enable_log &&
-      !enable_pcap_log 
-    )
+  if (
+    !enable_print_packet &&
+    !enable_log &&
+    !enable_pcap_log
+  )
   {
     return;
   }
@@ -370,59 +371,59 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   int protocol_number = *(buf + 23);
 
   if ((
-      (
-        target_s_port != -1 && 
-        target_s_port != s_port
-      ) || (
-        target_d_port != -1 &&
-        target_d_port != d_port
+        (
+          target_s_port != -1 &&
+          target_s_port != s_port
+        ) || (
+          target_d_port != -1 &&
+          target_d_port != d_port
+        )
       )
-    ) 
-    || (
-      (
-        strcmp(target_s_ip, target_ip_not_set) != 0 && 
-        strcmp(target_s_ip, s_ip) != 0
-      ) || (
-        strcmp(target_d_ip, target_ip_not_set) != 0 &&
-        strcmp(target_d_ip, d_ip) != 0 
+      || (
+        (
+          strcmp(target_s_ip, target_ip_not_set) != 0 &&
+          strcmp(target_s_ip, s_ip) != 0
+        ) || (
+          strcmp(target_d_ip, target_ip_not_set) != 0 &&
+          strcmp(target_d_ip, d_ip) != 0
+        )
       )
-    ) 
-    || (
-      target_protocol_number != -1 &&
-      protocol_number != target_protocol_number
-    )
-  ) {
+      || (
+        target_protocol_number != -1 &&
+        protocol_number != target_protocol_number
+      )
+     ) {
     return;
   }
   get_logged(buf, size);
 }
 
-static void get_sectornum(char* filename){
-  char buf[30];  
+static void get_sectornum(char* filename) {
+  char buf[30];
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ../../fname2sector_singl.sh ";  
+  char* bash = "bash ../../fname2sector_singl.sh ";
   char* file = filename;
 
-  char *s = malloc(strlen(bash)+strlen(file)+1);
+  char *s = malloc(strlen(bash) + strlen(file) + 1);
   strcpy(s, bash);
   strcat(s, file);
 
-  if ((fp = popen(s, "r")) == NULL) {  
-      printf("popen() error!\n");  
-      exit(1);  
-  }   
+  if ((fp = popen(s, "r")) == NULL) {
+    printf("popen() error!\n");
+    exit(1);
+  }
   // run the shell script with popen
   fgets(buf, sizeof buf, fp);
   // fgets the first sector info
   //printf("%s", buf);
-  pclose(fp);  
+  pclose(fp);
   free(s);
   int sector = atoi(buf);
-  
+
   sector_number = (uint64_t) sector;
-  printf("get sector num:%"PRIu64"\n",sector_number);
+  printf("get sector num:%"PRIu64"\n", sector_number);
   //get
 }
 
@@ -434,46 +435,61 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
   timeinfo = localtime ( &rawtime );
   printf("\n");
   printf("[io time]%s\n", asctime(timeinfo));
-  printf("filename: %s\n",fname);
+  printf("filename: %s\n", fname);
   printf("sector number: %"PRIu64"\n", sector_num);
   printf("base: %"PRIu64"\n", base);
   printf("length: %"PRIu64"\n", len);
-  if(dir == 1)
+  if (dir == 1)
     printf("IO Write\n");
-  else if(dir == 0)
+  else if (dir == 0)
     printf("IO Read\n");
 }
 
 
-static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname){
+static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir, char* fname) {
   //if(enable_print_blkio)
- // printf("say\n");
-    print_blockio(sector_num, base, len, dir, fname);
+// printf("say\n");
+  print_blockio(sector_num, base, len, dir, fname);
 
+}
+static bool searchfile(NODES *list, uint64_t key)
+{
+
+  while (list != NULL)
+  {
+    if (list->data == key)
+    {
+      printf("hi\n");
+      return true;
+    }
+    list = list -> next;
+  }
+  printf("here\n");
+  return false;
 }
 
 
-static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
- //printf("hi2\n");
+static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir) {
+//printf("hi2\n");
   // if((sector_number == 0) || (sector_number != sector_num))
   // {
   //  // printf("Nothing!\n");
   //   return;
   // }
   // log_blkio(sector_num, base, len, dir);
-   NODES* tmp = list;
+  NODES* tmp = list;
 
   while (tmp != NULL)
+  {
+    if ((sector_num == 0))
     {
-      if((sector_num == 0))
-      {
-        return;
-      }
-      if(sector_num == tmp->data)
-        log_blkio(sector_num, base, len, dir, tmp->fname);
-      tmp = tmp->next;
+      return;
     }
+    if (sector_num == tmp->data)
+      log_blkio(sector_num, base, len, dir, tmp->fname);
+    tmp = tmp->next;
   }
+}
 
 
 
@@ -496,52 +512,52 @@ static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
 
 static void insertNode(NODES *node, char fname[], int data)
 {
-     NODES *newNode = (NODES *)malloc(sizeof(NODES));
-     newNode->data = data;
-     strcpy(newNode->fname, fname);
-     newNode->next = node->next;
-     node->next = newNode;
+  NODES *newNode = (NODES *)malloc(sizeof(NODES));
+  newNode->data = data;
+  strcpy(newNode->fname, fname);
+  newNode->next = node->next;
+  node->next = newNode;
 
-}  
+}
 
 static void print_lists(NODES *node)
 {
-    NODES* n = node;
+  NODES* n = node;
 
-    while (n != NULL)
-    {
-        printf("%s: %d\n", n->fname, n->data);
+  while (n != NULL)
+  {
+    printf("%s: %d\n", n->fname, n->data);
 
-        n = n->next;
-    }
+    n = n->next;
+  }
 
 }
 
 static void freeList(NODES* head)
 {
-   NODES* tmp;
+  NODES* tmp;
 
-   while (head != NULL)
-    {
-       tmp = head;
-       head = head->next;
-       free(tmp);
-    }
+  while (head != NULL)
+  {
+    tmp = head;
+    head = head->next;
+    free(tmp);
+  }
 }
 
 static void saveFile(NODES* list, char* fname)
 {
-   get_sectornum(fname);
-   int sector = (int) sector_number;
-  if(first_file){
-    if(sector != 0){
+  get_sectornum(fname);
+  int sector = (int) sector_number;
+  if (first_file) {
+    if (sector != 0) {
       //*list = malloc(sizeof(NODES));
       strcpy(list->fname, fname);
       list->data = sector;
       list->next = NULL;
       first_file =  0;
     }
-  }else{
+  } else {
 
     insertNode(list, fname, sector);
     count ++;
@@ -575,8 +591,8 @@ plugin_interface_t * init_plugin()
   create_logfile();
   //NODES *list = (NODES *)malloc(sizeof(NODES));
   //static NODES *list = NULL;
- if(list == NULL)
-    list = (NODES *)malloc(sizeof(NODES)); 
+  if (list == NULL)
+    list = (NODES *)malloc(sizeof(NODES));
   my_interface.nic_send = do_nic_send;
   my_interface.nic_recv = do_nic_receive;
   my_interface.blk_write = do_blk_write;
