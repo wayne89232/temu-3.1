@@ -432,7 +432,7 @@ static void get_sectornum(char* filename){
 
     char* s = malloc(strlen(c)+strlen(file)+1);
     strcpy(s,c);
-    strcpy(s,file);
+    strcat(s,file);
     if ((fp = popen(s, "r")) == NULL) {  
       printf("popen() error!\n");  
       exit(1);
