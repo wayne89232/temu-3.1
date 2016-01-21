@@ -444,12 +444,34 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
   printf("[io time]%s\n", asctime(timeinfo));
   printf("filename: %s\n",fname);
   printf("sector number: %"PRIu64"\n", sector_num);
-  printf("base: %"PRIu64"\n", base);
-  printf("length: %"PRIu64"\n", len);
+  // if(strstr(fname,"txt"))
+  //   printf("Process: notepad.exe" );
+  // else
+  //   printf("Process: mspaint.exe");
+  printf("\nIO buffer: \n");
+  printf("  base: %"PRIu64"\n", base);
+  printf("  length: %"PRIu64"\n", len);
   if(dir == 1)
     printf("IO Write\n");
   else if(dir == 0)
     printf("IO Read\n");
+
+FILE* log = fopen("../IO_log.log", "a");
+  fprintf(log,"\n");
+  fprintf(log,"[io time]%s\n", asctime(timeinfo));
+  fprintf(log,"filename: %s\n",fname);
+  fprintf(log,"sector number: %"PRIu64"\n", sector_num);
+  fprintf(log,"Process: notepad.exe" );
+  fprintf(log,"\nIO buffer: \n");
+  fprintf(log,"  base: %"PRIu64"\n", base);
+  fprintf(log,"  length: %"PRIu64"\n", len);
+  if(dir == 1)
+    fprintf(log,"IO Write\n");
+  else if(dir == 0)
+    fprintf(log,"IO Read\n");
+  fprintf(log, "=====================================\n");
+fclose(log);
+
 }
 
 
@@ -475,7 +497,7 @@ static bool searchfile(NODES *list, uint64_t key)
   return false;
 }
 
-static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
+static char* get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir){
  //printf("hi2\n");
   // if((sector_number == 0) || (sector_number != sector_num))
   // {
@@ -489,12 +511,15 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
     {
       if((sector_num == 0))
       {
-        return;
+        return NULL;
       }
-      if(sector_num == tmp->data)
+      if(sector_num == tmp->data){
         log_blkio(sector_num, base, len, dir, tmp->fname);
+        return tmp->fname;
+      }
       tmp = tmp->next;
     }
+    return NULL;
   // if (sector_num == 0)
   // //   return;
   // if(count != 0)
@@ -521,10 +546,11 @@ static void do_nic_send(const uint8_t *buf, size_t size) {
 
 static void do_blk_write(uint64_t sector_num, uint64_t base, uint64_t len) {
   get_blockio(sector_num, base, len, 1);
+  
 }
 
 static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
-  get_blockio(sector_num, base, len, 0);
+  get_blockio(sector_num, base, len, 0);\
 }
 
 static void insertNode(NODES *node, char fname[], int data)
