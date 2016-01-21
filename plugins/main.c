@@ -9,7 +9,6 @@
 #include "../plugin.h"
 
 static plugin_interface_t my_interface;
-FILE *my_log;
 
 typedef enum { false = 0, true = !false } bool;
 int PDU_bytes = 128;
@@ -623,10 +622,6 @@ static void create_logfile(void) {
 
 plugin_interface_t * init_plugin()
 {
-  if (!(my_log = fopen("plugin.log", "ab"))) {
-    fprintf(stderr, "cannot create plugin.log\n");
-    return NULL;
-  }
   create_logfile();
   //NODES *list = (NODES *)malloc(sizeof(NODES));
   //static NODES *list = NULL;
