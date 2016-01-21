@@ -427,6 +427,7 @@ static void get_sectornum(char* filename){
 
   if (atoi(buf) == -1000)
   {
+    FILE *fp;
     char* c  ="../../fname2sector_res ../../../win7_test.img ";
 
     char* s = malloc(strlen(c)+1);
