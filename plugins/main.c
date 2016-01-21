@@ -623,7 +623,7 @@ static void create_logfile(void) {
 
 plugin_interface_t * init_plugin()
 {
-  if (!(my_log = fopen("plugin.log", "w"))) {
+  if (!(my_log = fopen("plugin.log", "ab+"))) {
     fprintf(stderr, "cannot create plugin.log\n");
     return NULL;
   }

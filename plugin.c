@@ -48,7 +48,7 @@ void do_load_plugin(const char *plugin_path)
         plugin_handle = NULL;
         return;
     }
-    load_plugin_log = fopen("plugin_log.log", "w");
+    load_plugin_log = fopen("plugin_log.log", "ab+");
     assert(load_plugin_log != NULL);
 
     strncpy(cur_plugin_path, plugin_path, 100);
