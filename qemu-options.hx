@@ -6,7 +6,6 @@ HXCOMM construct option structures, enums and help message for specified
 HXCOMM architectures.
 HXCOMM HXCOMM can be used for comments, discarded from both texi and C
 
-DEFHEADING(TEST)
 DEFHEADING(Standard options:)
 STEXI
 @table @option
@@ -3027,14 +3026,6 @@ STEXI
 @item -loadvm @var{file}
 @findex -loadvm
 Start right away with a saved state (@code{loadvm} in monitor)
-ETEXI
-
-DEF("load-plugin", HAS_ARG, QEMU_OPTION_load_plugin, \
-    "-load-plugin \n" ,QEMU_ARCH_ALL)
-STEXI
-@item -load-plugin @var{file}
-@findex -load-plugin
-do something on loading plugin
 ETEXI
 
 #ifndef _WIN32
