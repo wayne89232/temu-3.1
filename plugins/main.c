@@ -9,6 +9,7 @@
 #include "../plugin.h"
 
 static plugin_interface_t my_interface;
+FILE *my_log;
 
 typedef enum { false = 0, true = !false } bool;
 int PDU_bytes = 128;
@@ -608,7 +609,7 @@ static void create_logfile(void) {
   remove("packet_log.pcap");
   FILE * fp;
   long int header;
-  fp = fopen ("packet_log.pcap", "ab"); //use time
+  fp = fopen ("packet_log.pcap", "a"); //use time
   // const char *header = "d4c3 b2a1 0200 0400 0000 0000 0000 0000\nffff 0000 0100 0000 ";
   header = 0x00040002a1b2c3d4;
   fwrite( &header, sizeof( header ), 1, fp );
@@ -622,6 +623,10 @@ static void create_logfile(void) {
 
 plugin_interface_t * init_plugin()
 {
+  if (!(my_log = fopen("plugin.log", "a"))) {
+    fprintf(stderr, "cannot create plugin.log\n");
+    return NULL;
+  }
   create_logfile();
   //NODES *list = (NODES *)malloc(sizeof(NODES));
   //static NODES *list = NULL;

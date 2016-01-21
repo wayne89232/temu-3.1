@@ -7,7 +7,6 @@
 
 
 plugin_interface_t *plugin = NULL;
-static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
 static char cur_plugin_path[100] = "";
 
@@ -48,8 +47,6 @@ void do_load_plugin(const char *plugin_path)
         plugin_handle = NULL;
         return;
     }
-    load_plugin_log = fopen("plugin_log.log", "ab");
-    assert(load_plugin_log != NULL);
 
     strncpy(cur_plugin_path, plugin_path, 100);
     printf("%s is loaded successfully!\n", plugin_path);
@@ -59,8 +56,6 @@ void do_unload_plugin(void)
 {
     if (cur_plugin_path[0]) {
         // plugin->plugin_cleanup();
-        fclose(load_plugin_log);
-        load_plugin_log = NULL;
         dlclose(plugin_handle);
         plugin_handle = NULL;
         plugin = NULL;
