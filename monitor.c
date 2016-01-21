@@ -965,7 +965,7 @@ static void hmp_info_help(Monitor *mon, const QDict *qdict)
 {
     help_cmd(mon, "info");
 }
-
+/*Here we implement our code*/
 static void hmp_plugin_set(Monitor *mon, const QDict *qdict)
 {
     const char *property = qdict_get_str(qdict, "property");

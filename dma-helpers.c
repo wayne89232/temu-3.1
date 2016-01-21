@@ -153,7 +153,7 @@ static void dma_blk_cb(void *opaque, int ret)
         cur_addr = dbs->sg->sg[dbs->sg_cur_index].base + dbs->sg_cur_byte;
         cur_len = dbs->sg->sg[dbs->sg_cur_index].len - dbs->sg_cur_byte;
         mem = dma_memory_map(dbs->sg->as, cur_addr, &cur_len, dbs->dir);
-        // print io buffer here
+        // print io b
         if (!mem)
             break;
         qemu_iovec_add(&dbs->iov, mem, cur_len);
@@ -197,6 +197,8 @@ static const AIOCBInfo dma_aiocb_info = {
 };
 
 
+/*Here we implement our code*/
+
 BlockAIOCB *dma_blk_io(
     BlockBackend *blk, QEMUSGList *sg, uint64_t sector_num,
     DMAIOFunc *io_func, BlockCompletionFunc *cb,
@@ -232,10 +234,12 @@ BlockAIOCB *dma_blk_io(
     }
     else{
         plugin->blk_read(sector_num,base,len);
+
         // if(fname!=NULL){
         //     printf("Mapping: %s - %s\n",fname, f2p_mapping(fname));
         // }
     }
+
 
     // if(sector_num == 1119016)
     //     printf("got u!\n");

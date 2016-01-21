@@ -399,8 +399,14 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   get_logged(buf, size);
 }
 
+<<<<<<< HEAD
 static void get_sectornum(char* filename) {
   char buf[30];
+=======
+static void get_sectornum(char* filename){
+  char buf[30]; 
+  char buff[30]; 
+>>>>>>> newplug
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
@@ -421,8 +427,32 @@ static void get_sectornum(char* filename) {
   //printf("%s", buf);
   pclose(fp);
   free(s);
+<<<<<<< HEAD
   int sector = atoi(buf);
 
+=======
+
+  if (atoi(buf) == -1000)
+  {
+    char* c  ="../../fname2sector_res ../../win7_test.img";
+    char* s = malloc(strlen(c)+1);
+    strcpy(s,c);
+    strcpy(s,file);
+    if ((fp = popen(s, "r")) == NULL) {  
+      printf("popen() error!\n");  
+      exit(1);
+    }
+    fgets(buff,sizeof buff, fp);
+    pclose(fp);
+    free(s);
+  }
+  int sector;
+  if(atoi(buf) == -1000)
+    sector = atoi(buff);
+  else
+    sector = atoi(buf);
+  
+>>>>>>> newplug
   sector_number = (uint64_t) sector;
   printf("get sector num:%"PRIu64"\n", sector_number);
   //get
@@ -476,21 +506,7 @@ static void log_blkio(uint64_t sector_num, uint64_t base, uint64_t len, int dir,
   print_blockio(sector_num, base, len, dir, fname);
 
 }
-static bool searchfile(NODES *list, uint64_t key)
-{
 
-  while (list != NULL)
-  {
-    if (list->data == key)
-    {
-      printf("hi\n");
-      return true;
-    }
-    list = list -> next;
-  }
-  printf("here\n");
-  return false;
-}
 
 
 static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int dir) {
@@ -509,11 +525,15 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
     {
       return;
     }
+<<<<<<< HEAD
     if (sector_num == tmp->data)
       log_blkio(sector_num, base, len, dir, tmp->fname);
     tmp = tmp->next;
   }
 }
+=======
+  }
+>>>>>>> newplug
 
 
 
