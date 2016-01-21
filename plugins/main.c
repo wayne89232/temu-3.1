@@ -399,14 +399,10 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   get_logged(buf, size);
 }
 
-<<<<<<< HEAD
-static void get_sectornum(char* filename) {
-  char buf[30];
-=======
 static void get_sectornum(char* filename){
   char buf[30]; 
   char buff[30]; 
->>>>>>> newplug
+
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
@@ -427,10 +423,7 @@ static void get_sectornum(char* filename){
   //printf("%s", buf);
   pclose(fp);
   free(s);
-<<<<<<< HEAD
-  int sector = atoi(buf);
 
-=======
 
   if (atoi(buf) == -1000)
   {
@@ -452,7 +445,7 @@ static void get_sectornum(char* filename){
   else
     sector = atoi(buf);
   
->>>>>>> newplug
+
   sector_number = (uint64_t) sector;
   printf("get sector num:%"PRIu64"\n", sector_number);
   //get
@@ -525,15 +518,16 @@ static void get_blockio(uint64_t sector_num, uint64_t base, uint64_t len, int di
     {
       return;
     }
-<<<<<<< HEAD
+
     if (sector_num == tmp->data)
       log_blkio(sector_num, base, len, dir, tmp->fname);
+    
     tmp = tmp->next;
   }
 }
-=======
-  }
->>>>>>> newplug
+
+  
+
 
 
 

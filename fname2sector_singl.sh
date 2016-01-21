@@ -8,12 +8,6 @@ info=$(istat -o 206848 ../../../temu-3.1/win7_test.img $entry)
 cluster=$(sed -n '/init_size/{n;p}' <<<"$info")
 
 clusters=($cluster)
-<<<<<<< HEAD
-
-let sector="${clusters[0]}*8+206848"
-
-echo $sector%
-=======
  
 if [ "${clusters[0]}" == "" ]
 then
@@ -22,4 +16,4 @@ else
     let sector="${clusters[0]}*8+206848"
     echo $sector
 fi
->>>>>>> newplug
+
