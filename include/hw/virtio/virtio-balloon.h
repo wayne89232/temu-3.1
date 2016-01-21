@@ -25,12 +25,6 @@
 
 typedef struct virtio_balloon_stat VirtIOBalloonStat;
 
-typedef struct virtio_balloon_stat_modern {
-       uint16_t tag;
-       uint8_t reserved[6];
-       uint64_t val;
-} VirtIOBalloonStatModern;
-
 typedef struct VirtIOBalloon {
     VirtIODevice parent_obj;
     VirtQueue *ivq, *dvq, *svq;
@@ -42,7 +36,6 @@ typedef struct VirtIOBalloon {
     QEMUTimer *stats_timer;
     int64_t stats_last_update;
     int64_t stats_poll_interval;
-    uint32_t host_features;
 } VirtIOBalloon;
 
 #endif

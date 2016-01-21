@@ -1979,8 +1979,7 @@ static void vga_update_text(void *opaque, console_ch_t *chardata)
     width = (s->last_width - size) / 2;
     dst = chardata + s->last_width + width;
     for (i = 0; i < size; i ++)
-        console_write_ch(dst ++, ATTR2CHTYPE(msg_buffer[i], QEMU_COLOR_BLUE,
-                                             QEMU_COLOR_BLACK, 1));
+        console_write_ch(dst ++, 0x00200100 | msg_buffer[i]);
 
     dpy_text_update(s->con, 0, 0, s->last_width, height);
 }
@@ -2036,7 +2035,6 @@ static const VMStateDescription vmstate_vga_endian = {
     .name = "vga.endian",
     .version_id = 1,
     .minimum_version_id = 1,
-    .needed = vga_endian_state_needed,
     .fields = (VMStateField[]) {
         VMSTATE_BOOL(big_endian_fb, VGACommonState),
         VMSTATE_END_OF_LIST()
@@ -2080,9 +2078,13 @@ const VMStateDescription vmstate_vga_common = {
         VMSTATE_UINT32(vbe_bank_mask, VGACommonState),
         VMSTATE_END_OF_LIST()
     },
-    .subsections = (const VMStateDescription*[]) {
-        &vmstate_vga_endian,
-        NULL
+    .subsections = (VMStateSubsection []) {
+        {
+            .vmsd = &vmstate_vga_endian,
+            .needed = vga_endian_state_needed,
+        }, {
+            /* empty */
+        }
     }
 };
 
@@ -2140,7 +2142,7 @@ void vga_common_init(VGACommonState *s, Object *obj, bool global_vmstate)
 
     s->is_vbe_vmstate = 1;
     memory_region_init_ram(&s->vram, obj, "vga.vram", s->vram_size,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram(&s->vram, global_vmstate ? NULL : DEVICE(obj));
     xen_register_framebuffer(&s->vram);
     s->vram_ptr = memory_region_get_ram_ptr(&s->vram);

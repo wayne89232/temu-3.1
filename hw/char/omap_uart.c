@@ -55,7 +55,8 @@ struct omap_uart_s *omap_uart_init(hwaddr base,
                 qemu_irq txdma, qemu_irq rxdma,
                 const char *label, CharDriverState *chr)
 {
-    struct omap_uart_s *s = g_new0(struct omap_uart_s, 1);
+    struct omap_uart_s *s = (struct omap_uart_s *)
+            g_malloc0(sizeof(struct omap_uart_s));
 
     s->base = base;
     s->fclk = fclk;

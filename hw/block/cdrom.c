@@ -25,7 +25,6 @@
 /* ??? Most of the ATAPI emulation is still in ide.c.  It should be moved
    here.  */
 
-#include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "hw/scsi/scsi.h"
 

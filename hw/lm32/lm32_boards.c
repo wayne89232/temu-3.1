@@ -78,7 +78,7 @@ static void lm32_evr_init(MachineState *machine)
     DriveInfo *dinfo;
     MemoryRegion *address_space_mem =  get_system_memory();
     MemoryRegion *phys_ram = g_new(MemoryRegion, 1);
-    qemu_irq irq[32];
+    qemu_irq *cpu_irq, irq[32];
     ResetInfo *reset_info;
     int i;
 
@@ -123,7 +123,8 @@ static void lm32_evr_init(MachineState *machine)
                           1, 2, 0x01, 0x7e, 0x43, 0x00, 0x555, 0x2aa, 1);
 
     /* create irq lines */
-    env->pic_state = lm32_pic_init(qemu_allocate_irq(cpu_irq_handler, cpu, 0));
+    cpu_irq = qemu_allocate_irqs(cpu_irq_handler, cpu, 1);
+    env->pic_state = lm32_pic_init(*cpu_irq);
     for (i = 0; i < 32; i++) {
         irq[i] = qdev_get_gpio_in(env->pic_state, i);
     }
@@ -142,7 +143,7 @@ static void lm32_evr_init(MachineState *machine)
         int kernel_size;
 
         kernel_size = load_elf(kernel_filename, NULL, NULL, &entry, NULL, NULL,
-                               1, EM_LATTICEMICO32, 0);
+                               1, ELF_MACHINE, 0);
         reset_info->bootstrap_pc = entry;
 
         if (kernel_size < 0) {
@@ -172,7 +173,7 @@ static void lm32_uclinux_init(MachineState *machine)
     DriveInfo *dinfo;
     MemoryRegion *address_space_mem =  get_system_memory();
     MemoryRegion *phys_ram = g_new(MemoryRegion, 1);
-    qemu_irq irq[32];
+    qemu_irq *cpu_irq, irq[32];
     HWSetup *hw;
     ResetInfo *reset_info;
     int i;
@@ -224,7 +225,8 @@ static void lm32_uclinux_init(MachineState *machine)
                           1, 2, 0x01, 0x7e, 0x43, 0x00, 0x555, 0x2aa, 1);
 
     /* create irq lines */
-    env->pic_state = lm32_pic_init(qemu_allocate_irq(cpu_irq_handler, env, 0));
+    cpu_irq = qemu_allocate_irqs(cpu_irq_handler, env, 1);
+    env->pic_state = lm32_pic_init(*cpu_irq);
     for (i = 0; i < 32; i++) {
         irq[i] = qdev_get_gpio_in(env->pic_state, i);
     }
@@ -244,7 +246,7 @@ static void lm32_uclinux_init(MachineState *machine)
         int kernel_size;
 
         kernel_size = load_elf(kernel_filename, NULL, NULL, &entry, NULL, NULL,
-                               1, EM_LATTICEMICO32, 0);
+                               1, ELF_MACHINE, 0);
         reset_info->bootstrap_pc = entry;
 
         if (kernel_size < 0) {
@@ -292,40 +294,24 @@ static void lm32_uclinux_init(MachineState *machine)
     qemu_register_reset(main_cpu_reset, reset_info);
 }
 
-static void lm32_evr_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-
-    mc->desc = "LatticeMico32 EVR32 eval system";
-    mc->init = lm32_evr_init;
-    mc->is_default = 1;
-}
-
-static const TypeInfo lm32_evr_type = {
-    .name = MACHINE_TYPE_NAME("lm32-evr"),
-    .parent = TYPE_MACHINE,
-    .class_init = lm32_evr_class_init,
+static QEMUMachine lm32_evr_machine = {
+    .name = "lm32-evr",
+    .desc = "LatticeMico32 EVR32 eval system",
+    .init = lm32_evr_init,
+    .is_default = 1,
 };
 
-static void lm32_uclinux_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-
-    mc->desc = "lm32 platform for uClinux and u-boot by Theobroma Systems";
-    mc->init = lm32_uclinux_init;
-    mc->is_default = 0;
-}
-
-static const TypeInfo lm32_uclinux_type = {
-    .name = MACHINE_TYPE_NAME("lm32-uclinux"),
-    .parent = TYPE_MACHINE,
-    .class_init = lm32_uclinux_class_init,
+static QEMUMachine lm32_uclinux_machine = {
+    .name = "lm32-uclinux",
+    .desc = "lm32 platform for uClinux and u-boot by Theobroma Systems",
+    .init = lm32_uclinux_init,
+    .is_default = 0,
 };
 
 static void lm32_machine_init(void)
 {
-    type_register_static(&lm32_evr_type);
-    type_register_static(&lm32_uclinux_type);
+    qemu_register_machine(&lm32_uclinux_machine);
+    qemu_register_machine(&lm32_evr_machine);
 }
 
-machine_init(lm32_machine_init)
+machine_init(lm32_machine_init);

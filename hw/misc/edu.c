@@ -279,7 +279,7 @@ static const MemoryRegionOps edu_mmio_ops = {
 };
 
 /*
- * We purposely use a thread, so that users are forced to wait for the status
+ * We purposedly use a thread, so that users are forced to wait for the status
  * register.
  */
 static void *edu_fact_thread(void *opaque)
@@ -327,7 +327,7 @@ static void *edu_fact_thread(void *opaque)
     return NULL;
 }
 
-static void pci_edu_realize(PCIDevice *pdev, Error **errp)
+static int pci_edu_init(PCIDevice *pdev)
 {
     EduState *edu = DO_UPCAST(EduState, pdev, pdev);
     uint8_t *pci_conf = pdev->config;
@@ -344,6 +344,8 @@ static void pci_edu_realize(PCIDevice *pdev, Error **errp)
     memory_region_init_io(&edu->mmio, OBJECT(edu), &edu_mmio_ops, edu,
                     "edu-mmio", 1 << 20);
     pci_register_bar(pdev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &edu->mmio);
+
+    return 0;
 }
 
 static void pci_edu_uninit(PCIDevice *pdev)
@@ -383,7 +385,7 @@ static void edu_class_init(ObjectClass *class, void *data)
 {
     PCIDeviceClass *k = PCI_DEVICE_CLASS(class);
 
-    k->realize = pci_edu_realize;
+    k->init = pci_edu_init;
     k->exit = pci_edu_uninit;
     k->vendor_id = PCI_VENDOR_ID_QEMU;
     k->device_id = 0x11e8;

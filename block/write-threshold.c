@@ -10,9 +10,8 @@
  * See the COPYING.LIB file in the top-level directory.
  */
 
-#include "qemu/osdep.h"
 #include "block/block_int.h"
-#include "qemu/coroutine.h"
+#include "block/coroutine.h"
 #include "block/write-threshold.h"
 #include "qemu/notify.h"
 #include "qapi-event.h"

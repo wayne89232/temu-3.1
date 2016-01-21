@@ -54,9 +54,6 @@ _unsupported_imgopts "subformat=monolithicFlat" \
 TEST_OFFSETS="0 4294967296"
 CLUSTER_SIZE=65536
 
-TEST_IMG_SAVE="$TEST_IMG"
-TEST_IMG="$TEST_IMG.base"
-
 _make_test_img 6G
 
 echo "Filling base image"
@@ -74,8 +71,8 @@ _check_test_img
 echo "Creating test image with backing file"
 echo
 
-TEST_IMG="$TEST_IMG_SAVE.orig"
-_make_test_img -b "$TEST_IMG_SAVE.base" 6G
+mv "$TEST_IMG" "$TEST_IMG.base"
+_make_test_img -b "$TEST_IMG.base" 6G
 
 echo "Filling test image"
 echo
@@ -89,7 +86,9 @@ for offset in $TEST_OFFSETS; do
 done
 _check_test_img
 
-TEST_IMG="$TEST_IMG_SAVE"
+mv "$TEST_IMG" "$TEST_IMG.orig"
+
+
 
 # Test the conversion twice: One test with the old-style -B option and another
 # one with -o backing_file
@@ -99,7 +98,7 @@ for backing_option in "-B " "-o backing_file="; do
     echo
     echo Testing conversion with $backing_option"$TEST_IMG.base" | _filter_testdir | _filter_imgfmt
     echo
-    $QEMU_IMG convert -f $IMGFMT -O $IMGFMT $backing_option"$TEST_IMG.base" "$TEST_IMG.orig" "$TEST_IMG"
+    $QEMU_IMG convert -O $IMGFMT $backing_option"$TEST_IMG.base" "$TEST_IMG.orig" "$TEST_IMG"
 
     echo "Checking if backing clusters are allocated when they shouldn't"
     echo

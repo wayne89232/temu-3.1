@@ -19,11 +19,17 @@ static void machine_none_init(MachineState *machine)
 {
 }
 
-static void machine_none_machine_init(MachineClass *mc)
+static QEMUMachine machine_none = {
+    .name = "none",
+    .desc = "empty machine",
+    .init = machine_none_init,
+    .max_cpus = 0,
+};
+
+static void register_machines(void)
 {
-    mc->desc = "empty machine";
-    mc->init = machine_none_init;
-    mc->max_cpus = 0;
+    qemu_register_machine(&machine_none);
 }
 
-DEFINE_MACHINE("none", machine_none_machine_init)
+machine_init(register_machines);
+

@@ -10,10 +10,10 @@
  * See the COPYING file in the top-level directory.
  */
 #include "sysemu/hostmem.h"
-#include "hw/boards.h"
 #include "qapi/visitor.h"
 #include "qapi-types.h"
 #include "qapi-visit.h"
+#include "qapi/qmp/qerror.h"
 #include "qemu/config-file.h"
 #include "qom/object_interfaces.h"
 
@@ -113,17 +113,24 @@ host_memory_backend_set_host_nodes(Object *obj, Visitor *v, void *opaque,
 #endif
 }
 
-static int
-host_memory_backend_get_policy(Object *obj, Error **errp G_GNUC_UNUSED)
+static void
+host_memory_backend_get_policy(Object *obj, Visitor *v, void *opaque,
+                               const char *name, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
-    return backend->policy;
+    int policy = backend->policy;
+
+    visit_type_enum(v, &policy, HostMemPolicy_lookup, NULL, name, errp);
 }
 
 static void
-host_memory_backend_set_policy(Object *obj, int policy, Error **errp)
+host_memory_backend_set_policy(Object *obj, Visitor *v, void *opaque,
+                               const char *name, Error **errp)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
+    int policy;
+
+    visit_type_enum(v, &policy, HostMemPolicy_lookup, NULL, name, errp);
     backend->policy = policy;
 
 #ifndef CONFIG_NUMA
@@ -223,10 +230,11 @@ static void host_memory_backend_set_prealloc(Object *obj, bool value,
 static void host_memory_backend_init(Object *obj)
 {
     HostMemoryBackend *backend = MEMORY_BACKEND(obj);
-    MachineState *machine = MACHINE(qdev_get_machine());
 
-    backend->merge = machine_mem_merge(machine);
-    backend->dump = machine_dump_guest_core(machine);
+    backend->merge = qemu_opt_get_bool(qemu_get_machine_opts(),
+                                       "mem-merge", true);
+    backend->dump = qemu_opt_get_bool(qemu_get_machine_opts(),
+                                      "dump-guest-core", true);
     backend->prealloc = mem_prealloc;
 
     object_property_add_bool(obj, "merge",
@@ -244,10 +252,9 @@ static void host_memory_backend_init(Object *obj)
     object_property_add(obj, "host-nodes", "int",
                         host_memory_backend_get_host_nodes,
                         host_memory_backend_set_host_nodes, NULL, NULL, NULL);
-    object_property_add_enum(obj, "policy", "HostMemPolicy",
-                             HostMemPolicy_lookup,
-                             host_memory_backend_get_policy,
-                             host_memory_backend_set_policy, NULL);
+    object_property_add(obj, "policy", "str",
+                        host_memory_backend_get_policy,
+                        host_memory_backend_set_policy, NULL, NULL, NULL);
 }
 
 MemoryRegion *
@@ -313,11 +320,9 @@ host_memory_backend_memory_complete(UserCreatable *uc, Error **errp)
         assert(maxnode <= MAX_NODES);
         if (mbind(ptr, sz, backend->policy,
                   maxnode ? backend->host_nodes : NULL, maxnode + 1, flags)) {
-            if (backend->policy != MPOL_DEFAULT || errno != ENOSYS) {
-                error_setg_errno(errp, errno,
-                                 "cannot bind memory to host NUMA nodes");
-                return;
-            }
+            error_setg_errno(errp, errno,
+                             "cannot bind memory to host NUMA nodes");
+            return;
         }
 #endif
         /* Preallocate memory after the NUMA policy has been instantiated.

@@ -12,7 +12,6 @@
  *
  */
 
-#include "qemu/osdep.h"
 #include "trace.h"
 #include "qemu/iov.h"
 #include "qemu/thread.h"
@@ -46,6 +45,7 @@ struct VirtIOBlockDataPlane {
      * use it).
      */
     IOThread *iothread;
+    IOThread internal_iothread_obj;
     AioContext *ctx;
     EventNotifier host_notifier;    /* doorbell */
 
@@ -143,19 +143,20 @@ void virtio_blk_data_plane_create(VirtIODevice *vdev, VirtIOBlkConf *conf,
                                   Error **errp)
 {
     VirtIOBlockDataPlane *s;
+    Error *local_err = NULL;
     BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(qbus);
 
     *dataplane = NULL;
 
-    if (!conf->iothread) {
+    if (!conf->data_plane && !conf->iothread) {
         return;
     }
 
     /* Don't try if transport does not support notifiers. */
     if (!k->set_guest_notifiers || !k->set_host_notifier) {
         error_setg(errp,
-                   "device is incompatible with dataplane "
+                   "device is incompatible with x-data-plane "
                    "(transport does not support notifiers)");
         return;
     }
@@ -163,8 +164,11 @@ void virtio_blk_data_plane_create(VirtIODevice *vdev, VirtIOBlkConf *conf,
     /* If dataplane is (re-)enabled while the guest is running there could be
      * block jobs that can conflict.
      */
-    if (blk_op_is_blocked(conf->conf.blk, BLOCK_OP_TYPE_DATAPLANE, errp)) {
-        error_prepend(errp, "cannot start dataplane thread: ");
+    if (blk_op_is_blocked(conf->conf.blk, BLOCK_OP_TYPE_DATAPLANE,
+                          &local_err)) {
+        error_setg(errp, "cannot start dataplane thread: %s",
+                   error_get_pretty(local_err));
+        error_free(local_err);
         return;
     }
 
@@ -175,6 +179,16 @@ void virtio_blk_data_plane_create(VirtIODevice *vdev, VirtIOBlkConf *conf,
     if (conf->iothread) {
         s->iothread = conf->iothread;
         object_ref(OBJECT(s->iothread));
+    } else {
+        /* Create per-device IOThread if none specified.  This is for
+         * x-data-plane option compatibility.  If x-data-plane is removed we
+         * can drop this.
+         */
+        object_initialize(&s->internal_iothread_obj,
+                          sizeof(s->internal_iothread_obj),
+                          TYPE_IOTHREAD);
+        user_creatable_complete(OBJECT(&s->internal_iothread_obj), &error_abort);
+        s->iothread = &s->internal_iothread_obj;
     }
     s->ctx = iothread_get_aio_context(s->iothread);
     s->bh = aio_bh_new(s->ctx, notify_guest_bh, s);
@@ -192,7 +206,7 @@ void virtio_blk_data_plane_create(VirtIODevice *vdev, VirtIOBlkConf *conf,
     blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_INTERNAL_SNAPSHOT, s->blocker);
     blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_INTERNAL_SNAPSHOT_DELETE,
                    s->blocker);
-    blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_MIRROR_SOURCE, s->blocker);
+    blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_MIRROR, s->blocker);
     blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_STREAM, s->blocker);
     blk_op_unblock(conf->conf.blk, BLOCK_OP_TYPE_REPLACE, s->blocker);
 
@@ -209,8 +223,8 @@ void virtio_blk_data_plane_destroy(VirtIOBlockDataPlane *s)
     virtio_blk_data_plane_stop(s);
     blk_op_unblock_all(s->conf->conf.blk, s->blocker);
     error_free(s->blocker);
-    qemu_bh_delete(s->bh);
     object_unref(OBJECT(s->iothread));
+    qemu_bh_delete(s->bh);
     g_free(s);
 }
 
@@ -269,8 +283,7 @@ void virtio_blk_data_plane_start(VirtIOBlockDataPlane *s)
 
     /* Get this show started by hooking up our callbacks */
     aio_context_acquire(s->ctx);
-    aio_set_event_notifier(s->ctx, &s->host_notifier, true,
-                           handle_notify);
+    aio_set_event_notifier(s->ctx, &s->host_notifier, handle_notify);
     aio_context_release(s->ctx);
     return;
 
@@ -306,7 +319,7 @@ void virtio_blk_data_plane_stop(VirtIOBlockDataPlane *s)
     aio_context_acquire(s->ctx);
 
     /* Stop notifications for new requests from guest */
-    aio_set_event_notifier(s->ctx, &s->host_notifier, true, NULL);
+    aio_set_event_notifier(s->ctx, &s->host_notifier, NULL);
 
     /* Drain and switch bs back to the QEMU main loop */
     blk_set_aio_context(s->conf->conf.blk, qemu_get_aio_context());

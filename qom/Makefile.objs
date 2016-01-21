@@ -1,4 +1,3 @@
-qom-obj-y = object.o container.o qom-qobject.o
-qom-obj-y += object_interfaces.o
-
-common-obj-y = cpu.o
+common-obj-y = object.o container.o qom-qobject.o
+common-obj-y += cpu.o
+common-obj-y += object_interfaces.o

@@ -30,9 +30,11 @@
 struct CPULM32State;
 typedef struct CPULM32State CPULM32State;
 
+#define ELF_MACHINE EM_LATTICEMICO32
+
 #define NB_MMU_MODES 1
 #define TARGET_PAGE_BITS 12
-static inline int cpu_mmu_index(CPULM32State *env, bool ifetch)
+static inline int cpu_mmu_index(CPULM32State *env)
 {
     return 0;
 }
@@ -197,7 +199,7 @@ static inline lm32_wp_t lm32_wp_type(uint32_t dc, int idx)
 #include "cpu-qom.h"
 
 LM32CPU *cpu_lm32_init(const char *cpu_model);
-int cpu_lm32_exec(CPUState *cpu);
+int cpu_lm32_exec(CPULM32State *s);
 /* you can call this signal handler from your SIGBUS and SIGSEGV
    signal handlers to inform the virtual CPU of exceptions. non zero
    is returned if the signal was handled by the virtual CPU.  */
@@ -219,6 +221,7 @@ bool lm32_cpu_do_semihosting(CPUState *cs);
 
 #define cpu_list lm32_cpu_list
 #define cpu_exec cpu_lm32_exec
+#define cpu_gen_code cpu_lm32_gen_code
 #define cpu_signal_handler cpu_lm32_signal_handler
 
 int lm32_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,

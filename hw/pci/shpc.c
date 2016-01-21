@@ -1,4 +1,5 @@
 #include "qemu-common.h"
+#include <strings.h>
 #include <stdint.h>
 #include "qemu/range.h"
 #include "qemu/error-report.h"
@@ -6,6 +7,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_bus.h"
 #include "hw/pci/msi.h"
+#include "qapi/qmp/qerror.h"
 
 /* TODO: model power only and disabled slot states. */
 /* TODO: handle SERR and wakeups */
@@ -59,7 +61,7 @@
 /* Same slot state masks are used for command and status registers */
 #define SHPC_SLOT_STATE_MASK     0x03
 #define SHPC_SLOT_STATE_SHIFT \
-    ctz32(SHPC_SLOT_STATE_MASK)
+    (ffs(SHPC_SLOT_STATE_MASK) - 1)
 
 #define SHPC_STATE_NO       0x0
 #define SHPC_STATE_PWRONLY  0x1
@@ -68,10 +70,10 @@
 
 #define SHPC_SLOT_PWR_LED_MASK   0xC
 #define SHPC_SLOT_PWR_LED_SHIFT \
-    ctz32(SHPC_SLOT_PWR_LED_MASK)
+    (ffs(SHPC_SLOT_PWR_LED_MASK) - 1)
 #define SHPC_SLOT_ATTN_LED_MASK  0x30
 #define SHPC_SLOT_ATTN_LED_SHIFT \
-    ctz32(SHPC_SLOT_ATTN_LED_MASK)
+    (ffs(SHPC_SLOT_ATTN_LED_MASK) - 1)
 
 #define SHPC_LED_NO     0x0
 #define SHPC_LED_ON     0x1
@@ -134,7 +136,7 @@ static int roundup_pow_of_two(int x)
 static uint16_t shpc_get_status(SHPCDevice *shpc, int slot, uint16_t msk)
 {
     uint8_t *status = shpc->config + SHPC_SLOT_STATUS(slot);
-    return (pci_get_word(status) & msk) >> ctz32(msk);
+    return (pci_get_word(status) & msk) >> (ffs(msk) - 1);
 }
 
 static void shpc_set_status(SHPCDevice *shpc,
@@ -142,7 +144,7 @@ static void shpc_set_status(SHPCDevice *shpc,
 {
     uint8_t *status = shpc->config + SHPC_SLOT_STATUS(slot);
     pci_word_test_and_clear_mask(status, msk);
-    pci_word_test_and_set_mask(status, value << ctz32(msk));
+    pci_word_test_and_set_mask(status, value << (ffs(msk) - 1));
 }
 
 static void shpc_interrupt_update(PCIDevice *d)

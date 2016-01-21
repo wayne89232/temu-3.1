@@ -85,10 +85,8 @@ static inline void blkif_get_x86_32_req(blkif_request_t *dst, blkif_x86_32_reque
 		d->nr_sectors = s->nr_sectors;
 		return;
 	}
-	/* prevent the compiler from optimizing the code and using src->nr_segments instead */
-	barrier();
-	if (n > dst->nr_segments)
-		n = dst->nr_segments;
+	if (n > src->nr_segments)
+		n = src->nr_segments;
 	for (i = 0; i < n; i++)
 		dst->seg[i] = src->seg[i];
 }
@@ -108,10 +106,8 @@ static inline void blkif_get_x86_64_req(blkif_request_t *dst, blkif_x86_64_reque
 		d->nr_sectors = s->nr_sectors;
 		return;
 	}
-	/* prevent the compiler from optimizing the code and using src->nr_segments instead */
-	barrier();
-	if (n > dst->nr_segments)
-		n = dst->nr_segments;
+	if (n > src->nr_segments)
+		n = src->nr_segments;
 	for (i = 0; i < n; i++)
 		dst->seg[i] = src->seg[i];
 }

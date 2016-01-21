@@ -38,7 +38,6 @@
 #include "hw/ide.h"
 #include "hw/loader.h"
 #include "elf.h"
-#include "qemu/error-report.h"
 #include "sysemu/kvm.h"
 #include "kvm_ppc.h"
 #include "sysemu/block-backend.h"
@@ -53,7 +52,7 @@
 static void fw_cfg_boot_set(void *opaque, const char *boot_device,
                             Error **errp)
 {
-    fw_cfg_modify_i16(opaque, FW_CFG_BOOT_DEVICE, boot_device[0]);
+    fw_cfg_add_i16(opaque, FW_CFG_BOOT_DEVICE, boot_device[0]);
 }
 
 static uint64_t translate_kernel_address(void *opaque, uint64_t addr)
@@ -76,6 +75,7 @@ static void ppc_heathrow_reset(void *opaque)
 static void ppc_heathrow_init(MachineState *machine)
 {
     ram_addr_t ram_size = machine->ram_size;
+    const char *cpu_model = machine->cpu_model;
     const char *kernel_filename = machine->kernel_filename;
     const char *kernel_cmdline = machine->kernel_cmdline;
     const char *initrd_filename = machine->initrd_filename;
@@ -107,10 +107,10 @@ static void ppc_heathrow_init(MachineState *machine)
     linux_boot = (kernel_filename != NULL);
 
     /* init CPUs */
-    if (machine->cpu_model == NULL)
-        machine->cpu_model = "G3";
+    if (cpu_model == NULL)
+        cpu_model = "G3";
     for (i = 0; i < smp_cpus; i++) {
-        cpu = cpu_ppc_init(machine->cpu_model);
+        cpu = cpu_ppc_init(cpu_model);
         if (cpu == NULL) {
             fprintf(stderr, "Unable to find PowerPC CPU definition\n");
             exit(1);
@@ -136,7 +136,7 @@ static void ppc_heathrow_init(MachineState *machine)
 
     /* allocate and load BIOS */
     memory_region_init_ram(bios, NULL, "ppc_heathrow.bios", BIOS_SIZE,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(bios);
 
     if (bios_name == NULL)
@@ -148,13 +148,13 @@ static void ppc_heathrow_init(MachineState *machine)
     /* Load OpenBIOS (ELF) */
     if (filename) {
         bios_size = load_elf(filename, 0, NULL, NULL, NULL, NULL,
-                             1, PPC_ELF_MACHINE, 0);
+                             1, ELF_MACHINE, 0);
         g_free(filename);
     } else {
         bios_size = -1;
     }
     if (bios_size < 0 || bios_size > BIOS_SIZE) {
-        error_report("could not load PowerPC bios '%s'", bios_name);
+        hw_error("qemu: could not load PowerPC bios '%s'\n", bios_name);
         exit(1);
     }
 
@@ -169,7 +169,7 @@ static void ppc_heathrow_init(MachineState *machine)
 #endif
         kernel_base = KERNEL_LOAD_ADDR;
         kernel_size = load_elf(kernel_filename, translate_kernel_address, NULL,
-                               NULL, &lowaddr, NULL, 1, PPC_ELF_MACHINE, 0);
+                               NULL, &lowaddr, NULL, 1, ELF_MACHINE, 0);
         if (kernel_size < 0)
             kernel_size = load_aout(kernel_filename, kernel_base,
                                     ram_size - kernel_base, bswap_needed,
@@ -179,7 +179,8 @@ static void ppc_heathrow_init(MachineState *machine)
                                               kernel_base,
                                               ram_size - kernel_base);
         if (kernel_size < 0) {
-            error_report("could not load kernel '%s'", kernel_filename);
+            hw_error("qemu: could not load kernel '%s'\n",
+                      kernel_filename);
             exit(1);
         }
         /* load initrd */
@@ -188,8 +189,8 @@ static void ppc_heathrow_init(MachineState *machine)
             initrd_size = load_image_targphys(initrd_filename, initrd_base,
                                               ram_size - initrd_base);
             if (initrd_size < 0) {
-                error_report("could not load initial ram disk '%s'",
-                             initrd_filename);
+                hw_error("qemu: could not load initial ram disk '%s'\n",
+                         initrd_filename);
                 exit(1);
             }
             cmdline_base = round_page(initrd_base + initrd_size);
@@ -246,8 +247,7 @@ static void ppc_heathrow_init(MachineState *machine)
                 ((qemu_irq *)env->irq_inputs)[PPC6xx_INPUT_INT];
             break;
         default:
-            error_report("Bus model not supported on OldWorld Mac machine");
-            exit(1);
+            hw_error("Bus model not supported on OldWorld Mac machine\n");
         }
     }
 
@@ -260,8 +260,7 @@ static void ppc_heathrow_init(MachineState *machine)
 
     /* init basic PC hardware */
     if (PPC_INPUT(env) != PPC_FLAGS_INPUT_6xx) {
-        error_report("Only 6xx bus is supported on heathrow machine");
-        exit(1);
+        hw_error("Only 6xx bus is supported on heathrow machine\n");
     }
     pic = heathrow_pic_init(&pic_mem, 1, heathrow_irqs);
     pci_bus = pci_grackle_init(0xfec00000, pic,
@@ -359,17 +358,21 @@ static int heathrow_kvm_type(const char *arg)
     return 2;
 }
 
-static void heathrow_machine_init(MachineClass *mc)
-{
-    mc->desc = "Heathrow based PowerMAC";
-    mc->init = ppc_heathrow_init;
-    mc->max_cpus = MAX_CPUS;
+static QEMUMachine heathrow_machine = {
+    .name = "g3beige",
+    .desc = "Heathrow based PowerMAC",
+    .init = ppc_heathrow_init,
+    .max_cpus = MAX_CPUS,
 #ifndef TARGET_PPC64
-    mc->is_default = 1;
+    .is_default = 1,
 #endif
-    /* TOFIX "cad" when Mac floppy is implemented */
-    mc->default_boot_order = "cd";
-    mc->kvm_type = heathrow_kvm_type;
+    .default_boot_order = "cd", /* TOFIX "cad" when Mac floppy is implemented */
+    .kvm_type = heathrow_kvm_type,
+};
+
+static void heathrow_machine_init(void)
+{
+    qemu_register_machine(&heathrow_machine);
 }
 
-DEFINE_MACHINE("g3beige", heathrow_machine_init)
+machine_init(heathrow_machine_init);

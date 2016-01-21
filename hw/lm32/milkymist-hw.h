@@ -88,8 +88,7 @@ static inline DeviceState *milkymist_pfpu_create(hwaddr base,
 
 #ifdef CONFIG_OPENGL
 #include <X11/Xlib.h>
-#include <epoxy/gl.h>
-#include <epoxy/glx.h>
+#include <GL/glx.h>
 static const int glx_fbconfig_attr[] = {
     GLX_GREEN_SIZE, 5,
     GLX_GREEN_SIZE, 6,

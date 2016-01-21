@@ -20,7 +20,6 @@
 #include "hw/i2c/i2c.h"
 #include "hw/arm/omap.h"
 #include "hw/sysbus.h"
-#include "qemu/error-report.h"
 
 #define TYPE_OMAP_I2C "omap_i2c"
 #define OMAP_I2C(obj) OBJECT_CHECK(OMAPI2CState, (obj), TYPE_OMAP_I2C)
@@ -172,13 +171,9 @@ static uint32_t omap_i2c_read(void *opaque, hwaddr addr)
     case 0x0c:	/* I2C_IV */
         if (s->revision >= OMAP2_INTR_REV)
             break;
-        ret = ctz32(s->stat & s->mask);
-        if (ret != 32) {
-            s->stat ^= 1 << ret;
-            ret++;
-        } else {
-            ret = 0;
-        }
+        ret = ffs(s->stat & s->mask);
+        if (ret)
+            s->stat ^= 1 << (ret - 1);
         omap_i2c_interrupts_update(s);
         return ret;
 
@@ -450,15 +445,12 @@ static int omap_i2c_init(SysBusDevice *sbd)
     OMAPI2CState *s = OMAP_I2C(dev);
 
     if (!s->fclk) {
-        error_report("omap_i2c: fclk not connected");
-        return -1;
+        hw_error("omap_i2c: fclk not connected\n");
     }
     if (s->revision >= OMAP2_INTR_REV && !s->iclk) {
         /* Note that OMAP1 doesn't have a separate interface clock */
-        error_report("omap_i2c: iclk not connected");
-        return -1;
+        hw_error("omap_i2c: iclk not connected\n");
     }
-
     sysbus_init_irq(sbd, &s->irq);
     sysbus_init_irq(sbd, &s->drq[0]);
     sysbus_init_irq(sbd, &s->drq[1]);

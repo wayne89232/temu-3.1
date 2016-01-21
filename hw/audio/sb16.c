@@ -40,6 +40,11 @@
 #define ldebug(...)
 #endif
 
+#define IO_READ_PROTO(name)                             \
+    uint32_t name (void *opaque, uint32_t nport)
+#define IO_WRITE_PROTO(name)                                    \
+    void name (void *opaque, uint32_t nport, uint32_t val)
+
 static const char e3[] = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
 
 #define TYPE_SB16 "sb16"
@@ -876,7 +881,7 @@ static void reset (SB16State *s)
     legacy_reset (s);
 }
 
-static void dsp_write(void *opaque, uint32_t nport, uint32_t val)
+static IO_WRITE_PROTO (dsp_write)
 {
     SB16State *s = opaque;
     int iport;
@@ -954,7 +959,7 @@ static void dsp_write(void *opaque, uint32_t nport, uint32_t val)
     }
 }
 
-static uint32_t dsp_read(void *opaque, uint32_t nport)
+static IO_READ_PROTO (dsp_read)
 {
     SB16State *s = opaque;
     int iport, retval, ack = 0;
@@ -1053,14 +1058,14 @@ static void reset_mixer (SB16State *s)
     }
 }
 
-static void mixer_write_indexb(void *opaque, uint32_t nport, uint32_t val)
+static IO_WRITE_PROTO (mixer_write_indexb)
 {
     SB16State *s = opaque;
     (void) nport;
     s->mixer_nreg = val;
 }
 
-static void mixer_write_datab(void *opaque, uint32_t nport, uint32_t val)
+static IO_WRITE_PROTO (mixer_write_datab)
 {
     SB16State *s = opaque;
 
@@ -1116,7 +1121,13 @@ static void mixer_write_datab(void *opaque, uint32_t nport, uint32_t val)
     s->mixer_regs[s->mixer_nreg] = val;
 }
 
-static uint32_t mixer_read(void *opaque, uint32_t nport)
+static IO_WRITE_PROTO (mixer_write_indexw)
+{
+    mixer_write_indexb (opaque, nport, val & 0xff);
+    mixer_write_datab (opaque, nport, (val >> 8) & 0xff);
+}
+
+static IO_READ_PROTO (mixer_read)
 {
     SB16State *s = opaque;
 
@@ -1334,6 +1345,7 @@ static const VMStateDescription vmstate_sb16 = {
 
 static const MemoryRegionPortio sb16_ioport_list[] = {
     {  4, 1, 1, .write = mixer_write_indexb },
+    {  4, 1, 2, .write = mixer_write_indexw },
     {  5, 1, 1, .read = mixer_read, .write = mixer_write_datab },
     {  6, 1, 1, .read = dsp_read, .write = dsp_write },
     { 10, 1, 1, .read = dsp_read },

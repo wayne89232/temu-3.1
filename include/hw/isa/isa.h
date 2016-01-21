@@ -59,7 +59,7 @@ struct ISADevice {
 };
 
 ISABus *isa_bus_new(DeviceState *dev, MemoryRegion *address_space,
-                    MemoryRegion *address_space_io, Error **errp);
+                    MemoryRegion *address_space_io);
 void isa_bus_irqs(ISABus *bus, qemu_irq *irqs);
 qemu_irq isa_get_irq(ISADevice *dev, int isairq);
 void isa_init_irq(ISADevice *dev, qemu_irq *p, int isairq);
@@ -112,8 +112,8 @@ int DMA_read_memory (int nchan, void *buf, int pos, int size);
 int DMA_write_memory (int nchan, void *buf, int pos, int size);
 void DMA_hold_DREQ (int nchan);
 void DMA_release_DREQ (int nchan);
-void DMA_schedule(void);
-void DMA_init(int high_page_enable);
+void DMA_schedule(int nchan);
+void DMA_init(int high_page_enable, qemu_irq *cpu_request_exit);
 void DMA_register_channel (int nchan,
                            DMA_transfer_handler transfer_handler,
                            void *opaque);

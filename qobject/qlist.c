@@ -15,6 +15,13 @@
 #include "qemu/queue.h"
 #include "qemu-common.h"
 
+static void qlist_destroy_obj(QObject *obj);
+
+static const QType qlist_type = {
+    .code = QTYPE_QLIST,
+    .destroy = qlist_destroy_obj,
+};
+ 
 /**
  * qlist_new(): Create a new QList
  *
@@ -25,8 +32,8 @@ QList *qlist_new(void)
     QList *qlist;
 
     qlist = g_malloc(sizeof(*qlist));
-    qobject_init(QOBJECT(qlist), QTYPE_QLIST);
     QTAILQ_INIT(&qlist->head);
+    QOBJECT_INIT(qlist, &qlist_type);
 
     return qlist;
 }
@@ -135,16 +142,17 @@ size_t qlist_size(const QList *qlist)
  */
 QList *qobject_to_qlist(const QObject *obj)
 {
-    if (!obj || qobject_type(obj) != QTYPE_QLIST) {
+    if (qobject_type(obj) != QTYPE_QLIST) {
         return NULL;
     }
+
     return container_of(obj, QList, base);
 }
 
 /**
  * qlist_destroy_obj(): Free all the memory allocated by a QList
  */
-void qlist_destroy_obj(QObject *obj)
+static void qlist_destroy_obj(QObject *obj)
 {
     QList *qlist;
     QListEntry *entry, *next_entry;

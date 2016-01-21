@@ -16,18 +16,28 @@
 
 static void drive_add(void)
 {
-    char *resp = hmp("drive_add 0 if=none,id=drive0");
+    QDict *response;
 
-    g_assert_cmpstr(resp, ==, "OK\r\n");
-    g_free(resp);
+    response = qmp("{'execute': 'human-monitor-command',"
+                   " 'arguments': {"
+                   "   'command-line': 'drive_add 0 if=none,id=drive0'"
+                   "}}");
+    g_assert(response);
+    g_assert_cmpstr(qdict_get_try_str(response, "return"), ==, "OK\r\n");
+    QDECREF(response);
 }
 
 static void drive_del(void)
 {
-    char *resp = hmp("drive_del drive0");
+    QDict *response;
 
-    g_assert_cmpstr(resp, ==, "");
-    g_free(resp);
+    response = qmp("{'execute': 'human-monitor-command',"
+                   " 'arguments': {"
+                   "   'command-line': 'drive_del drive0'"
+                   "}}");
+    g_assert(response);
+    g_assert_cmpstr(qdict_get_try_str(response, "return"), ==, "");
+    QDECREF(response);
 }
 
 static void device_del(void)

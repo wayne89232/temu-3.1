@@ -275,8 +275,7 @@ static void check_reserved_space (hwaddr *start,
 
 static void gt64120_isd_mapping(GT64120State *s)
 {
-    /* Bits 14:0 of ISD map to bits 35:21 of the start address.  */
-    hwaddr start = ((hwaddr)s->regs[GT_ISD] << 21) & 0xFFFE00000ull;
+    hwaddr start = s->regs[GT_ISD] << 21;
     hwaddr length = 0x1000;
 
     if (s->ISD_length) {
@@ -1193,7 +1192,7 @@ static int gt64120_init(SysBusDevice *dev)
     return 0;
 }
 
-static void gt64120_pci_realize(PCIDevice *d, Error **errp)
+static int gt64120_pci_init(PCIDevice *d)
 {
     /* FIXME: Malta specific hw assumptions ahead */
     pci_set_word(d->config + PCI_COMMAND, 0);
@@ -1207,6 +1206,8 @@ static void gt64120_pci_realize(PCIDevice *d, Error **errp)
     pci_set_long(d->config + PCI_BASE_ADDRESS_4, 0x14000000);
     pci_set_long(d->config + PCI_BASE_ADDRESS_5, 0x14000001);
     pci_set_byte(d->config + 0x3d, 0x01);
+
+    return 0;
 }
 
 static void gt64120_pci_class_init(ObjectClass *klass, void *data)
@@ -1214,7 +1215,7 @@ static void gt64120_pci_class_init(ObjectClass *klass, void *data)
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    k->realize = gt64120_pci_realize;
+    k->init = gt64120_pci_init;
     k->vendor_id = PCI_VENDOR_ID_MARVELL;
     k->device_id = PCI_DEVICE_ID_MARVELL_GT6412X;
     k->revision = 0x10;

@@ -1352,7 +1352,7 @@ void helper_msa_ctcmsa(CPUMIPSState *env, target_ulong elm, uint32_t cd)
         /* check exception */
         if ((GET_FP_ENABLE(env->active_tc.msacsr) | FP_UNIMPLEMENTED)
             & GET_FP_CAUSE(env->active_tc.msacsr)) {
-            do_raise_exception(env, EXCP_MSAFPE, GETPC());
+            helper_raise_exception(env, EXCP_MSAFPE);
         }
         break;
     }
@@ -1505,14 +1505,14 @@ static inline void clear_msacsr_cause(CPUMIPSState *env)
     SET_FP_CAUSE(env->active_tc.msacsr, 0);
 }
 
-static inline void check_msacsr_cause(CPUMIPSState *env, uintptr_t retaddr)
+static inline void check_msacsr_cause(CPUMIPSState *env)
 {
     if ((GET_FP_CAUSE(env->active_tc.msacsr) &
             (GET_FP_ENABLE(env->active_tc.msacsr) | FP_UNIMPLEMENTED)) == 0) {
         UPDATE_FP_FLAGS(env->active_tc.msacsr,
                 GET_FP_CAUSE(env->active_tc.msacsr));
     } else {
-        do_raise_exception(env, EXCP_MSAFPE, retaddr);
+        helper_raise_exception(env, EXCP_MSAFPE);
     }
 }
 
@@ -1851,8 +1851,7 @@ static inline int32 float64_to_q32(float64 a, float_status *status)
     } while (0)
 
 static inline void compare_af(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -1874,14 +1873,13 @@ static inline void compare_af(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_un(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -1905,14 +1903,13 @@ static inline void compare_un(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_eq(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -1934,14 +1931,13 @@ static inline void compare_eq(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_ueq(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                               wr_t *pwt, uint32_t df, int quiet,
-                               uintptr_t retaddr)
+                               wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -1963,14 +1959,13 @@ static inline void compare_ueq(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_lt(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -1992,14 +1987,13 @@ static inline void compare_lt(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_ult(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                               wr_t *pwt, uint32_t df, int quiet,
-                               uintptr_t retaddr)
+                               wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -2021,14 +2015,13 @@ static inline void compare_ult(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_le(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -2050,14 +2043,13 @@ static inline void compare_le(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_ule(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                               wr_t *pwt, uint32_t df, int quiet,
-                               uintptr_t retaddr)
+                               wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -2079,14 +2071,13 @@ static inline void compare_ule(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_or(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
+                              wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -2108,14 +2099,13 @@ static inline void compare_or(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_une(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                               wr_t *pwt, uint32_t df, int quiet,
-                               uintptr_t retaddr)
+                               wr_t *pwt, uint32_t df, int quiet)
 {
     wr_t wx, *pwx = &wx;
     uint32_t i;
@@ -2137,15 +2127,13 @@ static inline void compare_une(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
 
 static inline void compare_ne(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
-                              wr_t *pwt, uint32_t df, int quiet,
-                              uintptr_t retaddr)
-{
+                              wr_t *pwt, uint32_t df, int quiet) {
     wr_t wx, *pwx = &wx;
     uint32_t i;
 
@@ -2166,7 +2154,7 @@ static inline void compare_ne(CPUMIPSState *env, wr_t *pwd, wr_t *pws,
         assert(0);
     }
 
-    check_msacsr_cause(env, retaddr);
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2177,7 +2165,7 @@ void helper_msa_fcaf_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_af(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_af(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcun_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2186,7 +2174,7 @@ void helper_msa_fcun_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_un(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_un(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fceq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2195,7 +2183,7 @@ void helper_msa_fceq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_eq(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_eq(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcueq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2204,7 +2192,7 @@ void helper_msa_fcueq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ueq(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_ueq(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fclt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2213,7 +2201,7 @@ void helper_msa_fclt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_lt(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_lt(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcult_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2222,7 +2210,7 @@ void helper_msa_fcult_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ult(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_ult(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcle_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2231,7 +2219,7 @@ void helper_msa_fcle_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_le(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_le(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcule_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2240,7 +2228,7 @@ void helper_msa_fcule_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ule(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_ule(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fsaf_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2249,7 +2237,7 @@ void helper_msa_fsaf_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_af(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_af(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsun_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2258,7 +2246,7 @@ void helper_msa_fsun_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_un(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_un(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fseq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2267,7 +2255,7 @@ void helper_msa_fseq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_eq(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_eq(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsueq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2276,7 +2264,7 @@ void helper_msa_fsueq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ueq(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_ueq(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fslt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2285,7 +2273,7 @@ void helper_msa_fslt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_lt(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_lt(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsult_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2294,7 +2282,7 @@ void helper_msa_fsult_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ult(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_ult(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsle_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2303,7 +2291,7 @@ void helper_msa_fsle_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_le(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_le(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsule_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2312,7 +2300,7 @@ void helper_msa_fsule_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ule(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_ule(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fcor_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2321,7 +2309,7 @@ void helper_msa_fcor_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_or(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_or(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcune_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2330,7 +2318,7 @@ void helper_msa_fcune_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_une(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_une(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fcne_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2339,7 +2327,7 @@ void helper_msa_fcne_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ne(env, pwd, pws, pwt, df, 1, GETPC());
+    compare_ne(env, pwd, pws, pwt, df, 1);
 }
 
 void helper_msa_fsor_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2348,7 +2336,7 @@ void helper_msa_fsor_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_or(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_or(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsune_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2357,7 +2345,7 @@ void helper_msa_fsune_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_une(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_une(env, pwd, pws, pwt, df, 0);
 }
 
 void helper_msa_fsne_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
@@ -2366,7 +2354,7 @@ void helper_msa_fsne_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
-    compare_ne(env, pwd, pws, pwt, df, 0, GETPC());
+    compare_ne(env, pwd, pws, pwt, df, 0);
 }
 
 #define float16_is_zero(ARG) 0
@@ -2416,7 +2404,7 @@ void helper_msa_fadd_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
     msa_move_v(pwd, pwx);
 }
 
@@ -2446,7 +2434,7 @@ void helper_msa_fsub_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
     msa_move_v(pwd, pwx);
 }
 
@@ -2476,7 +2464,7 @@ void helper_msa_fmul_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2507,7 +2495,7 @@ void helper_msa_fdiv_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2554,7 +2542,7 @@ void helper_msa_fmadd_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2589,7 +2577,7 @@ void helper_msa_fmsub_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2626,7 +2614,7 @@ void helper_msa_fexp2_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2654,8 +2642,6 @@ void helper_msa_fexdo_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwt = &(env->active_fpu.fpr[wt].wr);
     uint32_t i;
 
-    clear_msacsr_cause(env);
-
     switch (df) {
     case DF_WORD:
         for (i = 0; i < DF_ELEMENTS(DF_WORD); i++) {
@@ -2678,7 +2664,7 @@ void helper_msa_fexdo_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
     msa_move_v(pwd, pwx);
 }
 
@@ -2724,7 +2710,7 @@ void helper_msa_ftq_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2803,7 +2789,7 @@ void helper_msa_fmin_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2834,7 +2820,7 @@ void helper_msa_fmin_a_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2877,7 +2863,7 @@ void helper_msa_fmax_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2908,7 +2894,7 @@ void helper_msa_fmax_a_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -2970,7 +2956,7 @@ void helper_msa_ftrunc_s_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3000,7 +2986,7 @@ void helper_msa_ftrunc_u_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3030,7 +3016,7 @@ void helper_msa_fsqrt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3079,7 +3065,7 @@ void helper_msa_frsqrt_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3109,7 +3095,7 @@ void helper_msa_frcp_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3139,7 +3125,7 @@ void helper_msa_frint_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3193,7 +3179,7 @@ void helper_msa_flog2_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3205,8 +3191,6 @@ void helper_msa_fexupl_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     uint32_t i;
-
-    clear_msacsr_cause(env);
 
     switch (df) {
     case DF_WORD:
@@ -3228,7 +3212,7 @@ void helper_msa_fexupl_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
     msa_move_v(pwd, pwx);
 }
 
@@ -3239,8 +3223,6 @@ void helper_msa_fexupr_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
     wr_t *pwd = &(env->active_fpu.fpr[wd].wr);
     wr_t *pws = &(env->active_fpu.fpr[ws].wr);
     uint32_t i;
-
-    clear_msacsr_cause(env);
 
     switch (df) {
     case DF_WORD:
@@ -3262,7 +3244,7 @@ void helper_msa_fexupr_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
     msa_move_v(pwd, pwx);
 }
 
@@ -3343,7 +3325,7 @@ void helper_msa_ftint_s_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3373,7 +3355,7 @@ void helper_msa_ftint_u_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3409,7 +3391,7 @@ void helper_msa_ffint_s_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }
@@ -3439,7 +3421,7 @@ void helper_msa_ffint_u_df(CPUMIPSState *env, uint32_t df, uint32_t wd,
         assert(0);
     }
 
-    check_msacsr_cause(env, GETPC());
+    check_msacsr_cause(env);
 
     msa_move_v(pwd, pwx);
 }

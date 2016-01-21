@@ -11,7 +11,7 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
+#include <inttypes.h>
 
 #include "qemu-common.h"
 #include "qemu/error-report.h"
@@ -74,17 +74,24 @@ typedef struct RBDAIOCB {
     QEMUIOVector *qiov;
     char *bounce;
     RBDAIOCmd cmd;
+    int64_t sector_num;
     int error;
     struct BDRVRBDState *s;
+    int status;
 } RBDAIOCB;
 
 typedef struct RADOSCB {
+    int rcbid;
     RBDAIOCB *acb;
     struct BDRVRBDState *s;
+    int done;
     int64_t size;
     char *buf;
     int64_t ret;
 } RADOSCB;
+
+#define RBD_FD_READ 0
+#define RBD_FD_WRITE 1
 
 typedef struct BDRVRBDState {
     rados_t cluster;
@@ -228,9 +235,7 @@ static char *qemu_rbd_parse_clientname(const char *conf, char *clientname)
     return NULL;
 }
 
-static int qemu_rbd_set_conf(rados_t cluster, const char *conf,
-                             bool only_read_conf_file,
-                             Error **errp)
+static int qemu_rbd_set_conf(rados_t cluster, const char *conf, Error **errp)
 {
     char *p, *buf;
     char name[RBD_MAX_CONF_NAME_SIZE];
@@ -262,18 +267,14 @@ static int qemu_rbd_set_conf(rados_t cluster, const char *conf,
         qemu_rbd_unescape(value);
 
         if (strcmp(name, "conf") == 0) {
-            /* read the conf file alone, so it doesn't override more
-               specific settings for a particular device */
-            if (only_read_conf_file) {
-                ret = rados_conf_read_file(cluster, value);
-                if (ret < 0) {
-                    error_setg(errp, "error reading conf file %s", value);
-                    break;
-                }
+            ret = rados_conf_read_file(cluster, value);
+            if (ret < 0) {
+                error_setg(errp, "error reading conf file %s", value);
+                break;
             }
         } else if (strcmp(name, "id") == 0) {
             /* ignore, this is parsed by qemu_rbd_parse_clientname() */
-        } else if (!only_read_conf_file) {
+        } else {
             ret = rados_conf_set(cluster, name, value);
             if (ret < 0) {
                 error_setg(errp, "invalid conf option %s", name);
@@ -324,7 +325,7 @@ static int qemu_rbd_create(const char *filename, QemuOpts *opts, Error **errp)
             error_setg(errp, "obj size too small");
             return -EINVAL;
         }
-        obj_order = ctz32(objsize);
+        obj_order = ffs(objsize) - 1;
     }
 
     clientname = qemu_rbd_parse_clientname(conf, clientname_buf);
@@ -336,15 +337,10 @@ static int qemu_rbd_create(const char *filename, QemuOpts *opts, Error **errp)
     if (strstr(conf, "conf=") == NULL) {
         /* try default location, but ignore failure */
         rados_conf_read_file(cluster, NULL);
-    } else if (conf[0] != '\0' &&
-               qemu_rbd_set_conf(cluster, conf, true, &local_err) < 0) {
-        rados_shutdown(cluster);
-        error_propagate(errp, local_err);
-        return -EIO;
     }
 
     if (conf[0] != '\0' &&
-        qemu_rbd_set_conf(cluster, conf, false, &local_err) < 0) {
+        qemu_rbd_set_conf(cluster, conf, &local_err) < 0) {
         rados_shutdown(cluster);
         error_propagate(errp, local_err);
         return -EIO;
@@ -409,6 +405,7 @@ static void qemu_rbd_complete_aio(RADOSCB *rcb)
     }
     qemu_vfree(acb->bounce);
     acb->common.cb(acb->common.opaque, (acb->ret > 0 ? 0 : acb->ret));
+    acb->status = 0;
 
     qemu_aio_unref(acb);
 }
@@ -471,23 +468,6 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
         s->snap = g_strdup(snap_buf);
     }
 
-    if (strstr(conf, "conf=") == NULL) {
-        /* try default location, but ignore failure */
-        rados_conf_read_file(s->cluster, NULL);
-    } else if (conf[0] != '\0') {
-        r = qemu_rbd_set_conf(s->cluster, conf, true, errp);
-        if (r < 0) {
-            goto failed_shutdown;
-        }
-    }
-
-    if (conf[0] != '\0') {
-        r = qemu_rbd_set_conf(s->cluster, conf, false, errp);
-        if (r < 0) {
-            goto failed_shutdown;
-        }
-    }
-
     /*
      * Fallback to more conservative semantics if setting cache
      * options fails. Ignore errors from setting rbd_cache because the
@@ -499,6 +479,18 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
         rados_conf_set(s->cluster, "rbd_cache", "false");
     } else {
         rados_conf_set(s->cluster, "rbd_cache", "true");
+    }
+
+    if (strstr(conf, "conf=") == NULL) {
+        /* try default location, but ignore failure */
+        rados_conf_read_file(s->cluster, NULL);
+    }
+
+    if (conf[0] != '\0') {
+        r = qemu_rbd_set_conf(s->cluster, conf, errp);
+        if (r < 0) {
+            goto failed_shutdown;
+        }
     }
 
     r = rados_connect(s->cluster);
@@ -629,6 +621,7 @@ static BlockAIOCB *rbd_start_aio(BlockDriverState *bs,
     acb->error = 0;
     acb->s = s;
     acb->bh = NULL;
+    acb->status = -EINPROGRESS;
 
     if (cmd == RBD_AIO_WRITE) {
         qemu_iovec_to_buf(acb->qiov, 0, acb->bounce, qiov->size);
@@ -640,6 +633,7 @@ static BlockAIOCB *rbd_start_aio(BlockDriverState *bs,
     size = nb_sectors * BDRV_SECTOR_SIZE;
 
     rcb = g_new(RADOSCB, 1);
+    rcb->done = 0;
     rcb->acb = acb;
     rcb->buf = buf;
     rcb->s = acb->s;

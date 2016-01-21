@@ -21,10 +21,6 @@ typedef struct target_sigaltstack {
 #define TARGET_SS_ONSTACK               1
 #define TARGET_SS_DISABLE               2
 
-static inline abi_ulong get_sp_from_cpustate(CPUUniCore32State *state)
-{
-    return state->regs[29];
-}
-
+#define get_sp_from_cpustate(cpustate)  (cpustate->regs[29])
 
 #endif /* TARGET_SIGNAL_H */

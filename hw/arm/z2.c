@@ -11,7 +11,6 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/arm/pxa.h"
 #include "hw/arm/arm.h"
@@ -373,10 +372,15 @@ static void z2_init(MachineState *machine)
     arm_load_kernel(mpu->cpu, &z2_binfo);
 }
 
-static void z2_machine_init(MachineClass *mc)
+static QEMUMachine z2_machine = {
+    .name = "z2",
+    .desc = "Zipit Z2 (PXA27x)",
+    .init = z2_init,
+};
+
+static void z2_machine_init(void)
 {
-    mc->desc = "Zipit Z2 (PXA27x)";
-    mc->init = z2_init;
+    qemu_register_machine(&z2_machine);
 }
 
-DEFINE_MACHINE("z2", z2_machine_init)
+machine_init(z2_machine_init);

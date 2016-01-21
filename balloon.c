@@ -24,29 +24,17 @@
  * THE SOFTWARE.
  */
 
-#include "qemu-common.h"
+#include "monitor/monitor.h"
 #include "exec/cpu-common.h"
 #include "sysemu/kvm.h"
 #include "sysemu/balloon.h"
 #include "trace.h"
 #include "qmp-commands.h"
-#include "qapi/qmp/qerror.h"
 #include "qapi/qmp/qjson.h"
 
 static QEMUBalloonEvent *balloon_event_fn;
 static QEMUBalloonStatus *balloon_stat_fn;
 static void *balloon_opaque;
-static bool balloon_inhibited;
-
-bool qemu_balloon_is_inhibited(void)
-{
-    return balloon_inhibited;
-}
-
-void qemu_balloon_inhibit(bool state)
-{
-    balloon_inhibited = state;
-}
 
 static bool have_balloon(Error **errp)
 {
@@ -70,6 +58,7 @@ int qemu_add_balloon_handler(QEMUBalloonEvent *event_func,
         /* We're already registered one balloon handler.  How many can
          * a guest really have?
          */
+        error_report("Another balloon device already registered");
         return -1;
     }
     balloon_event_fn = event_func;
@@ -108,7 +97,7 @@ void qmp_balloon(int64_t target, Error **errp)
     }
 
     if (target <= 0) {
-        error_setg(errp, QERR_INVALID_PARAMETER_VALUE, "target", "a size");
+        error_set(errp, QERR_INVALID_PARAMETER_VALUE, "target", "a size");
         return;
     }
 

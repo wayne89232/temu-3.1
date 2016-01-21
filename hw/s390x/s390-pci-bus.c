@@ -123,6 +123,7 @@ void s390_pci_sclp_configure(int configure, SCCB *sccb)
     }
 
     psccb->header.response_code = cpu_to_be16(rc);
+    return;
 }
 
 static uint32_t s390_pci_get_pfid(PCIDevice *pdev)
@@ -277,8 +278,7 @@ static uint64_t s390_guest_io_table_walk(uint64_t guest_iota,
     px = calc_px(guest_dma_address);
 
     sto_a = guest_iota + rtx * sizeof(uint64_t);
-    sto = address_space_ldq(&address_space_memory, sto_a,
-                            MEMTXATTRS_UNSPECIFIED, NULL);
+    sto = ldq_phys(&address_space_memory, sto_a);
     sto = get_rt_sto(sto);
     if (!sto) {
         pte = 0;
@@ -286,8 +286,7 @@ static uint64_t s390_guest_io_table_walk(uint64_t guest_iota,
     }
 
     pto_a = sto + sx * sizeof(uint64_t);
-    pto = address_space_ldq(&address_space_memory, pto_a,
-                            MEMTXATTRS_UNSPECIFIED, NULL);
+    pto = ldq_phys(&address_space_memory, pto_a);
     pto = get_st_pto(pto);
     if (!pto) {
         pte = 0;
@@ -295,8 +294,7 @@ static uint64_t s390_guest_io_table_walk(uint64_t guest_iota,
     }
 
     px_a = pto + px * sizeof(uint64_t);
-    pte = address_space_ldq(&address_space_memory, px_a,
-                            MEMTXATTRS_UNSPECIFIED, NULL);
+    pte = ldq_phys(&address_space_memory, px_a);
 
 out:
     return pte;
@@ -307,8 +305,9 @@ static IOMMUTLBEntry s390_translate_iommu(MemoryRegion *iommu, hwaddr addr,
 {
     uint64_t pte;
     uint32_t flags;
-    S390PCIBusDevice *pbdev = container_of(iommu, S390PCIBusDevice, iommu_mr);
-    S390pciState *s;
+    S390PCIBusDevice *pbdev = container_of(iommu, S390PCIBusDevice, mr);
+    S390pciState *s = S390_PCI_HOST_BRIDGE(pci_device_root_bus(pbdev->pdev)
+                                           ->qbus.parent);
     IOMMUTLBEntry ret = {
         .target_as = &address_space_memory,
         .iova = 0,
@@ -317,13 +316,8 @@ static IOMMUTLBEntry s390_translate_iommu(MemoryRegion *iommu, hwaddr addr,
         .perm = IOMMU_NONE,
     };
 
-    if (!pbdev->configured || !pbdev->pdev || !(pbdev->fh & FH_ENABLED)) {
-        return ret;
-    }
-
     DPRINTF("iommu trans addr 0x%" PRIx64 "\n", addr);
 
-    s = S390_PCI_HOST_BRIDGE(pci_device_root_bus(pbdev->pdev)->qbus.parent);
     /* s390 does not have an APIC mapped to main storage so we use
      * a separate AddressSpace only for msix notifications
      */
@@ -428,10 +422,6 @@ static void s390_msi_ctrl_write(void *opaque, hwaddr addr, uint64_t data,
         return;
     }
 
-    if (!(pbdev->fh & FH_ENABLED)) {
-        return;
-    }
-
     ind_bit = pbdev->routes.adapter.ind_offset;
     sum_bit = pbdev->routes.adapter.summary_offset;
 
@@ -442,6 +432,8 @@ static void s390_msi_ctrl_write(void *opaque, hwaddr addr, uint64_t data,
         io_int_word = (pbdev->isc << 27) | IO_INT_WORD_AI;
         s390_io_interrupt(0, 0, 0, io_int_word);
     }
+
+    return;
 }
 
 static uint64_t s390_msi_ctrl_read(void *opaque, hwaddr addr, unsigned size)
@@ -455,32 +447,14 @@ static const MemoryRegionOps s390_msi_ctrl_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-void s390_pcihost_iommu_configure(S390PCIBusDevice *pbdev, bool enable)
-{
-    pbdev->configured = false;
-
-    if (enable) {
-        uint64_t size = pbdev->pal - pbdev->pba + 1;
-        memory_region_init_iommu(&pbdev->iommu_mr, OBJECT(&pbdev->mr),
-                                 &s390_iommu_ops, "iommu-s390", size);
-        memory_region_add_subregion(&pbdev->mr, pbdev->pba, &pbdev->iommu_mr);
-    } else {
-        memory_region_del_subregion(&pbdev->mr, &pbdev->iommu_mr);
-    }
-
-    pbdev->configured = true;
-}
-
 static void s390_pcihost_init_as(S390pciState *s)
 {
     int i;
-    S390PCIBusDevice *pbdev;
 
     for (i = 0; i < PCI_SLOT_MAX; i++) {
-        pbdev = &s->pbdev[i];
-        memory_region_init(&pbdev->mr, OBJECT(s),
-                           "iommu-root-s390", UINT64_MAX);
-        address_space_init(&pbdev->as, &pbdev->mr, "iommu-pci");
+        memory_region_init_iommu(&s->pbdev[i].mr, OBJECT(s),
+                                 &s390_iommu_ops, "iommu-s390", UINT64_MAX);
+        address_space_init(&s->pbdev[i].as, &s->pbdev[i].mr, "iommu-pci");
     }
 
     memory_region_init_io(&s->msix_notify_mr, OBJECT(s),
@@ -562,6 +536,7 @@ static void s390_pcihost_hot_plug(HotplugHandler *hotplug_dev,
         s390_pci_generate_plug_event(HP_EVENT_TO_CONFIGURED,
                                      pbdev->fh, pbdev->fid);
     }
+    return;
 }
 
 static void s390_pcihost_hot_unplug(HotplugHandler *hotplug_dev,

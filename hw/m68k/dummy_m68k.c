@@ -49,7 +49,7 @@ static void dummy_m68k_init(MachineState *machine)
     /* Load kernel.  */
     if (kernel_filename) {
         kernel_size = load_elf(kernel_filename, NULL, NULL, &elf_entry,
-                               NULL, NULL, 1, EM_68K, 0);
+                               NULL, NULL, 1, ELF_MACHINE, 0);
         entry = elf_entry;
         if (kernel_size < 0) {
             kernel_size = load_uimage(kernel_filename, &entry, NULL, NULL,
@@ -72,10 +72,15 @@ static void dummy_m68k_init(MachineState *machine)
     env->pc = entry;
 }
 
-static void dummy_m68k_machine_init(MachineClass *mc)
+static QEMUMachine dummy_m68k_machine = {
+    .name = "dummy",
+    .desc = "Dummy board",
+    .init = dummy_m68k_init,
+};
+
+static void dummy_m68k_machine_init(void)
 {
-    mc->desc = "Dummy board";
-    mc->init = dummy_m68k_init;
+    qemu_register_machine(&dummy_m68k_machine);
 }
 
-DEFINE_MACHINE("dummy", dummy_m68k_machine_init)
+machine_init(dummy_m68k_machine_init);

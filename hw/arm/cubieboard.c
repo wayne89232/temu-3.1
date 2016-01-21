@@ -15,7 +15,6 @@
  * for more details.
  */
 
-#include "qemu/osdep.h"
 #include "hw/sysbus.h"
 #include "hw/devices.h"
 #include "hw/boards.h"
@@ -40,26 +39,27 @@ static void cubieboard_init(MachineState *machine)
 
     object_property_set_int(OBJECT(&s->a10->emac), 1, "phy-addr", &err);
     if (err != NULL) {
-        error_reportf_err(err, "Couldn't set phy address: ");
+        error_report("Couldn't set phy address: %s", error_get_pretty(err));
         exit(1);
     }
 
     object_property_set_int(OBJECT(&s->a10->timer), 32768, "clk0-freq", &err);
     if (err != NULL) {
-        error_reportf_err(err, "Couldn't set clk0 frequency: ");
+        error_report("Couldn't set clk0 frequency: %s", error_get_pretty(err));
         exit(1);
     }
 
     object_property_set_int(OBJECT(&s->a10->timer), 24000000, "clk1-freq",
                             &err);
     if (err != NULL) {
-        error_reportf_err(err, "Couldn't set clk1 frequency: ");
+        error_report("Couldn't set clk1 frequency: %s", error_get_pretty(err));
         exit(1);
     }
 
     object_property_set_bool(OBJECT(s->a10), true, "realized", &err);
     if (err != NULL) {
-        error_reportf_err(err, "Couldn't realize Allwinner A10: ");
+        error_report("Couldn't realize Allwinner A10: %s",
+                     error_get_pretty(err));
         exit(1);
     }
 
@@ -74,10 +74,16 @@ static void cubieboard_init(MachineState *machine)
     arm_load_kernel(&s->a10->cpu, &cubieboard_binfo);
 }
 
-static void cubieboard_machine_init(MachineClass *mc)
+static QEMUMachine cubieboard_machine = {
+    .name = "cubieboard",
+    .desc = "cubietech cubieboard",
+    .init = cubieboard_init,
+};
+
+
+static void cubieboard_machine_init(void)
 {
-    mc->desc = "cubietech cubieboard";
-    mc->init = cubieboard_init;
+    qemu_register_machine(&cubieboard_machine);
 }
 
-DEFINE_MACHINE("cubieboard", cubieboard_machine_init)
+machine_init(cubieboard_machine_init)

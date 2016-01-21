@@ -95,8 +95,10 @@ static void usb_ehci_pci_exit(PCIDevice *dev)
 
     usb_ehci_unrealize(s, DEVICE(dev), NULL);
 
-    g_free(s->irq);
-    s->irq = NULL;
+    if (s->irq) {
+        g_free(s->irq);
+        s->irq = NULL;
+    }
 }
 
 static void usb_ehci_pci_reset(DeviceState *dev)

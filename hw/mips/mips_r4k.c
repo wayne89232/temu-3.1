@@ -87,7 +87,7 @@ static int64_t load_kernel(void)
     kernel_size = load_elf(loaderparams.kernel_filename, cpu_mips_kseg0_to_phys,
                            NULL, (uint64_t *)&entry, NULL,
                            (uint64_t *)&kernel_high, big_endian,
-                           EM_MIPS, 1);
+                           ELF_MACHINE, 1);
     if (kernel_size >= 0) {
         if ((entry & ~0x7fffffffULL) == 0x80000000)
             entry = (int32_t)entry;
@@ -139,7 +139,6 @@ static int64_t load_kernel(void)
     rom_add_blob_fixed("params", params_buf, params_size,
                        (16 << 20) - 264);
 
-    g_free(params_buf);
     return entry;
 }
 
@@ -233,7 +232,7 @@ void mips_r4k_init(MachineState *machine)
     if ((bios_size > 0) && (bios_size <= BIOS_SIZE)) {
         bios = g_new(MemoryRegion, 1);
         memory_region_init_ram(bios, NULL, "mips_r4k.bios", BIOS_SIZE,
-                               &error_fatal);
+                               &error_abort);
         vmstate_register_ram_global(bios);
         memory_region_set_readonly(bios, true);
         memory_region_add_subregion(get_system_memory(), 0x1fc00000, bios);
@@ -252,7 +251,9 @@ void mips_r4k_init(MachineState *machine)
         fprintf(stderr, "qemu: Warning, could not load MIPS bios '%s'\n",
 		bios_name);
     }
-    g_free(filename);
+    if (filename) {
+        g_free(filename);
+    }
 
     if (kernel_filename) {
         loaderparams.ram_size = ram_size;
@@ -272,7 +273,7 @@ void mips_r4k_init(MachineState *machine)
     memory_region_init(isa_mem, NULL, "isa-mem", 0x01000000);
     memory_region_add_subregion(get_system_memory(), 0x14000000, isa_io);
     memory_region_add_subregion(get_system_memory(), 0x10000000, isa_mem);
-    isa_bus = isa_bus_new(NULL, isa_mem, get_system_io(), &error_abort);
+    isa_bus = isa_bus_new(NULL, isa_mem, get_system_io());
 
     /* The PIC is attached to the MIPS CPU INT0 pin */
     i8259 = i8259_init(isa_bus, env->irq[2]);
@@ -298,10 +299,15 @@ void mips_r4k_init(MachineState *machine)
     isa_create_simple(isa_bus, "i8042");
 }
 
-static void mips_machine_init(MachineClass *mc)
+static QEMUMachine mips_machine = {
+    .name = "mips",
+    .desc = "mips r4k platform",
+    .init = mips_r4k_init,
+};
+
+static void mips_machine_init(void)
 {
-    mc->desc = "mips r4k platform";
-    mc->init = mips_r4k_init;
+    qemu_register_machine(&mips_machine);
 }
 
-DEFINE_MACHINE("mips", mips_machine_init)
+machine_init(mips_machine_init);

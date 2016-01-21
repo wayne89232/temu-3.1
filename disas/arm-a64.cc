@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "vixl/a64/disasm-a64.h"
+#include "a64/disasm-a64.h"
 
 extern "C" {
 #include "disas/bfd.h"
@@ -35,25 +35,16 @@ static Disassembler *vixl_disasm = NULL;
  */
 class QEMUDisassembler : public Disassembler {
 public:
-    QEMUDisassembler() : printf_(NULL), stream_(NULL) { }
+    explicit QEMUDisassembler(FILE *stream) : stream_(stream) { }
     ~QEMUDisassembler() { }
-
-    void SetStream(FILE *stream) {
-        stream_ = stream;
-    }
-
-    void SetPrintf(fprintf_function printf_fn) {
-        printf_ = printf_fn;
-    }
 
 protected:
     virtual void ProcessOutput(const Instruction *instr) {
-        printf_(stream_, "%08" PRIx32 "      %s",
+        fprintf(stream_, "%08" PRIx32 "      %s",
                 instr->InstructionBits(), GetOutput());
     }
 
 private:
-    fprintf_function printf_;
     FILE *stream_;
 };
 
@@ -62,9 +53,9 @@ static int vixl_is_initialized(void)
     return vixl_decoder != NULL;
 }
 
-static void vixl_init() {
+static void vixl_init(FILE *f) {
     vixl_decoder = new Decoder();
-    vixl_disasm = new QEMUDisassembler();
+    vixl_disasm = new QEMUDisassembler(f);
     vixl_decoder->AppendVisitor(vixl_disasm);
 }
 
@@ -87,11 +78,8 @@ int print_insn_arm_a64(uint64_t addr, disassemble_info *info)
     }
 
     if (!vixl_is_initialized()) {
-        vixl_init();
+        vixl_init(info->stream);
     }
-
-    ((QEMUDisassembler *)vixl_disasm)->SetPrintf(info->fprintf_func);
-    ((QEMUDisassembler *)vixl_disasm)->SetStream(info->stream);
 
     instrval = bytes[0] | bytes[1] << 8 | bytes[2] << 16 | bytes[3] << 24;
     instr = reinterpret_cast<const Instruction *>(&instrval);

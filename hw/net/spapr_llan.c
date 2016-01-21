@@ -284,7 +284,7 @@ static int check_bd(VIOsPAPRVLANDevice *dev, vlan_bd_t bd,
 }
 
 static target_ulong h_register_logical_lan(PowerPCCPU *cpu,
-                                           sPAPRMachineState *spapr,
+                                           sPAPREnvironment *spapr,
                                            target_ulong opcode,
                                            target_ulong *args)
 {
@@ -349,8 +349,7 @@ static target_ulong h_register_logical_lan(PowerPCCPU *cpu,
 }
 
 
-static target_ulong h_free_logical_lan(PowerPCCPU *cpu,
-                                       sPAPRMachineState *spapr,
+static target_ulong h_free_logical_lan(PowerPCCPU *cpu, sPAPREnvironment *spapr,
                                        target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -372,7 +371,7 @@ static target_ulong h_free_logical_lan(PowerPCCPU *cpu,
 }
 
 static target_ulong h_add_logical_lan_buffer(PowerPCCPU *cpu,
-                                             sPAPRMachineState *spapr,
+                                             sPAPREnvironment *spapr,
                                              target_ulong opcode,
                                              target_ulong *args)
 {
@@ -422,8 +421,7 @@ static target_ulong h_add_logical_lan_buffer(PowerPCCPU *cpu,
     return H_SUCCESS;
 }
 
-static target_ulong h_send_logical_lan(PowerPCCPU *cpu,
-                                       sPAPRMachineState *spapr,
+static target_ulong h_send_logical_lan(PowerPCCPU *cpu, sPAPREnvironment *spapr,
                                        target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -492,7 +490,7 @@ static target_ulong h_send_logical_lan(PowerPCCPU *cpu,
     return H_SUCCESS;
 }
 
-static target_ulong h_multicast_ctrl(PowerPCCPU *cpu, sPAPRMachineState *spapr,
+static target_ulong h_multicast_ctrl(PowerPCCPU *cpu, sPAPREnvironment *spapr,
                                      target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];

@@ -57,6 +57,11 @@ void YMF262UpdateOneQEMU (int which, INT16 *dst, int length);
 #define SHIFT 1
 #endif
 
+#define IO_READ_PROTO(name) \
+    uint32_t name (void *opaque, uint32_t nport)
+#define IO_WRITE_PROTO(name) \
+    void name (void *opaque, uint32_t nport, uint32_t val)
+
 #define TYPE_ADLIB "adlib"
 #define ADLIB(obj) OBJECT_CHECK(AdlibState, (obj), TYPE_ADLIB)
 
@@ -119,7 +124,7 @@ static void adlib_kill_timers (AdlibState *s)
     }
 }
 
-static void adlib_write(void *opaque, uint32_t nport, uint32_t val)
+static IO_WRITE_PROTO (adlib_write)
 {
     AdlibState *s = opaque;
     int a = nport & 3;
@@ -136,7 +141,7 @@ static void adlib_write(void *opaque, uint32_t nport, uint32_t val)
 #endif
 }
 
-static uint32_t adlib_read(void *opaque, uint32_t nport)
+static IO_READ_PROTO (adlib_read)
 {
     AdlibState *s = opaque;
     uint8_t data;

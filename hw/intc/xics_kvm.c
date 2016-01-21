@@ -331,15 +331,6 @@ static void xics_kvm_cpu_setup(XICSState *icp, PowerPCCPU *cpu)
         abort();
     }
 
-    /*
-     * If we are reusing a parked vCPU fd corresponding to the CPU
-     * which was hot-removed earlier we don't have to renable
-     * KVM_CAP_IRQ_XICS capability again.
-     */
-    if (ss->cap_irq_xics_enabled) {
-        return;
-    }
-
     if (icpkvm->kernel_xics_fd != -1) {
         int ret;
 
@@ -352,7 +343,6 @@ static void xics_kvm_cpu_setup(XICSState *icp, PowerPCCPU *cpu)
                     kvm_arch_vcpu_id(cs), strerror(errno));
             exit(1);
         }
-        ss->cap_irq_xics_enabled = true;
     }
 }
 
@@ -378,7 +368,7 @@ static void xics_kvm_set_nr_servers(XICSState *icp, uint32_t nr_servers,
     }
 }
 
-static void rtas_dummy(PowerPCCPU *cpu, sPAPRMachineState *spapr,
+static void rtas_dummy(PowerPCCPU *cpu, sPAPREnvironment *spapr,
                        uint32_t token,
                        uint32_t nargs, target_ulong args,
                        uint32_t nret, target_ulong rets)

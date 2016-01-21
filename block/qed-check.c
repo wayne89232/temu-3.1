@@ -11,7 +11,6 @@
  *
  */
 
-#include "qemu/osdep.h"
 #include "qed.h"
 
 typedef struct {

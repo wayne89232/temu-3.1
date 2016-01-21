@@ -90,7 +90,7 @@ pkt_copy(const void *_src, void *_dst, int l)
  * Open a netmap device. We assume there is only one queue
  * (which is the case for the VALE bridge).
  */
-static void netmap_open(NetmapPriv *me, Error **errp)
+static int netmap_open(NetmapPriv *me)
 {
     int fd;
     int err;
@@ -99,8 +99,9 @@ static void netmap_open(NetmapPriv *me, Error **errp)
 
     me->fd = fd = open(me->fdname, O_RDWR);
     if (fd < 0) {
-        error_setg_file_open(errp, errno, me->fdname);
-        return;
+        error_report("Unable to open netmap device '%s' (%s)",
+                        me->fdname, strerror(errno));
+        return -1;
     }
     memset(&req, 0, sizeof(req));
     pstrcpy(req.nr_name, sizeof(req.nr_name), me->ifname);
@@ -108,14 +109,15 @@ static void netmap_open(NetmapPriv *me, Error **errp)
     req.nr_version = NETMAP_API;
     err = ioctl(fd, NIOCREGIF, &req);
     if (err) {
-        error_setg_errno(errp, errno, "Unable to register %s", me->ifname);
+        error_report("Unable to register %s: %s", me->ifname, strerror(errno));
         goto error;
     }
     l = me->memsize = req.nr_memsize;
 
     me->mem = mmap(0, l, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
     if (me->mem == MAP_FAILED) {
-        error_setg_errno(errp, errno, "Unable to mmap netmap shared memory");
+        error_report("Unable to mmap netmap shared memory: %s",
+                        strerror(errno));
         me->mem = NULL;
         goto error;
     }
@@ -123,11 +125,20 @@ static void netmap_open(NetmapPriv *me, Error **errp)
     me->nifp = NETMAP_IF(me->mem, req.nr_offset);
     me->tx = NETMAP_TXRING(me->nifp, 0);
     me->rx = NETMAP_RXRING(me->nifp, 0);
-
-    return;
+    return 0;
 
 error:
     close(me->fd);
+    return -1;
+}
+
+/* Tell the event-loop if the netmap backend can send packets
+   to the frontend. */
+static int netmap_can_send(void *opaque)
+{
+    NetmapState *s = opaque;
+
+    return qemu_can_send_packet(&s->nc);
 }
 
 static void netmap_send(void *opaque);
@@ -136,10 +147,11 @@ static void netmap_writable(void *opaque);
 /* Set the event-loop handlers for the netmap backend. */
 static void netmap_update_fd_handler(NetmapState *s)
 {
-    qemu_set_fd_handler(s->me.fd,
-                        s->read_poll ? netmap_send : NULL,
-                        s->write_poll ? netmap_writable : NULL,
-                        s);
+    qemu_set_fd_handler2(s->me.fd,
+                         s->read_poll  ? netmap_can_send : NULL,
+                         s->read_poll  ? netmap_send     : NULL,
+                         s->write_poll ? netmap_writable : NULL,
+                         s);
 }
 
 /* Update the read handler. */
@@ -305,7 +317,7 @@ static void netmap_send(void *opaque)
 
     /* Keep sending while there are available packets into the netmap
        RX ring and the forwarding path towards the peer is open. */
-    while (!nm_ring_empty(ring)) {
+    while (!nm_ring_empty(ring) && qemu_can_send_packet(&s->nc)) {
         uint32_t i;
         uint32_t idx;
         bool morefrag;
@@ -434,11 +446,10 @@ static NetClientInfo net_netmap_info = {
  * ... -net netmap,ifname="..."
  */
 int net_init_netmap(const NetClientOptions *opts,
-                    const char *name, NetClientState *peer, Error **errp)
+        const char *name, NetClientState *peer)
 {
-    const NetdevNetmapOptions *netmap_opts = opts->u.netmap;
+    const NetdevNetmapOptions *netmap_opts = opts->netmap;
     NetClientState *nc;
-    Error *err = NULL;
     NetmapPriv me;
     NetmapState *s;
 
@@ -446,9 +457,7 @@ int net_init_netmap(const NetClientOptions *opts,
         netmap_opts->has_devname ? netmap_opts->devname : "/dev/netmap");
     /* Set default name for the port if not supplied. */
     pstrcpy(me.ifname, sizeof(me.ifname), netmap_opts->ifname);
-    netmap_open(&me, &err);
-    if (err) {
-        error_propagate(errp, err);
+    if (netmap_open(&me)) {
         return -1;
     }
     /* Create the object. */

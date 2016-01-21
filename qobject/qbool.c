@@ -15,26 +15,33 @@
 #include "qapi/qmp/qobject.h"
 #include "qemu-common.h"
 
+static void qbool_destroy_obj(QObject *obj);
+
+static const QType qbool_type = {
+    .code = QTYPE_QBOOL,
+    .destroy = qbool_destroy_obj,
+};
+
 /**
- * qbool_from_bool(): Create a new QBool from a bool
+ * qbool_from_int(): Create a new QBool from an int
  *
  * Return strong reference.
  */
-QBool *qbool_from_bool(bool value)
+QBool *qbool_from_int(int value)
 {
     QBool *qb;
 
     qb = g_malloc(sizeof(*qb));
-    qobject_init(QOBJECT(qb), QTYPE_QBOOL);
     qb->value = value;
+    QOBJECT_INIT(qb, &qbool_type);
 
     return qb;
 }
 
 /**
- * qbool_get_bool(): Get the stored bool
+ * qbool_get_int(): Get the stored int
  */
-bool qbool_get_bool(const QBool *qb)
+int qbool_get_int(const QBool *qb)
 {
     return qb->value;
 }
@@ -44,9 +51,9 @@ bool qbool_get_bool(const QBool *qb)
  */
 QBool *qobject_to_qbool(const QObject *obj)
 {
-    if (!obj || qobject_type(obj) != QTYPE_QBOOL) {
+    if (qobject_type(obj) != QTYPE_QBOOL)
         return NULL;
-    }
+
     return container_of(obj, QBool, base);
 }
 
@@ -54,7 +61,7 @@ QBool *qobject_to_qbool(const QObject *obj)
  * qbool_destroy_obj(): Free all memory allocated by a
  * QBool object
  */
-void qbool_destroy_obj(QObject *obj)
+static void qbool_destroy_obj(QObject *obj)
 {
     assert(obj != NULL);
     g_free(qobject_to_qbool(obj));

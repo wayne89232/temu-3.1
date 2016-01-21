@@ -30,7 +30,6 @@
  * THE SOFTWARE.
  */
 
-#include "qemu/osdep.h"
 #include "sysemu/block-backend.h"
 #include "hw/block/block.h"
 #include "trace.h"

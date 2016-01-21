@@ -1,7 +1,3 @@
-object :empty
-enum QType ['none', 'qnull', 'qint', 'qstring', 'qdict', 'qlist', 'qfloat', 'qbool']
-    prefix QTYPE
-command eins None -> None
-   gen=True success_response=True
-command zwei None -> None
-   gen=True success_response=True
+[OrderedDict([('id', 'eins')]), OrderedDict([('id', 'zwei')])]
+[]
+[]

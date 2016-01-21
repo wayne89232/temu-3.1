@@ -42,7 +42,6 @@ typedef struct TPMLocality {
     TPMTISState state;
     uint8_t access;
     uint32_t sts;
-    uint32_t iface_id;
     uint32_t inte;
     uint32_t ints;
 

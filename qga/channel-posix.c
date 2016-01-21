@@ -217,24 +217,25 @@ GIOStatus ga_channel_write_all(GAChannel *c, const gchar *buf, gsize size)
     GIOStatus status = G_IO_STATUS_NORMAL;
 
     while (size) {
-        g_debug("sending data, count: %d", (int)size);
         status = g_io_channel_write_chars(c->client_channel, buf, size,
                                           &written, &err);
-        if (status == G_IO_STATUS_NORMAL) {
-            size -= written;
-            buf += written;
-        } else if (status != G_IO_STATUS_AGAIN) {
+        g_debug("sending data, count: %d", (int)size);
+        if (err != NULL) {
             g_warning("error writing to channel: %s", err->message);
-            return status;
+            return G_IO_STATUS_ERROR;
         }
+        if (status != G_IO_STATUS_NORMAL) {
+            break;
+        }
+        size -= written;
     }
 
-    do {
+    if (status == G_IO_STATUS_NORMAL) {
         status = g_io_channel_flush(c->client_channel, &err);
-    } while (status == G_IO_STATUS_AGAIN);
-
-    if (status != G_IO_STATUS_NORMAL) {
-        g_warning("error flushing channel: %s", err->message);
+        if (err != NULL) {
+            g_warning("error flushing channel: %s", err->message);
+            return G_IO_STATUS_ERROR;
+        }
     }
 
     return status;
@@ -248,7 +249,7 @@ GIOStatus ga_channel_read(GAChannel *c, gchar *buf, gsize size, gsize *count)
 GAChannel *ga_channel_new(GAChannelMethod method, const gchar *path,
                           GAChannelCallback cb, gpointer opaque)
 {
-    GAChannel *c = g_new0(GAChannel, 1);
+    GAChannel *c = g_malloc0(sizeof(GAChannel));
     c->event_cb = cb;
     c->user_data = opaque;
 

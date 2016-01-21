@@ -11,6 +11,7 @@
 
 #include "qemu/iov.h"
 #include "hw/qdev.h"
+#include "qapi/qmp/qerror.h"
 #include "hw/virtio/virtio.h"
 #include "hw/virtio/virtio-rng.h"
 #include "sysemu/rng.h"
@@ -77,12 +78,6 @@ static void virtio_rng_process(VirtIORNG *vrng)
         return;
     }
 
-    if (vrng->activate_timer) {
-        timer_mod(vrng->rate_limit_timer,
-                  qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + vrng->conf.period_ms);
-        vrng->activate_timer = false;
-    }
-
     if (vrng->quota_remaining < 0) {
         quota = 0;
     } else {
@@ -104,7 +99,7 @@ static void handle_input(VirtIODevice *vdev, VirtQueue *vq)
     virtio_rng_process(vrng);
 }
 
-static uint64_t get_features(VirtIODevice *vdev, uint64_t f, Error **errp)
+static uint32_t get_features(VirtIODevice *vdev, uint32_t f)
 {
     return f;
 }
@@ -144,7 +139,8 @@ static void check_rate_limit(void *opaque)
 
     vrng->quota_remaining = vrng->conf.max_bytes;
     virtio_rng_process(vrng);
-    vrng->activate_timer = true;
+    timer_mod(vrng->rate_limit_timer,
+                   qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + vrng->conf.period_ms);
 }
 
 static void virtio_rng_device_realize(DeviceState *dev, Error **errp)
@@ -200,9 +196,13 @@ static void virtio_rng_device_realize(DeviceState *dev, Error **errp)
 
     vrng->vq = virtio_add_queue(vdev, 8, handle_input);
     vrng->quota_remaining = vrng->conf.max_bytes;
+
     vrng->rate_limit_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
                                                check_rate_limit, vrng);
-    vrng->activate_timer = true;
+
+    timer_mod(vrng->rate_limit_timer,
+                   qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + vrng->conf.period_ms);
+
     register_savevm(dev, "virtio-rng", -1, 1, virtio_rng_save,
                     virtio_rng_load, vrng);
 }
@@ -219,13 +219,7 @@ static void virtio_rng_device_unrealize(DeviceState *dev, Error **errp)
 }
 
 static Property virtio_rng_properties[] = {
-    /* Set a default rate limit of 2^47 bytes per minute or roughly 2TB/s.  If
-     * you have an entropy source capable of generating more entropy than this
-     * and you can pass it through via virtio-rng, then hats off to you.  Until
-     * then, this is unlimited for all practical purposes.
-     */
-    DEFINE_PROP_UINT64("max-bytes", VirtIORNG, conf.max_bytes, INT64_MAX),
-    DEFINE_PROP_UINT32("period", VirtIORNG, conf.period_ms, 1 << 16),
+    DEFINE_VIRTIO_RNG_PROPERTIES(VirtIORNG, conf),
     DEFINE_PROP_END_OF_LIST(),
 };
 

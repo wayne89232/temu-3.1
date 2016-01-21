@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "qemu/timer.h"
 #include "block/block_int.h"
@@ -30,7 +29,6 @@
 #include "trace.h"
 #include "block/thread-pool.h"
 #include "qemu/iov.h"
-#include "qapi/qmp/qstring.h"
 #include <windows.h>
 #include <winioctl.h>
 
@@ -120,9 +118,9 @@ static int aio_worker(void *arg)
     case QEMU_AIO_WRITE:
         count = handle_aiocb_rw(aiocb);
         if (count == aiocb->aio_nbytes) {
-            ret = 0;
+            count = 0;
         } else {
-            ret = -EINVAL;
+            count = -EINVAL;
         }
         break;
     case QEMU_AIO_FLUSH:
@@ -136,7 +134,7 @@ static int aio_worker(void *arg)
         break;
     }
 
-    g_free(aiocb);
+    g_slice_free(RawWin32AIOData, aiocb);
     return ret;
 }
 
@@ -144,7 +142,7 @@ static BlockAIOCB *paio_submit(BlockDriverState *bs, HANDLE hfile,
         int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
         BlockCompletionFunc *cb, void *opaque, int type)
 {
-    RawWin32AIOData *acb = g_new(RawWin32AIOData, 1);
+    RawWin32AIOData *acb = g_slice_new(RawWin32AIOData);
     ThreadPool *pool;
 
     acb->bs = bs;

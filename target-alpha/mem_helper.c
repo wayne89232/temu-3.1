@@ -128,14 +128,7 @@ void alpha_cpu_unassigned_access(CPUState *cs, hwaddr addr,
 
     env->trap_arg0 = addr;
     env->trap_arg1 = is_write ? 1 : 0;
-    cs->exception_index = EXCP_MCHK;
-    env->error_code = 0;
-
-    /* ??? We should cpu_restore_state to the faulting insn, but this hook
-       does not have access to the retaddr value from the original helper.
-       It's all moot until the QEMU PALcode grows an MCHK handler.  */
-
-    cpu_loop_exit(cs);
+    dynamic_excp(env, 0, EXCP_MCHK, 0);
 }
 
 /* try to fill the TLB and return an exception if error. If retaddr is

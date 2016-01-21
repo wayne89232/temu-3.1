@@ -110,9 +110,6 @@ static SpiceCharDeviceInterface vmc_interface = {
 #if SPICE_SERVER_VERSION >= 0x000c02
     .event              = vmc_event,
 #endif
-#if SPICE_SERVER_VERSION >= 0x000c06
-    .flags              = SPICE_CHAR_DEVICE_NOTIFY_WRITABLE,
-#endif
 };
 
 
@@ -172,7 +169,7 @@ static GSource *spice_chr_add_watch(CharDriverState *chr, GIOCondition cond)
     SpiceCharDriver *scd = chr->opaque;
     SpiceCharSource *src;
 
-    assert(cond & G_IO_OUT);
+    assert(cond == G_IO_OUT);
 
     src = (SpiceCharSource *)g_source_new(&SpiceCharSourceFuncs,
                                           sizeof(SpiceCharSource));
@@ -263,26 +260,14 @@ static void print_allowed_subtypes(void)
     fprintf(stderr, "\n");
 }
 
-static void spice_chr_accept_input(struct CharDriverState *chr)
-{
-    SpiceCharDriver *s = chr->opaque;
-
-    spice_server_char_device_wakeup(&s->sin);
-}
-
 static CharDriverState *chr_open(const char *subtype,
-                                 void (*set_fe_open)(struct CharDriverState *,
-                                                     int),
-                                 ChardevCommon *backend,
-                                 Error **errp)
+    void (*set_fe_open)(struct CharDriverState *, int))
+
 {
     CharDriverState *chr;
     SpiceCharDriver *s;
 
-    chr = qemu_chr_alloc(backend, errp);
-    if (!chr) {
-        return NULL;
-    }
+    chr = qemu_chr_alloc();
     s = g_malloc0(sizeof(SpiceCharDriver));
     s->chr = chr;
     s->active = false;
@@ -294,22 +279,21 @@ static CharDriverState *chr_open(const char *subtype,
     chr->chr_set_fe_open = set_fe_open;
     chr->explicit_be_open = true;
     chr->chr_fe_event = spice_chr_fe_event;
-    chr->chr_accept_input = spice_chr_accept_input;
 
     QLIST_INSERT_HEAD(&spice_chars, s, next);
 
     return chr;
 }
 
-static CharDriverState *qemu_chr_open_spice_vmc(const char *id,
-                                                ChardevBackend *backend,
-                                                ChardevReturn *ret,
-                                                Error **errp)
+CharDriverState *qemu_chr_open_spice_vmc(const char *type)
 {
-    const char *type = backend->u.spicevmc->type;
     const char **psubtype = spice_server_char_device_recognized_subtypes();
-    ChardevCommon *common = qapi_ChardevSpiceChannel_base(backend->u.spicevmc);
 
+    if (type == NULL) {
+        fprintf(stderr, "spice-qemu-char: missing name parameter\n");
+        print_allowed_subtypes();
+        return NULL;
+    }
     for (; *psubtype != NULL; ++psubtype) {
         if (strcmp(type, *psubtype) == 0) {
             break;
@@ -321,17 +305,12 @@ static CharDriverState *qemu_chr_open_spice_vmc(const char *id,
         return NULL;
     }
 
-    return chr_open(type, spice_vmc_set_fe_open, common, errp);
+    return chr_open(type, spice_vmc_set_fe_open);
 }
 
 #if SPICE_SERVER_VERSION >= 0x000c02
-static CharDriverState *qemu_chr_open_spice_port(const char *id,
-                                                 ChardevBackend *backend,
-                                                 ChardevReturn *ret,
-                                                 Error **errp)
+CharDriverState *qemu_chr_open_spice_port(const char *name)
 {
-    const char *name = backend->u.spiceport->fqdn;
-    ChardevCommon *common = qapi_ChardevSpicePort_base(backend->u.spiceport);
     CharDriverState *chr;
     SpiceCharDriver *s;
 
@@ -340,10 +319,7 @@ static CharDriverState *qemu_chr_open_spice_port(const char *id,
         return NULL;
     }
 
-    chr = chr_open("port", spice_port_set_fe_open, common, errp);
-    if (!chr) {
-        return NULL;
-    }
+    chr = chr_open("port", spice_port_set_fe_open);
     s = chr->opaque;
     s->sin.portname = g_strdup(name);
 
@@ -372,8 +348,8 @@ static void qemu_chr_parse_spice_vmc(QemuOpts *opts, ChardevBackend *backend,
         error_setg(errp, "chardev: spice channel: no name given");
         return;
     }
-    backend->u.spicevmc = g_new0(ChardevSpiceChannel, 1);
-    backend->u.spicevmc->type = g_strdup(name);
+    backend->spicevmc = g_new0(ChardevSpiceChannel, 1);
+    backend->spicevmc->type = g_strdup(name);
 }
 
 static void qemu_chr_parse_spice_port(QemuOpts *opts, ChardevBackend *backend,
@@ -385,16 +361,16 @@ static void qemu_chr_parse_spice_port(QemuOpts *opts, ChardevBackend *backend,
         error_setg(errp, "chardev: spice port: no name given");
         return;
     }
-    backend->u.spiceport = g_new0(ChardevSpicePort, 1);
-    backend->u.spiceport->fqdn = g_strdup(name);
+    backend->spiceport = g_new0(ChardevSpicePort, 1);
+    backend->spiceport->fqdn = g_strdup(name);
 }
 
 static void register_types(void)
 {
     register_char_driver("spicevmc", CHARDEV_BACKEND_KIND_SPICEVMC,
-                         qemu_chr_parse_spice_vmc, qemu_chr_open_spice_vmc);
+                         qemu_chr_parse_spice_vmc);
     register_char_driver("spiceport", CHARDEV_BACKEND_KIND_SPICEPORT,
-                         qemu_chr_parse_spice_port, qemu_chr_open_spice_port);
+                         qemu_chr_parse_spice_port);
 }
 
 type_init(register_types);

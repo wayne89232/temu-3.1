@@ -154,9 +154,6 @@ static void uhci_async_cancel(UHCIAsync *async);
 static void uhci_queue_fill(UHCIQueue *q, UHCI_TD *td);
 static void uhci_resume(void *opaque);
 
-#define TYPE_UHCI "pci-uhci-usb"
-#define UHCI(obj) OBJECT_CHECK(UHCIState, (obj), TYPE_UHCI)
-
 static inline int32_t uhci_queue_token(UHCI_TD *td)
 {
     if ((td->token & (0xf << 15)) == 0) {
@@ -354,7 +351,7 @@ static void uhci_update_irq(UHCIState *s)
 static void uhci_reset(DeviceState *dev)
 {
     PCIDevice *d = PCI_DEVICE(dev);
-    UHCIState *s = UHCI(d);
+    UHCIState *s = DO_UPCAST(UHCIState, dev, d);
     uint8_t *pci_conf;
     int i;
     UHCIPort *port;
@@ -366,7 +363,7 @@ static void uhci_reset(DeviceState *dev)
     pci_conf[0x6a] = 0x01; /* usb clock */
     pci_conf[0x6b] = 0x00;
     s->cmd = 0;
-    s->status = UHCI_STS_HCHALTED;
+    s->status = 0;
     s->status2 = 0;
     s->intr = 0;
     s->fl_base_addr = 0;
@@ -1199,7 +1196,7 @@ static void usb_uhci_common_realize(PCIDevice *dev, Error **errp)
     Error *err = NULL;
     PCIDeviceClass *pc = PCI_DEVICE_GET_CLASS(dev);
     UHCIPCIDeviceClass *u = container_of(pc, UHCIPCIDeviceClass, parent_class);
-    UHCIState *s = UHCI(dev);
+    UHCIState *s = DO_UPCAST(UHCIState, dev, dev);
     uint8_t *pci_conf = s->dev.config;
     int i;
 
@@ -1244,7 +1241,7 @@ static void usb_uhci_common_realize(PCIDevice *dev, Error **errp)
 
 static void usb_uhci_vt82c686b_realize(PCIDevice *dev, Error **errp)
 {
-    UHCIState *s = UHCI(dev);
+    UHCIState *s = DO_UPCAST(UHCIState, dev, dev);
     uint8_t *pci_conf = s->dev.config;
 
     /* USB misc control 1/2 */
@@ -1259,7 +1256,7 @@ static void usb_uhci_vt82c686b_realize(PCIDevice *dev, Error **errp)
 
 static void usb_uhci_exit(PCIDevice *dev)
 {
-    UHCIState *s = UHCI(dev);
+    UHCIState *s = DO_UPCAST(UHCIState, dev, dev);
 
     trace_usb_uhci_exit();
 
@@ -1297,26 +1294,6 @@ static void uhci_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-
-    k->class_id  = PCI_CLASS_SERIAL_USB;
-    dc->vmsd = &vmstate_uhci;
-    dc->reset = uhci_reset;
-    set_bit(DEVICE_CATEGORY_USB, dc->categories);
-}
-
-static const TypeInfo uhci_pci_type_info = {
-    .name = TYPE_UHCI,
-    .parent = TYPE_PCI_DEVICE,
-    .instance_size = sizeof(UHCIState),
-    .class_size    = sizeof(UHCIPCIDeviceClass),
-    .abstract = true,
-    .class_init = uhci_class_init,
-};
-
-static void uhci_data_class_init(ObjectClass *klass, void *data)
-{
-    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-    DeviceClass *dc = DEVICE_CLASS(klass);
     UHCIPCIDeviceClass *u = container_of(k, UHCIPCIDeviceClass, parent_class);
     UHCIInfo *info = data;
 
@@ -1325,6 +1302,9 @@ static void uhci_data_class_init(ObjectClass *klass, void *data)
     k->vendor_id = info->vendor_id;
     k->device_id = info->device_id;
     k->revision  = info->revision;
+    k->class_id  = PCI_CLASS_SERIAL_USB;
+    dc->vmsd = &vmstate_uhci;
+    dc->reset = uhci_reset;
     if (!info->unplug) {
         /* uhci controllers in companion setups can't be hotplugged */
         dc->hotpluggable = false;
@@ -1332,6 +1312,7 @@ static void uhci_data_class_init(ObjectClass *klass, void *data)
     } else {
         dc->props = uhci_properties_standalone;
     }
+    set_bit(DEVICE_CATEGORY_USB, dc->categories);
     u->info = *info;
 }
 
@@ -1406,12 +1387,12 @@ static UHCIInfo uhci_info[] = {
 static void uhci_register_types(void)
 {
     TypeInfo uhci_type_info = {
-        .parent        = TYPE_UHCI,
-        .class_init    = uhci_data_class_init,
+        .parent        = TYPE_PCI_DEVICE,
+        .instance_size = sizeof(UHCIState),
+        .class_size    = sizeof(UHCIPCIDeviceClass),
+        .class_init    = uhci_class_init,
     };
     int i;
-
-    type_register_static(&uhci_pci_type_info);
 
     for (i = 0; i < ARRAY_SIZE(uhci_info); i++) {
         uhci_type_info.name = uhci_info[i].name;

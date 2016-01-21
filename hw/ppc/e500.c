@@ -751,8 +751,8 @@ static qemu_irq *ppce500_init_mpic(MachineState *machine, PPCE500Params *params,
             dev = ppce500_init_mpic_kvm(params, irqs, &err);
         }
         if (machine_kernel_irqchip_required(machine) && !dev) {
-            error_reportf_err(err,
-                              "kernel_irqchip requested but unavailable: ");
+            error_report("kernel_irqchip requested but unavailable: %s",
+                         error_get_pretty(err));
             exit(1);
         }
     }
@@ -1017,7 +1017,7 @@ void ppce500_init(MachineState *machine, PPCE500Params *params)
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
 
     bios_size = load_elf(filename, NULL, NULL, &bios_entry, &loadaddr, NULL,
-                         1, PPC_ELF_MACHINE, 0);
+                         1, ELF_MACHINE, 0);
     if (bios_size < 0) {
         /*
          * Hrm. No ELF image? Try a uImage, maybe someone is giving us an
@@ -1030,7 +1030,6 @@ void ppce500_init(MachineState *machine, PPCE500Params *params)
             exit(1);
         }
     }
-    g_free(filename);
 
     /* Reserve space for dtb */
     dt_base = (loadaddr + bios_size + DTC_LOAD_PAD) & ~DTC_PAD_MASK;
@@ -1048,6 +1047,10 @@ void ppce500_init(MachineState *machine, PPCE500Params *params)
     boot_info->entry = bios_entry;
     boot_info->dt_base = dt_base;
     boot_info->dt_size = dt_size;
+
+    if (kvm_enabled()) {
+        kvmppc_init();
+    }
 }
 
 static int e500_ccsr_initfn(SysBusDevice *dev)

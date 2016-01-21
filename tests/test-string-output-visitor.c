@@ -81,7 +81,7 @@ static void test_visitor_out_intList(TestOutputVisitorData *data,
         3, 4, 5, 6, 11, 12, 13, 21, 22, INT64_MAX - 1, INT64_MAX};
     intList *list = NULL, **tmp = &list;
     int i;
-    Error *err = NULL;
+    Error *errp = NULL;
     char *str;
 
     for (i = 0; i < sizeof(value) / sizeof(value[0]); i++) {
@@ -90,8 +90,8 @@ static void test_visitor_out_intList(TestOutputVisitorData *data,
         tmp = &(*tmp)->next;
     }
 
-    visit_type_intList(data->ov, &list, NULL, &err);
-    g_assert(err == NULL);
+    visit_type_intList(data->ov, &list, NULL, &errp);
+    g_assert(errp == NULL);
 
     str = string_output_get_string(data->sov);
     g_assert(str != NULL);
@@ -194,7 +194,7 @@ static void test_visitor_out_enum(TestOutputVisitorData *data,
     char *str;
     EnumOne i;
 
-    for (i = 0; i < ENUM_ONE__MAX; i++) {
+    for (i = 0; i < ENUM_ONE_MAX; i++) {
         char *str_human;
 
         visit_type_EnumOne(data->ov, &i, "unused", &err);
@@ -217,7 +217,7 @@ static void test_visitor_out_enum(TestOutputVisitorData *data,
 static void test_visitor_out_enum_errors(TestOutputVisitorData *data,
                                          const void *unused)
 {
-    EnumOne i, bad_values[] = { ENUM_ONE__MAX, -1 };
+    EnumOne i, bad_values[] = { ENUM_ONE_MAX, -1 };
     Error *err;
 
     for (i = 0; i < ARRAY_SIZE(bad_values) ; i++) {
@@ -248,39 +248,39 @@ int main(int argc, char **argv)
 
     output_visitor_test_add("/string-visitor/output/int",
                             &out_visitor_data, test_visitor_out_int, false);
-    output_visitor_test_add("/string-visitor/output/int-human",
+    output_visitor_test_add("/string-visitor/output/int",
                             &out_visitor_data, test_visitor_out_int, true);
     output_visitor_test_add("/string-visitor/output/bool",
                             &out_visitor_data, test_visitor_out_bool, false);
-    output_visitor_test_add("/string-visitor/output/bool-human",
+    output_visitor_test_add("/string-visitor/output/bool",
                             &out_visitor_data, test_visitor_out_bool, true);
     output_visitor_test_add("/string-visitor/output/number",
                             &out_visitor_data, test_visitor_out_number, false);
-    output_visitor_test_add("/string-visitor/output/number-human",
+    output_visitor_test_add("/string-visitor/output/number",
                             &out_visitor_data, test_visitor_out_number, true);
     output_visitor_test_add("/string-visitor/output/string",
                             &out_visitor_data, test_visitor_out_string, false);
-    output_visitor_test_add("/string-visitor/output/string-human",
+    output_visitor_test_add("/string-visitor/output/string",
                             &out_visitor_data, test_visitor_out_string, true);
     output_visitor_test_add("/string-visitor/output/no-string",
                             &out_visitor_data, test_visitor_out_no_string,
                             false);
-    output_visitor_test_add("/string-visitor/output/no-string-human",
+    output_visitor_test_add("/string-visitor/output/no-string",
                             &out_visitor_data, test_visitor_out_no_string,
                             true);
     output_visitor_test_add("/string-visitor/output/enum",
                             &out_visitor_data, test_visitor_out_enum, false);
-    output_visitor_test_add("/string-visitor/output/enum-human",
+    output_visitor_test_add("/string-visitor/output/enum",
                             &out_visitor_data, test_visitor_out_enum, true);
     output_visitor_test_add("/string-visitor/output/enum-errors",
                             &out_visitor_data, test_visitor_out_enum_errors,
                             false);
-    output_visitor_test_add("/string-visitor/output/enum-errors-human",
+    output_visitor_test_add("/string-visitor/output/enum-errors",
                             &out_visitor_data, test_visitor_out_enum_errors,
                             true);
     output_visitor_test_add("/string-visitor/output/intList",
                             &out_visitor_data, test_visitor_out_intList, false);
-    output_visitor_test_add("/string-visitor/output/intList-human",
+    output_visitor_test_add("/string-visitor/output/intList",
                             &out_visitor_data, test_visitor_out_intList, true);
 
     g_test_run();

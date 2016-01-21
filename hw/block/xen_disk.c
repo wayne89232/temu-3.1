@@ -19,8 +19,19 @@
  *  GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <inttypes.h>
+#include <time.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/uio.h>
 
@@ -65,6 +76,7 @@ struct ioreq {
     off_t               start;
     QEMUIOVector        v;
     int                 presync;
+    int                 postsync;
     uint8_t             mapped;
 
     /* grant mapping */
@@ -133,6 +145,7 @@ static void ioreq_reset(struct ioreq *ioreq)
     ioreq->status = 0;
     ioreq->start = 0;
     ioreq->presync = 0;
+    ioreq->postsync = 0;
     ioreq->mapped = 0;
 
     memset(ioreq->domids, 0, sizeof(ioreq->domids));
@@ -508,6 +521,12 @@ static void qemu_aio_complete(void *opaque, int ret)
     if (ioreq->aio_inflight > 0) {
         return;
     }
+    if (ioreq->postsync) {
+        ioreq->postsync = 0;
+        ioreq->aio_inflight++;
+        blk_aio_flush(ioreq->blkdev->blk, qemu_aio_complete, ioreq);
+        return;
+    }
 
     ioreq->status = ioreq->aio_errors ? BLKIF_RSP_ERROR : BLKIF_RSP_OKAY;
     ioreq_unmap(ioreq);
@@ -519,11 +538,7 @@ static void qemu_aio_complete(void *opaque, int ret)
             break;
         }
     case BLKIF_OP_READ:
-        if (ioreq->status == BLKIF_RSP_OKAY) {
-            block_acct_done(blk_get_stats(ioreq->blkdev->blk), &ioreq->acct);
-        } else {
-            block_acct_failed(blk_get_stats(ioreq->blkdev->blk), &ioreq->acct);
-        }
+        block_acct_done(blk_get_stats(ioreq->blkdev->blk), &ioreq->acct);
         break;
     case BLKIF_OP_DISCARD:
     default:
@@ -562,9 +577,7 @@ static int ioreq_runio_qemu_aio(struct ioreq *ioreq)
         }
 
         block_acct_start(blk_get_stats(blkdev->blk), &ioreq->acct,
-                         ioreq->v.size,
-                         ioreq->req.operation == BLKIF_OP_WRITE ?
-                         BLOCK_ACCT_WRITE : BLOCK_ACCT_FLUSH);
+                         ioreq->v.size, BLOCK_ACCT_WRITE);
         ioreq->aio_inflight++;
         blk_aio_writev(blkdev->blk, ioreq->start / BLOCK_SIZE,
                        &ioreq->v, ioreq->v.size / BLOCK_SIZE,
@@ -708,23 +721,6 @@ static void blk_handle_requests(struct XenBlkDev *blkdev)
 
         /* parse them */
         if (ioreq_parse(ioreq) != 0) {
-
-            switch (ioreq->req.operation) {
-            case BLKIF_OP_READ:
-                block_acct_invalid(blk_get_stats(blkdev->blk),
-                                   BLOCK_ACCT_READ);
-                break;
-            case BLKIF_OP_WRITE:
-                block_acct_invalid(blk_get_stats(blkdev->blk),
-                                   BLOCK_ACCT_WRITE);
-                break;
-            case BLKIF_OP_FLUSH_DISKCACHE:
-                block_acct_invalid(blk_get_stats(blkdev->blk),
-                                   BLOCK_ACCT_FLUSH);
-            default:
-                break;
-            };
-
             if (blk_send_response_one(ioreq)) {
                 xen_be_send_notify(&blkdev->xendev);
             }
@@ -814,9 +810,6 @@ static int blk_init(struct XenDevice *xendev)
     }
     if (!strcmp("aio", blkdev->fileproto)) {
         blkdev->fileproto = "raw";
-    }
-    if (!strcmp("vhd", blkdev->fileproto)) {
-        blkdev->fileproto = "vpc";
     }
     if (blkdev->mode == NULL) {
         blkdev->mode = xenstore_read_be_str(&blkdev->xendev, "mode");
@@ -939,11 +932,9 @@ static int blk_connect(struct XenDevice *xendev)
     blk_attach_dev_nofail(blkdev->blk, blkdev);
     blkdev->file_size = blk_getlength(blkdev->blk);
     if (blkdev->file_size < 0) {
-        BlockDriverState *bs = blk_bs(blkdev->blk);
-        const char *drv_name = bs ? bdrv_get_format_name(bs) : NULL;
         xen_be_printf(&blkdev->xendev, 1, "blk_getlength: %d (%s) | drv %s\n",
                       (int)blkdev->file_size, strerror(-blkdev->file_size),
-                      drv_name ?: "-");
+                      bdrv_get_format_name(blk_bs(blkdev->blk)) ?: "-");
         blkdev->file_size = 0;
     }
 

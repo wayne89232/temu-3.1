@@ -23,6 +23,8 @@
  * THE SOFTWARE.
  */
 
+#include <assert.h>
+
 #include "hw/hw.h"
 #include "hw/i386/pc.h"
 #include "hw/ide.h"
@@ -33,7 +35,6 @@
 #include "trace.h"
 #include "exec/address-spaces.h"
 #include "sysemu/block-backend.h"
-#include "qemu/error-report.h"
 
 #include <xenguest.h>
 
@@ -383,16 +384,10 @@ static const VMStateDescription vmstate_xen_platform = {
     }
 };
 
-static void xen_platform_realize(PCIDevice *dev, Error **errp)
+static int xen_platform_initfn(PCIDevice *dev)
 {
     PCIXenPlatformState *d = XEN_PLATFORM(dev);
     uint8_t *pci_conf;
-
-    /* Device will crash on reset if xen is not initialized */
-    if (!xen_enabled()) {
-        error_setg(errp, "xen-platform device requires the Xen accelerator");
-        return;
-    }
 
     pci_conf = dev->config;
 
@@ -411,6 +406,8 @@ static void xen_platform_realize(PCIDevice *dev, Error **errp)
                      &d->mmio_bar);
 
     platform_fixed_ioport_init(d);
+
+    return 0;
 }
 
 static void platform_reset(DeviceState *dev)
@@ -425,7 +422,7 @@ static void xen_platform_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
-    k->realize = xen_platform_realize;
+    k->init = xen_platform_initfn;
     k->vendor_id = PCI_VENDOR_ID_XEN;
     k->device_id = PCI_DEVICE_ID_XEN_PLATFORM;
     k->class_id = PCI_CLASS_OTHERS << 8 | 0x80;

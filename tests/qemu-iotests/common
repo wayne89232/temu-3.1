@@ -32,7 +32,6 @@ check=${check-true}
 
 diff="diff -u"
 verbose=false
-debug=false
 group=false
 xgroup=false
 imgopts=false
@@ -41,6 +40,7 @@ sortme=false
 expunge=true
 have_test_arg=false
 randomize=false
+valgrind=false
 cachemode=false
 rm -f $tmp.list $tmp.tmp $tmp.sed
 
@@ -51,8 +51,6 @@ export IMGOPTS=""
 export CACHEMODE="writeback"
 export QEMU_IO_OPTIONS=""
 export CACHEMODE_IS_DEFAULT=true
-export QEMU_OPTIONS="-nodefaults"
-export VALGRIND_QEMU=
 
 for r
 do
@@ -134,7 +132,6 @@ s/ .*//p
 
 common options
     -v                  verbose
-    -d                  debug
 
 check options
     -raw                test raw (default)
@@ -278,7 +275,7 @@ testlist options
             ;;
 
         -valgrind)
-            VALGRIND_QEMU='y'
+            valgrind=true
             xpand=false
             ;;
 
@@ -323,10 +320,6 @@ testlist options
 
         -v)
             verbose=true
-            xpand=false
-            ;;
-        -d)
-            debug=true
             xpand=false
             ;;
         -x)        # -x group ... exclude from group file
@@ -435,4 +428,9 @@ fi
 
 if [ "$IMGPROTO" = "nbd" ] ; then
     [ "$QEMU_NBD" = "" ] && _fatal "qemu-nbd not found"
+fi
+
+if $valgrind; then
+    export REAL_QEMU_IO="$QEMU_IO_PROG"
+    export QEMU_IO_PROG=valgrind_qemu_io
 fi

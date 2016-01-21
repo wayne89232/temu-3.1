@@ -12,8 +12,3 @@
 
 /* Needed for qtest_allowed() */
 bool qtest_allowed;
-
-bool qtest_driver(void)
-{
-    return false;
-}

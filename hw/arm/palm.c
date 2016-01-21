@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
-#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "audio/audio.h"
 #include "sysemu/sysemu.h"
@@ -214,7 +213,7 @@ static void palmte_init(MachineState *machine)
 
     /* External Flash (EMIFS) */
     memory_region_init_ram(flash, NULL, "palmte.flash", flash_size,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(flash);
     memory_region_set_readonly(flash, true);
     memory_region_add_subregion(address_space_mem, OMAP_CS0_BASE, flash);
@@ -270,10 +269,15 @@ static void palmte_init(MachineState *machine)
     arm_load_kernel(mpu->cpu, &palmte_binfo);
 }
 
-static void palmte_machine_init(MachineClass *mc)
+static QEMUMachine palmte_machine = {
+    .name = "cheetah",
+    .desc = "Palm Tungsten|E aka. Cheetah PDA (OMAP310)",
+    .init = palmte_init,
+};
+
+static void palmte_machine_init(void)
 {
-    mc->desc = "Palm Tungsten|E aka. Cheetah PDA (OMAP310)";
-    mc->init = palmte_init;
+    qemu_register_machine(&palmte_machine);
 }
 
-DEFINE_MACHINE("cheetah", palmte_machine_init)
+machine_init(palmte_machine_init);

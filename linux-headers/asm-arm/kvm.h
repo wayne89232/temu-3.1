@@ -195,15 +195,8 @@ struct kvm_arch_memory_slot {
 #define KVM_ARM_IRQ_CPU_IRQ		0
 #define KVM_ARM_IRQ_CPU_FIQ		1
 
-/*
- * This used to hold the highest supported SPI, but it is now obsolete
- * and only here to provide source code level compatibility with older
- * userland. The highest SPI number can be set via KVM_DEV_ARM_VGIC_GRP_NR_IRQS.
- */
+/* Highest supported SPI, from VGIC_NR_IRQS */
 #define KVM_ARM_IRQ_GIC_MAX		127
-
-/* One single KVM irqchip, ie. the VGIC */
-#define KVM_NR_IRQCHIPS          1
 
 /* PSCI interface */
 #define KVM_PSCI_FN_BASE		0x95c1ba5e

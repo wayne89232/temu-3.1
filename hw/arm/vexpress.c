@@ -21,7 +21,6 @@
  *  GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
 #include "hw/sysbus.h"
 #include "hw/arm/arm.h"
 #include "hw/arm/primecell.h"
@@ -169,8 +168,8 @@ typedef struct {
 } VexpressMachineState;
 
 #define TYPE_VEXPRESS_MACHINE   "vexpress"
-#define TYPE_VEXPRESS_A9_MACHINE   MACHINE_TYPE_NAME("vexpress-a9")
-#define TYPE_VEXPRESS_A15_MACHINE   MACHINE_TYPE_NAME("vexpress-a15")
+#define TYPE_VEXPRESS_A9_MACHINE   "vexpress-a9"
+#define TYPE_VEXPRESS_A15_MACHINE   "vexpress-a15"
 #define VEXPRESS_MACHINE(obj) \
     OBJECT_CHECK(VexpressMachineState, (obj), TYPE_VEXPRESS_MACHINE)
 #define VEXPRESS_MACHINE_GET_CLASS(obj) \
@@ -212,6 +211,7 @@ static void init_cpus(const char *cpu_model, const char *privdev,
     /* Create the actual CPUs */
     for (n = 0; n < smp_cpus; n++) {
         Object *cpuobj = object_new(object_class_get_name(cpu_oc));
+        Error *err = NULL;
 
         if (!secure) {
             object_property_set_bool(cpuobj, false, "has_el3", NULL);
@@ -221,7 +221,11 @@ static void init_cpus(const char *cpu_model, const char *privdev,
             object_property_set_int(cpuobj, periphbase,
                                     "reset-cbar", &error_abort);
         }
-        object_property_set_bool(cpuobj, true, "realized", &error_fatal);
+        object_property_set_bool(cpuobj, true, "realized", &err);
+        if (err) {
+            error_report_err(err);
+            exit(1);
+        }
     }
 
     /* Create the private peripheral devices (including the GIC);
@@ -249,8 +253,6 @@ static void init_cpus(const char *cpu_model, const char *privdev,
         DeviceState *cpudev = DEVICE(qemu_get_cpu(n));
 
         sysbus_connect_irq(busdev, n, qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
-        sysbus_connect_irq(busdev, n + smp_cpus,
-                           qdev_get_gpio_in(cpudev, ARM_CPU_FIQ));
     }
 }
 
@@ -387,7 +389,7 @@ static void a15_daughterboard_init(const VexpressMachineState *vms,
     /* 0x2b0a0000: PL341 dynamic memory controller: not modelled */
     /* 0x2e000000: system SRAM */
     memory_region_init_ram(sram, NULL, "vexpress.a15sram", 0x10000,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(sram);
     memory_region_add_subregion(sysmem, 0x2e000000, sram);
 
@@ -521,7 +523,7 @@ static pflash_t *ve_pflash_cfi01_register(hwaddr base, const char *name,
     qdev_prop_set_uint64(dev, "sector-length", VEXPRESS_FLASH_SECT_SIZE);
     qdev_prop_set_uint8(dev, "width", 4);
     qdev_prop_set_uint8(dev, "device-width", 2);
-    qdev_prop_set_bit(dev, "big-endian", false);
+    qdev_prop_set_uint8(dev, "big-endian", 0);
     qdev_prop_set_uint16(dev, "id0", 0x89);
     qdev_prop_set_uint16(dev, "id1", 0x18);
     qdev_prop_set_uint16(dev, "id2", 0x00);
@@ -537,7 +539,7 @@ static void vexpress_common_init(MachineState *machine)
 {
     VexpressMachineState *vms = VEXPRESS_MACHINE(machine);
     VexpressMachineClass *vmc = VEXPRESS_MACHINE_GET_CLASS(machine);
-    VEDBoardInfo *daughterboard = vmc->daughterboard;
+    VEDBoardInfo *daughterboard = vmc->daughterboard;;
     DeviceState *dev, *sysctl, *pl041;
     qemu_irq pic[64];
     uint32_t sys_id;
@@ -667,13 +669,13 @@ static void vexpress_common_init(MachineState *machine)
 
     sram_size = 0x2000000;
     memory_region_init_ram(sram, NULL, "vexpress.sram", sram_size,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(sram);
     memory_region_add_subregion(sysmem, map[VE_SRAM], sram);
 
     vram_size = 0x800000;
     memory_region_init_ram(vram, NULL, "vexpress.vram", vram_size,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(vram);
     memory_region_add_subregion(sysmem, map[VE_VIDEORAM], vram);
 
@@ -743,6 +745,7 @@ static void vexpress_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 
+    mc->name = TYPE_VEXPRESS_MACHINE;
     mc->desc = "ARM Versatile Express";
     mc->init = vexpress_common_init;
     mc->block_default_type = IF_SCSI;
@@ -754,9 +757,10 @@ static void vexpress_a9_class_init(ObjectClass *oc, void *data)
     MachineClass *mc = MACHINE_CLASS(oc);
     VexpressMachineClass *vmc = VEXPRESS_MACHINE_CLASS(oc);
 
+    mc->name = TYPE_VEXPRESS_A9_MACHINE;
     mc->desc = "ARM Versatile Express for Cortex-A9";
 
-    vmc->daughterboard = &a9_daughterboard;
+    vmc->daughterboard = &a9_daughterboard;;
 }
 
 static void vexpress_a15_class_init(ObjectClass *oc, void *data)
@@ -764,6 +768,7 @@ static void vexpress_a15_class_init(ObjectClass *oc, void *data)
     MachineClass *mc = MACHINE_CLASS(oc);
     VexpressMachineClass *vmc = VEXPRESS_MACHINE_CLASS(oc);
 
+    mc->name = TYPE_VEXPRESS_A15_MACHINE;
     mc->desc = "ARM Versatile Express for Cortex-A15";
 
     vmc->daughterboard = &a15_daughterboard;

@@ -20,6 +20,7 @@
 #include "hw/hw.h"
 #include "qemu/timer.h"
 #include "hw/usb.h"
+#include "monitor/monitor.h"
 #include "sysemu/dma.h"
 #include "sysemu/sysemu.h"
 #include "hw/pci/pci.h"

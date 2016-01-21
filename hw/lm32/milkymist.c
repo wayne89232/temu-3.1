@@ -86,7 +86,7 @@ milkymist_init(MachineState *machine)
     DriveInfo *dinfo;
     MemoryRegion *address_space_mem = get_system_memory();
     MemoryRegion *phys_sdram = g_new(MemoryRegion, 1);
-    qemu_irq irq[32];
+    qemu_irq irq[32], *cpu_irq;
     int i;
     char *bios_filename;
     ResetInfo *reset_info;
@@ -130,7 +130,8 @@ milkymist_init(MachineState *machine)
                           2, 0x00, 0x89, 0x00, 0x1d, 1);
 
     /* create irq lines */
-    env->pic_state = lm32_pic_init(qemu_allocate_irq(cpu_irq_handler, cpu, 0));
+    cpu_irq = qemu_allocate_irqs(cpu_irq_handler, cpu, 1);
+    env->pic_state = lm32_pic_init(*cpu_irq);
     for (i = 0; i < 32; i++) {
         irq[i] = qdev_get_gpio_in(env->pic_state, i);
     }
@@ -176,7 +177,7 @@ milkymist_init(MachineState *machine)
 
         /* Boots a kernel elf binary.  */
         kernel_size = load_elf(kernel_filename, NULL, NULL, &entry, NULL, NULL,
-                               1, EM_LATTICEMICO32, 0);
+                               1, ELF_MACHINE, 0);
         reset_info->bootstrap_pc = entry;
 
         if (kernel_size < 0) {
@@ -209,11 +210,16 @@ milkymist_init(MachineState *machine)
     qemu_register_reset(main_cpu_reset, reset_info);
 }
 
-static void milkymist_machine_init(MachineClass *mc)
+static QEMUMachine milkymist_machine = {
+    .name = "milkymist",
+    .desc = "Milkymist One",
+    .init = milkymist_init,
+    .is_default = 0,
+};
+
+static void milkymist_machine_init(void)
 {
-    mc->desc = "Milkymist One";
-    mc->init = milkymist_init;
-    mc->is_default = 0;
+    qemu_register_machine(&milkymist_machine);
 }
 
-DEFINE_MACHINE("milkymist", milkymist_machine_init)
+machine_init(milkymist_machine_init);

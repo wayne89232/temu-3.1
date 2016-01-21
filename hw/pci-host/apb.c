@@ -289,8 +289,7 @@ static IOMMUTLBEntry pbm_translate_iommu(MemoryRegion *iommu, hwaddr addr,
         }
     }
 
-    tte = address_space_ldq_be(&address_space_memory, baseaddr + offset,
-                               MEMTXATTRS_UNSPECIFIED, NULL);
+    tte = ldq_be_phys(&address_space_memory, baseaddr + offset);
 
     if (!(tte & IOMMU_TTE_DATA_V)) {
         /* Invalid mapping */

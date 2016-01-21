@@ -22,7 +22,6 @@
 
 #include "qemu-common.h"
 #include "ui/qemu-spice.h"
-#include "qemu/error-report.h"
 #include "qemu/thread.h"
 #include "qemu/timer.h"
 #include "qemu/queue.h"
@@ -200,6 +199,8 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
 {
     SpiceServerInfo *server = g_malloc0(sizeof(*server));
     SpiceChannel *client = g_malloc0(sizeof(*client));
+    server->base = g_malloc0(sizeof(*server->base));
+    client->base = g_malloc0(sizeof(*client->base));
 
     /*
      * Spice server might have called us from spice worker thread
@@ -216,11 +217,9 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
     }
 
     if (info->flags & SPICE_CHANNEL_EVENT_FLAG_ADDR_EXT) {
-        add_addr_info(qapi_SpiceChannel_base(client),
-                      (struct sockaddr *)&info->paddr_ext,
+        add_addr_info(client->base, (struct sockaddr *)&info->paddr_ext,
                       info->plen_ext);
-        add_addr_info(qapi_SpiceServerInfo_base(server),
-                      (struct sockaddr *)&info->laddr_ext,
+        add_addr_info(server->base, (struct sockaddr *)&info->laddr_ext,
                       info->llen_ext);
     } else {
         error_report("spice: %s, extended address is expected",
@@ -229,9 +228,7 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
 
     switch (event) {
     case SPICE_CHANNEL_EVENT_CONNECTED:
-        qapi_event_send_spice_connected(qapi_SpiceServerInfo_base(server),
-                                        qapi_SpiceChannel_base(client),
-                                        &error_abort);
+        qapi_event_send_spice_connected(server->base, client->base, &error_abort);
         break;
     case SPICE_CHANNEL_EVENT_INITIALIZED:
         if (auth) {
@@ -244,9 +241,7 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
         break;
     case SPICE_CHANNEL_EVENT_DISCONNECTED:
         channel_list_del(info);
-        qapi_event_send_spice_disconnected(qapi_SpiceServerInfo_base(server),
-                                           qapi_SpiceChannel_base(client),
-                                           &error_abort);
+        qapi_event_send_spice_disconnected(server->base, client->base, &error_abort);
         break;
     default:
         break;
@@ -278,6 +273,14 @@ static SpiceCoreInterface core_interface = {
     .channel_event      = channel_event,
 };
 
+typedef struct SpiceMigration {
+    SpiceMigrateInstance sin;
+    struct {
+        MonitorCompletion *cb;
+        void *opaque;
+    } connect_complete;
+} SpiceMigration;
+
 static void migrate_connect_complete_cb(SpiceMigrateInstance *sin);
 static void migrate_end_complete_cb(SpiceMigrateInstance *sin);
 
@@ -290,11 +293,15 @@ static const SpiceMigrateInterface migrate_interface = {
     .migrate_end_complete = migrate_end_complete_cb,
 };
 
-static SpiceMigrateInstance spice_migrate;
+static SpiceMigration spice_migrate;
 
 static void migrate_connect_complete_cb(SpiceMigrateInstance *sin)
 {
-    /* nothing, but libspice-server expects this cb being present. */
+    SpiceMigration *sm = container_of(sin, SpiceMigration, sin);
+    if (sm->connect_complete.cb) {
+        sm->connect_complete.cb(sm->connect_complete.opaque, NULL);
+    }
+    sm->connect_complete.cb = NULL;
 }
 
 static void migrate_end_complete_cb(SpiceMigrateInstance *sin)
@@ -382,15 +389,16 @@ static SpiceChannelList *qmp_query_spice_channels(void)
 
         chan = g_malloc0(sizeof(*chan));
         chan->value = g_malloc0(sizeof(*chan->value));
+        chan->value->base = g_malloc0(sizeof(*chan->value->base));
 
         paddr = (struct sockaddr *)&item->info->paddr_ext;
         plen = item->info->plen_ext;
         getnameinfo(paddr, plen,
                     host, sizeof(host), port, sizeof(port),
                     NI_NUMERICHOST | NI_NUMERICSERV);
-        chan->value->host = g_strdup(host);
-        chan->value->port = g_strdup(port);
-        chan->value->family = inet_netfamily(paddr->sa_family);
+        chan->value->base->host = g_strdup(host);
+        chan->value->base->port = g_strdup(port);
+        chan->value->base->family = inet_netfamily(paddr->sa_family);
 
         chan->value->connection_id = item->info->connection_id;
         chan->value->channel_type = item->info->type;
@@ -577,18 +585,20 @@ static void migration_state_notifier(Notifier *notifier, void *data)
 }
 
 int qemu_spice_migrate_info(const char *hostname, int port, int tls_port,
-                            const char *subject)
+                            const char *subject,
+                            MonitorCompletion *cb, void *opaque)
 {
     int ret;
 
+    spice_migrate.connect_complete.cb = cb;
+    spice_migrate.connect_complete.opaque = opaque;
     ret = spice_server_migrate_connect(spice_server, hostname,
                                        port, tls_port, subject);
     spice_have_target_host = true;
     return ret;
 }
 
-static int add_channel(void *opaque, const char *name, const char *value,
-                       Error **errp)
+static int add_channel(const char *name, const char *value, void *opaque)
 {
     int security = 0;
     int rc;
@@ -727,7 +737,8 @@ void qemu_spice_init(void)
         qemu_spice_set_passwd(password, false, false);
     }
     if (qemu_opt_get_bool(opts, "sasl", 0)) {
-        if (spice_server_set_sasl(spice_server, 1) == -1) {
+        if (spice_server_set_sasl_appname(spice_server, "qemu") == -1 ||
+            spice_server_set_sasl(spice_server, 1) == -1) {
             error_report("spice: failed to enable sasl");
             exit(1);
         }
@@ -786,14 +797,13 @@ void qemu_spice_init(void)
     spice_server_set_playback_compression
         (spice_server, qemu_opt_get_bool(opts, "playback-compression", 1));
 
-    qemu_opt_foreach(opts, add_channel, &tls_port, NULL);
+    qemu_opt_foreach(opts, add_channel, &tls_port, 0);
 
     spice_server_set_name(spice_server, qemu_name);
     spice_server_set_uuid(spice_server, qemu_uuid);
 
     seamless_migration = qemu_opt_get_bool(opts, "seamless-migration", 0);
     spice_server_set_seamless_migration(spice_server, seamless_migration);
-    spice_server_set_sasl_appname(spice_server, "qemu");
     if (spice_server_init(spice_server, &core_interface) != 0) {
         error_report("failed to initialize spice server");
         exit(1);
@@ -802,14 +812,14 @@ void qemu_spice_init(void)
 
     migration_state.notify = migration_state_notifier;
     add_migration_state_change_notifier(&migration_state);
-    spice_migrate.base.sif = &migrate_interface.base;
-    qemu_spice_add_interface(&spice_migrate.base);
+    spice_migrate.sin.base.sif = &migrate_interface.base;
+    spice_migrate.connect_complete.cb = NULL;
+    qemu_spice_add_interface(&spice_migrate.sin.base);
 
     qemu_spice_input_init();
     qemu_spice_audio_init();
 
     qemu_add_vm_change_state_handler(vm_change_state_handler, NULL);
-    qemu_spice_display_stop();
 
     g_free(x509_key_file);
     g_free(x509_cert_file);

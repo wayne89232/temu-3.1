@@ -55,18 +55,18 @@ static inline void seqlock_write_unlock(QemuSeqLock *sl)
 static inline unsigned seqlock_read_begin(QemuSeqLock *sl)
 {
     /* Always fail if a write is in progress.  */
-    unsigned ret = atomic_read(&sl->sequence);
+    unsigned ret = sl->sequence & ~1;
 
     /* Read sequence before reading other fields.  */
     smp_rmb();
-    return ret & ~1;
+    return ret;
 }
 
-static inline int seqlock_read_retry(const QemuSeqLock *sl, unsigned start)
+static int seqlock_read_retry(const QemuSeqLock *sl, unsigned start)
 {
     /* Read other fields before reading final sequence.  */
     smp_rmb();
-    return unlikely(atomic_read(&sl->sequence) != start);
+    return unlikely(sl->sequence != start);
 }
 
 #endif

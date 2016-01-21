@@ -32,6 +32,8 @@
 
 #define MAX_QREGS 32
 
+#define ELF_MACHINE	EM_68K
+
 #define EXCP_ACCESS         2   /* Access (MMU) error.  */
 #define EXCP_ADDRESS        3   /* Address error.  */
 #define EXCP_ILLEGAL        4   /* Illegal instruction.  */
@@ -115,7 +117,7 @@ typedef struct CPUM68KState {
 void m68k_tcg_init(void);
 void m68k_cpu_init_gdb(M68kCPU *cpu);
 M68kCPU *cpu_m68k_init(const char *cpu_model);
-int cpu_m68k_exec(CPUState *cpu);
+int cpu_m68k_exec(CPUM68KState *s);
 /* you can call this signal handler from your SIGBUS and SIGSEGV
    signal handlers to inform the virtual CPU of exceptions. non zero
    is returned if the signal was handled by the virtual CPU.  */
@@ -213,6 +215,7 @@ void register_m68k_insns (CPUM68KState *env);
 #define cpu_init(cpu_model) CPU(cpu_m68k_init(cpu_model))
 
 #define cpu_exec cpu_m68k_exec
+#define cpu_gen_code cpu_m68k_gen_code
 #define cpu_signal_handler cpu_m68k_signal_handler
 #define cpu_list m68k_cpu_list
 
@@ -220,7 +223,7 @@ void register_m68k_insns (CPUM68KState *env);
 #define MMU_MODE0_SUFFIX _kernel
 #define MMU_MODE1_SUFFIX _user
 #define MMU_USER_IDX 1
-static inline int cpu_mmu_index (CPUM68KState *env, bool ifetch)
+static inline int cpu_mmu_index (CPUM68KState *env)
 {
     return (env->sr & SR_S) == 0 ? 1 : 0;
 }

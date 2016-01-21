@@ -32,7 +32,7 @@
 #include "trace.h"
 
 #define FRAME_TIMER_FREQ 1000
-#define FRAME_TIMER_NS   (NANOSECONDS_PER_SECOND / FRAME_TIMER_FREQ)
+#define FRAME_TIMER_NS   (1000000000 / FRAME_TIMER_FREQ)
 #define UFRAME_TIMER_NS  (FRAME_TIMER_NS / 8)
 
 #define NB_MAXINTRATE    8        // Max rate at which controller issues ints
@@ -726,7 +726,7 @@ static void ehci_detach(USBPort *port)
     ehci_queues_rip_device(s, port->dev, 0);
     ehci_queues_rip_device(s, port->dev, 1);
 
-    *portsc &= ~(PORTSC_CONNECT|PORTSC_PED|PORTSC_SUSPEND);
+    *portsc &= ~(PORTSC_CONNECT|PORTSC_PED);
     *portsc |= PORTSC_CSC;
 
     ehci_raise_irq(s, USBSTS_PCD);
@@ -1389,7 +1389,7 @@ static int ehci_process_itd(EHCIState *ehci,
 {
     USBDevice *dev;
     USBEndpoint *ep;
-    uint32_t i, len, pid, dir, devaddr, endp, xfers = 0;
+    uint32_t i, len, pid, dir, devaddr, endp;
     uint32_t pg, off, ptr1, ptr2, max, mult;
 
     ehci->periodic_sched_active = PERIODIC_ACTIVE;
@@ -1479,10 +1479,9 @@ static int ehci_process_itd(EHCIState *ehci,
                 ehci_raise_irq(ehci, USBSTS_INT);
             }
             itd->transact[i] &= ~ITD_XACT_ACTIVE;
-            xfers++;
         }
     }
-    return xfers ? 0 : -1;
+    return 0;
 }
 
 

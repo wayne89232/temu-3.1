@@ -30,8 +30,8 @@
 #include "qemu/error-report.h"
 
 #include <X11/Xlib.h>
-#include <epoxy/gl.h>
-#include <epoxy/glx.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 
 enum {
     R_CTL = 0,

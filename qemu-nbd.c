@@ -25,11 +25,11 @@
 #include "qemu/error-report.h"
 #include "block/snapshot.h"
 #include "qapi/util.h"
-#include "qapi/qmp/qstring.h"
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <err.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -48,12 +48,11 @@
 static NBDExport *exp;
 static int verbose;
 static char *srcpath;
-static SocketAddress *saddr;
+static char *sockpath;
 static int persistent = 0;
 static enum { RUNNING, TERMINATE, TERMINATING, TERMINATED } state;
 static int shared = 1;
 static int nb_fds;
-static int server_fd;
 
 static void usage(const char *name)
 {
@@ -97,9 +96,11 @@ static void usage(const char *name)
 "                            '[ID_OR_NAME]'\n"
 "  -n, --nocache             disable host cache\n"
 "      --cache=MODE          set cache mode (none, writeback, ...)\n"
+#ifdef CONFIG_LINUX_AIO
 "      --aio=MODE            set AIO mode (native or threads)\n"
+#endif
 "      --discard=MODE        set discard mode (ignore, unmap)\n"
-"      --detect-zeroes=MODE  set detect-zeroes mode (off, on, unmap)\n"
+"      --detect-zeroes=MODE  set detect-zeroes mode (off, on, discard)\n"
 "\n"
 "Report bugs to <qemu-devel@nongnu.org>\n"
     , name, NBD_DEFAULT_PORT, "DEVICE");
@@ -156,8 +157,8 @@ static int find_partition(BlockBackend *blk, int partition,
     int ret;
 
     if ((ret = blk_read(blk, 0, data, 1)) < 0) {
-        error_report("error while reading: %s", strerror(-ret));
-        exit(EXIT_FAILURE);
+        errno = -ret;
+        err(EXIT_FAILURE, "error while reading");
     }
 
     if (data[510] != 0x55 || data[511] != 0xaa) {
@@ -177,8 +178,8 @@ static int find_partition(BlockBackend *blk, int partition,
             int j;
 
             if ((ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1)) < 0) {
-                error_report("error while reading: %s", strerror(-ret));
-                exit(EXIT_FAILURE);
+                errno = -ret;
+                err(EXIT_FAILURE, "error while reading");
             }
 
             for (j = 0; j < 4; j++) {
@@ -210,6 +211,52 @@ static void termsig_handler(int signum)
     qemu_notify_event();
 }
 
+static void combine_addr(char *buf, size_t len, const char* address,
+                         uint16_t port)
+{
+    /* If the address-part contains a colon, it's an IPv6 IP so needs [] */
+    if (strstr(address, ":")) {
+        snprintf(buf, len, "[%s]:%u", address, port);
+    } else {
+        snprintf(buf, len, "%s:%u", address, port);
+    }
+}
+
+static int tcp_socket_incoming(const char *address, uint16_t port)
+{
+    char address_and_port[128];
+    Error *local_err = NULL;
+
+    combine_addr(address_and_port, 128, address, port);
+    int fd = inet_listen(address_and_port, NULL, 0, SOCK_STREAM, 0, &local_err);
+
+    if (local_err != NULL) {
+        error_report_err(local_err);
+    }
+    return fd;
+}
+
+static int unix_socket_incoming(const char *path)
+{
+    Error *local_err = NULL;
+    int fd = unix_listen(path, NULL, 0, &local_err);
+
+    if (local_err != NULL) {
+        error_report_err(local_err);
+    }
+    return fd;
+}
+
+static int unix_socket_outgoing(const char *path)
+{
+    Error *local_err = NULL;
+    int fd = unix_connect(path, &local_err);
+
+    if (local_err != NULL) {
+        error_report_err(local_err);
+    }
+    return fd;
+}
 
 static void *show_parts(void *arg)
 {
@@ -238,10 +285,8 @@ static void *nbd_client_thread(void *arg)
     pthread_t show_parts_thread;
     Error *local_error = NULL;
 
-
-    sock = socket_connect(saddr, &local_error, NULL, NULL);
+    sock = unix_socket_outgoing(sockpath);
     if (sock < 0) {
-        error_report_err(local_error);
         goto out;
     }
 
@@ -249,7 +294,8 @@ static void *nbd_client_thread(void *arg)
                                 &size, &local_error);
     if (ret < 0) {
         if (local_error) {
-            error_report_err(local_error);
+            fprintf(stderr, "%s\n", error_get_pretty(local_error));
+            error_free(local_error);
         }
         goto out_socket;
     }
@@ -257,7 +303,7 @@ static void *nbd_client_thread(void *arg)
     fd = open(device, O_RDWR);
     if (fd < 0) {
         /* Linux-only, we can use %m in printf.  */
-        error_report("Failed to open %s: %m", device);
+        fprintf(stderr, "Failed to open %s: %m\n", device);
         goto out_socket;
     }
 
@@ -294,7 +340,7 @@ out:
     return (void *) EXIT_FAILURE;
 }
 
-static int nbd_can_accept(void)
+static int nbd_can_accept(void *opaque)
 {
     return nb_fds < shared;
 }
@@ -305,20 +351,19 @@ static void nbd_export_closed(NBDExport *exp)
     state = TERMINATED;
 }
 
-static void nbd_update_server_fd_handler(int fd);
-
 static void nbd_client_closed(NBDClient *client)
 {
     nb_fds--;
     if (nb_fds == 0 && !persistent && state == RUNNING) {
         state = TERMINATE;
     }
-    nbd_update_server_fd_handler(server_fd);
+    qemu_notify_event();
     nbd_client_put(client);
 }
 
 static void nbd_accept(void *opaque)
 {
+    int server_fd = (uintptr_t) opaque;
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
 
@@ -333,46 +378,13 @@ static void nbd_accept(void *opaque)
         return;
     }
 
-    nb_fds++;
-    nbd_update_server_fd_handler(server_fd);
-    nbd_client_new(exp, fd, nbd_client_closed);
-}
-
-static void nbd_update_server_fd_handler(int fd)
-{
-    if (nbd_can_accept()) {
-        qemu_set_fd_handler(fd, nbd_accept, NULL, (void *)(uintptr_t)fd);
+    if (nbd_client_new(exp, fd, nbd_client_closed)) {
+        nb_fds++;
     } else {
-        qemu_set_fd_handler(fd, NULL, NULL, NULL);
+        shutdown(fd, 2);
+        close(fd);
     }
 }
-
-
-static SocketAddress *nbd_build_socket_address(const char *sockpath,
-                                               const char *bindto,
-                                               const char *port)
-{
-    SocketAddress *saddr;
-
-    saddr = g_new0(SocketAddress, 1);
-    if (sockpath) {
-        saddr->type = SOCKET_ADDRESS_KIND_UNIX;
-        saddr->u.q_unix = g_new0(UnixSocketAddress, 1);
-        saddr->u.q_unix->path = g_strdup(sockpath);
-    } else {
-        saddr->type = SOCKET_ADDRESS_KIND_INET;
-        saddr->u.inet = g_new0(InetSocketAddress, 1);
-        saddr->u.inet->host = g_strdup(bindto);
-        if (port) {
-            saddr->u.inet->port = g_strdup(port);
-        } else  {
-            saddr->u.inet->port = g_strdup_printf("%d", NBD_DEFAULT_PORT);
-        }
-    }
-
-    return saddr;
-}
-
 
 int main(int argc, char **argv)
 {
@@ -382,9 +394,8 @@ int main(int argc, char **argv)
     uint32_t nbdflags = 0;
     bool disconnect = false;
     const char *bindto = "0.0.0.0";
-    const char *port = NULL;
-    char *sockpath = NULL;
     char *device = NULL;
+    int port = NBD_DEFAULT_PORT;
     off_t fd_size;
     QemuOpts *sn_opts = NULL;
     const char *sn_id_or_name = NULL;
@@ -404,7 +415,9 @@ int main(int argc, char **argv)
         { "load-snapshot", 1, NULL, 'l' },
         { "nocache", 0, NULL, 'n' },
         { "cache", 1, NULL, QEMU_NBD_OPT_CACHE },
+#ifdef CONFIG_LINUX_AIO
         { "aio", 1, NULL, QEMU_NBD_OPT_AIO },
+#endif
         { "discard", 1, NULL, QEMU_NBD_OPT_DISCARD },
         { "detect-zeroes", 1, NULL, QEMU_NBD_OPT_DETECT_ZEROES },
         { "shared", 1, NULL, 'e' },
@@ -415,6 +428,7 @@ int main(int argc, char **argv)
     };
     int ch;
     int opt_ind = 0;
+    int li;
     char *end;
     int flags = BDRV_O_RDWR;
     int partition = -1;
@@ -422,7 +436,9 @@ int main(int argc, char **argv)
     int fd;
     bool seen_cache = false;
     bool seen_discard = false;
+#ifdef CONFIG_LINUX_AIO
     bool seen_aio = false;
+#endif
     pthread_t client_thread;
     const char *fmt = NULL;
     Error *local_err = NULL;
@@ -448,19 +464,17 @@ int main(int argc, char **argv)
             /* fallthrough */
         case QEMU_NBD_OPT_CACHE:
             if (seen_cache) {
-                error_report("-n and --cache can only be specified once");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "-n and --cache can only be specified once");
             }
             seen_cache = true;
             if (bdrv_parse_cache_flags(optarg, &flags) == -1) {
-                error_report("Invalid cache mode `%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid cache mode `%s'", optarg);
             }
             break;
+#ifdef CONFIG_LINUX_AIO
         case QEMU_NBD_OPT_AIO:
             if (seen_aio) {
-                error_report("--aio can only be specified once");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "--aio can only be specified once");
             }
             seen_aio = true;
             if (!strcmp(optarg, "native")) {
@@ -468,65 +482,64 @@ int main(int argc, char **argv)
             } else if (!strcmp(optarg, "threads")) {
                 /* this is the default */
             } else {
-               error_report("invalid aio mode `%s'", optarg);
-               exit(EXIT_FAILURE);
+               errx(EXIT_FAILURE, "invalid aio mode `%s'", optarg);
             }
             break;
+#endif
         case QEMU_NBD_OPT_DISCARD:
             if (seen_discard) {
-                error_report("--discard can only be specified once");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "--discard can only be specified once");
             }
             seen_discard = true;
             if (bdrv_parse_discard_flags(optarg, &flags) == -1) {
-                error_report("Invalid discard mode `%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid discard mode `%s'", optarg);
             }
             break;
         case QEMU_NBD_OPT_DETECT_ZEROES:
             detect_zeroes =
                 qapi_enum_parse(BlockdevDetectZeroesOptions_lookup,
                                 optarg,
-                                BLOCKDEV_DETECT_ZEROES_OPTIONS__MAX,
+                                BLOCKDEV_DETECT_ZEROES_OPTIONS_MAX,
                                 BLOCKDEV_DETECT_ZEROES_OPTIONS_OFF,
                                 &local_err);
             if (local_err) {
-                error_reportf_err(local_err,
-                                  "Failed to parse detect_zeroes mode: ");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Failed to parse detect_zeroes mode: %s", 
+                     error_get_pretty(local_err));
             }
             if (detect_zeroes == BLOCKDEV_DETECT_ZEROES_OPTIONS_UNMAP &&
                 !(flags & BDRV_O_UNMAP)) {
-                error_report("setting detect-zeroes to unmap is not allowed "
-                             "without setting discard operation to unmap");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "setting detect-zeroes to unmap is not allowed "
+                                   "without setting discard operation to unmap"); 
             }
             break;
         case 'b':
             bindto = optarg;
             break;
         case 'p':
-            port = optarg;
+            li = strtol(optarg, &end, 0);
+            if (*end) {
+                errx(EXIT_FAILURE, "Invalid port `%s'", optarg);
+            }
+            if (li < 1 || li > 65535) {
+                errx(EXIT_FAILURE, "Port out of range `%s'", optarg);
+            }
+            port = (uint16_t)li;
             break;
         case 'o':
                 dev_offset = strtoll (optarg, &end, 0);
             if (*end) {
-                error_report("Invalid offset `%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid offset `%s'", optarg);
             }
             if (dev_offset < 0) {
-                error_report("Offset must be positive `%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Offset must be positive `%s'", optarg);
             }
             break;
         case 'l':
             if (strstart(optarg, SNAPSHOT_OPT_BASE, NULL)) {
-                sn_opts = qemu_opts_parse_noisily(&internal_snapshot_opts,
-                                                  optarg, false);
+                sn_opts = qemu_opts_parse(&internal_snapshot_opts, optarg, 0);
                 if (!sn_opts) {
-                    error_report("Failed in parsing snapshot param `%s'",
-                                 optarg);
-                    exit(EXIT_FAILURE);
+                    errx(EXIT_FAILURE, "Failed in parsing snapshot param `%s'",
+                         optarg);
                 }
             } else {
                 sn_id_or_name = optarg;
@@ -539,19 +552,16 @@ int main(int argc, char **argv)
         case 'P':
             partition = strtol(optarg, &end, 0);
             if (*end) {
-                error_report("Invalid partition `%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid partition `%s'", optarg);
             }
             if (partition < 1 || partition > 8) {
-                error_report("Invalid partition %d", partition);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid partition %d", partition);
             }
             break;
         case 'k':
             sockpath = optarg;
             if (sockpath[0] != '/') {
-                error_report("socket path must be absolute");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "socket path must be absolute\n");
             }
             break;
         case 'd':
@@ -563,12 +573,10 @@ int main(int argc, char **argv)
         case 'e':
             shared = strtol(optarg, &end, 0);
             if (*end) {
-                error_report("Invalid shared device number '%s'", optarg);
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Invalid shared device number '%s'", optarg);
             }
             if (shared < 1) {
-                error_report("Shared device number must be greater than 0");
-                exit(EXIT_FAILURE);
+                errx(EXIT_FAILURE, "Shared device number must be greater than 0\n");
             }
             break;
         case 'f':
@@ -589,23 +597,21 @@ int main(int argc, char **argv)
             exit(0);
             break;
         case '?':
-            error_report("Try `%s --help' for more information.", argv[0]);
-            exit(EXIT_FAILURE);
+            errx(EXIT_FAILURE, "Try `%s --help' for more information.",
+                 argv[0]);
         }
     }
 
     if ((argc - optind) != 1) {
-        error_report("Invalid number of arguments");
-        error_printf("Try `%s --help' for more information.\n", argv[0]);
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "Invalid number of argument.\n"
+             "Try `%s --help' for more information.",
+             argv[0]);
     }
 
     if (disconnect) {
         fd = open(argv[optind], O_RDWR);
         if (fd < 0) {
-            error_report("Cannot open %s: %s", argv[optind],
-                         strerror(errno));
-            exit(EXIT_FAILURE);
+            err(EXIT_FAILURE, "Cannot open %s", argv[optind]);
         }
         nbd_disconnect(fd);
 
@@ -622,9 +628,7 @@ int main(int argc, char **argv)
         int ret;
 
         if (qemu_pipe(stderr_fd) < 0) {
-            error_report("Error setting up communication pipe: %s",
-                         strerror(errno));
-            exit(EXIT_FAILURE);
+            err(EXIT_FAILURE, "Error setting up communication pipe");
         }
 
         /* Now daemonize, but keep a communication channel open to
@@ -632,8 +636,7 @@ int main(int argc, char **argv)
          */
         pid = fork();
         if (pid < 0) {
-            error_report("Failed to fork: %s", strerror(errno));
-            exit(EXIT_FAILURE);
+            err(EXIT_FAILURE, "Failed to fork");
         } else if (pid == 0) {
             close(stderr_fd[0]);
             ret = qemu_daemon(1, 0);
@@ -641,8 +644,7 @@ int main(int argc, char **argv)
             /* Temporarily redirect stderr to the parent's pipe...  */
             dup2(stderr_fd[1], STDERR_FILENO);
             if (ret < 0) {
-                error_report("Failed to daemonize: %s", strerror(errno));
-                exit(EXIT_FAILURE);
+                err(EXIT_FAILURE, "Failed to daemonize");
             }
 
             /* ... close the descriptor we inherited and go on.  */
@@ -664,9 +666,7 @@ int main(int argc, char **argv)
                 }
             }
             if (ret < 0) {
-                error_report("Cannot read from daemon: %s",
-                             strerror(errno));
-                exit(EXIT_FAILURE);
+                err(EXIT_FAILURE, "Cannot read from daemon");
             }
 
             /* Usually the daemon should not print any message.
@@ -680,8 +680,6 @@ int main(int argc, char **argv)
         sockpath = g_malloc(128);
         snprintf(sockpath, 128, SOCKET_PATH, basename(device));
     }
-
-    saddr = nbd_build_socket_address(sockpath, bindto, port);
 
     if (qemu_init_main_loop(&local_err)) {
         error_report_err(local_err);
@@ -698,9 +696,8 @@ int main(int argc, char **argv)
     srcpath = argv[optind];
     blk = blk_new_open("hda", srcpath, NULL, options, flags, &local_err);
     if (!blk) {
-        error_reportf_err(local_err, "Failed to blk_new_open '%s': ",
-                          argv[optind]);
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "Failed to blk_new_open '%s': %s", argv[optind],
+             error_get_pretty(local_err));
     }
     bs = blk_bs(blk);
 
@@ -714,37 +711,40 @@ int main(int argc, char **argv)
                                                    &local_err);
     }
     if (ret < 0) {
-        error_reportf_err(local_err, "Failed to load snapshot: ");
-        exit(EXIT_FAILURE);
+        errno = -ret;
+        err(EXIT_FAILURE,
+            "Failed to load snapshot: %s",
+            error_get_pretty(local_err));
     }
 
     bs->detect_zeroes = detect_zeroes;
     fd_size = blk_getlength(blk);
     if (fd_size < 0) {
-        error_report("Failed to determine the image length: %s",
-                     strerror(-fd_size));
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "Failed to determine the image length: %s",
+             strerror(-fd_size));
     }
 
     if (partition != -1) {
         ret = find_partition(blk, partition, &dev_offset, &fd_size);
         if (ret < 0) {
-            error_report("Could not find partition %d: %s", partition,
-                         strerror(-ret));
-            exit(EXIT_FAILURE);
+            errno = -ret;
+            err(EXIT_FAILURE, "Could not find partition %d", partition);
         }
     }
 
     exp = nbd_export_new(blk, dev_offset, fd_size, nbdflags, nbd_export_closed,
                          &local_err);
     if (!exp) {
-        error_report_err(local_err);
-        exit(EXIT_FAILURE);
+        errx(EXIT_FAILURE, "%s", error_get_pretty(local_err));
     }
 
-    fd = socket_listen(saddr, &local_err);
+    if (sockpath) {
+        fd = unix_socket_incoming(sockpath);
+    } else {
+        fd = tcp_socket_incoming(bindto, port);
+    }
+
     if (fd < 0) {
-        error_report_err(local_err);
         return 1;
     }
 
@@ -753,23 +753,21 @@ int main(int argc, char **argv)
 
         ret = pthread_create(&client_thread, NULL, nbd_client_thread, device);
         if (ret != 0) {
-            error_report("Failed to create client thread: %s", strerror(ret));
-            exit(EXIT_FAILURE);
+            errx(EXIT_FAILURE, "Failed to create client thread: %s",
+                 strerror(ret));
         }
     } else {
         /* Shut up GCC warnings.  */
         memset(&client_thread, 0, sizeof(client_thread));
     }
 
-    server_fd = fd;
-    nbd_update_server_fd_handler(fd);
+    qemu_set_fd_handler2(fd, nbd_can_accept, nbd_accept, NULL,
+                         (void *)(uintptr_t)fd);
 
     /* now when the initialization is (almost) complete, chdir("/")
      * to free any busy filesystems */
     if (chdir("/") < 0) {
-        error_report("Could not chdir to root directory: %s",
-                     strerror(errno));
-        exit(EXIT_FAILURE);
+        err(EXIT_FAILURE, "Could not chdir to root directory");
     }
 
     state = RUNNING;

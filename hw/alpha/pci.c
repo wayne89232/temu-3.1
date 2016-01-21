@@ -10,7 +10,6 @@
 #include "alpha_sys.h"
 #include "qemu/log.h"
 #include "sysemu/sysemu.h"
-#include "trace.h"
 
 
 /* Fallback for unassigned PCI I/O operations.  Avoids MCHK.  */
@@ -74,7 +73,7 @@ static uint64_t iack_read(void *opaque, hwaddr addr, unsigned size)
 static void special_write(void *opaque, hwaddr addr,
                           uint64_t val, unsigned size)
 {
-    trace_alpha_pci_iack_write();
+    qemu_log("pci: special write cycle");
 }
 
 const MemoryRegionOps alpha_pci_iack_ops = {

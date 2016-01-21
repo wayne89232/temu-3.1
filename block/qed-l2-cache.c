@@ -50,7 +50,6 @@
  * table will be deleted in favor of the existing cache entry.
  */
 
-#include "qemu/osdep.h"
 #include "trace.h"
 #include "qed.h"
 

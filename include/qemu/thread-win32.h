@@ -18,7 +18,6 @@ struct QemuSemaphore {
 };
 
 struct QemuEvent {
-    int value;
     HANDLE event;
 };
 

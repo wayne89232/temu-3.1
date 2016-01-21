@@ -25,7 +25,6 @@
 #include "hw/acpi/cpu_hotplug.h"
 #include "hw/acpi/memory_hotplug.h"
 #include "hw/acpi/acpi_dev_interface.h"
-#include "hw/acpi/tco.h"
 
 typedef struct ICH9LPCPMRegs {
     /*
@@ -40,7 +39,6 @@ typedef struct ICH9LPCPMRegs {
     MemoryRegion io_smi;
 
     uint32_t smi_en;
-    uint32_t smi_en_wmask;
     uint32_t smi_sts;
 
     qemu_irq irq;      /* SCI */
@@ -55,16 +53,10 @@ typedef struct ICH9LPCPMRegs {
     uint8_t disable_s3;
     uint8_t disable_s4;
     uint8_t s4_val;
-    uint8_t smm_enabled;
-    bool enable_tco;
-    TCOIORegs tco_regs;
 } ICH9LPCPMRegs;
 
 void ich9_pm_init(PCIDevice *lpc_pci, ICH9LPCPMRegs *pm,
-                  bool smm_enabled,
-                  bool enable_tco,
                   qemu_irq sci_irq);
-
 void ich9_pm_iospace_update(ICH9LPCPMRegs *pm, uint32_t pm_io_base);
 extern const VMStateDescription vmstate_ich9_pm;
 

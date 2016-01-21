@@ -36,8 +36,6 @@
 
 #define MAX_IS_ALLOCATED_SEARCH 65536
 
-#define MAX_INFLIGHT_IO 512
-
 //#define DEBUG_BLK_MIGRATION
 
 #ifdef DEBUG_BLK_MIGRATION
@@ -306,7 +304,7 @@ static int mig_save_device_bulk(QEMUFile *f, BlkMigDevState *bmds)
     blk->aiocb = bdrv_aio_readv(bs, cur_sector, &blk->qiov,
                                 nr_sectors, blk_mig_read_cb, blk);
 
-    bdrv_reset_dirty_bitmap(bmds->dirty_bitmap, cur_sector, nr_sectors);
+    bdrv_reset_dirty_bitmap(bs, bmds->dirty_bitmap, cur_sector, nr_sectors);
     qemu_mutex_unlock_iothread();
 
     bmds->cur_sector = cur_sector + nr_sectors;
@@ -322,7 +320,7 @@ static int set_dirty_tracking(void)
 
     QSIMPLEQ_FOREACH(bmds, &block_mig_state.bmds_list, entry) {
         bmds->dirty_bitmap = bdrv_create_dirty_bitmap(bmds->bs, BLOCK_SIZE,
-                                                      NULL, NULL);
+                                                      NULL);
         if (!bmds->dirty_bitmap) {
             ret = -errno;
             goto fail;
@@ -459,7 +457,7 @@ static int mig_save_device_dirty(QEMUFile *f, BlkMigDevState *bmds,
         blk_mig_lock();
         if (bmds_aio_inflight(bmds, sector)) {
             blk_mig_unlock();
-            bdrv_drain(bmds->bs);
+            bdrv_drain_all();
         } else {
             blk_mig_unlock();
         }
@@ -499,7 +497,8 @@ static int mig_save_device_dirty(QEMUFile *f, BlkMigDevState *bmds,
                 g_free(blk);
             }
 
-            bdrv_reset_dirty_bitmap(bmds->dirty_bitmap, sector, nr_sectors);
+            bdrv_reset_dirty_bitmap(bmds->bs, bmds->dirty_bitmap, sector,
+                                    nr_sectors);
             break;
         }
         sector += BDRV_SECTORS_PER_DIRTY_CHUNK;
@@ -585,7 +584,7 @@ static int64_t get_remaining_dirty(void)
     int64_t dirty = 0;
 
     QSIMPLEQ_FOREACH(bmds, &block_mig_state.bmds_list, entry) {
-        dirty += bdrv_get_dirty_count(bmds->dirty_bitmap);
+        dirty += bdrv_get_dirty_count(bmds->bs, bmds->dirty_bitmap);
     }
 
     return dirty << BDRV_SECTOR_BITS;
@@ -593,7 +592,7 @@ static int64_t get_remaining_dirty(void)
 
 /* Called with iothread lock taken.  */
 
-static void block_migration_cleanup(void *opaque)
+static void blk_mig_cleanup(void)
 {
     BlkMigDevState *bmds;
     BlkMigBlock *blk;
@@ -618,6 +617,11 @@ static void block_migration_cleanup(void *opaque)
         g_free(blk);
     }
     blk_mig_unlock();
+}
+
+static void block_migration_cancel(void *opaque)
+{
+    blk_mig_cleanup();
 }
 
 static int block_save_setup(QEMUFile *f, void *opaque)
@@ -667,10 +671,7 @@ static int block_save_iterate(QEMUFile *f, void *opaque)
     blk_mig_lock();
     while ((block_mig_state.submitted +
             block_mig_state.read_done) * BLOCK_SIZE <
-           qemu_file_get_rate_limit(f) &&
-           (block_mig_state.submitted +
-            block_mig_state.read_done) <
-           MAX_INFLIGHT_IO) {
+           qemu_file_get_rate_limit(f)) {
         blk_mig_unlock();
         if (block_mig_state.bulk_completed == 0) {
             /* first finish the bulk phase */
@@ -750,12 +751,11 @@ static int block_save_complete(QEMUFile *f, void *opaque)
 
     qemu_put_be64(f, BLK_MIG_FLAG_EOS);
 
+    blk_mig_cleanup();
     return 0;
 }
 
-static void block_save_pending(QEMUFile *f, void *opaque, uint64_t max_size,
-                               uint64_t *non_postcopiable_pending,
-                               uint64_t *postcopiable_pending)
+static uint64_t block_save_pending(QEMUFile *f, void *opaque, uint64_t max_size)
 {
     /* Estimate pending number of bytes to send */
     uint64_t pending;
@@ -774,8 +774,7 @@ static void block_save_pending(QEMUFile *f, void *opaque, uint64_t max_size,
     qemu_mutex_unlock_iothread();
 
     DPRINTF("Enter save live pending  %" PRIu64 "\n", pending);
-    /* We don't do postcopy */
-    *non_postcopiable_pending += pending;
+    return pending;
 }
 
 static int block_load(QEMUFile *f, void *opaque, int version_id)
@@ -810,11 +809,6 @@ static int block_load(QEMUFile *f, void *opaque, int version_id)
                 return -EINVAL;
             }
             bs = blk_bs(blk);
-            if (!bs) {
-                fprintf(stderr, "Block device %s has no medium\n",
-                        device_name);
-                return -EINVAL;
-            }
 
             if (bs != bs_prev) {
                 bs_prev = bs;
@@ -884,10 +878,10 @@ static SaveVMHandlers savevm_block_handlers = {
     .set_params = block_set_params,
     .save_live_setup = block_save_setup,
     .save_live_iterate = block_save_iterate,
-    .save_live_complete_precopy = block_save_complete,
+    .save_live_complete = block_save_complete,
     .save_live_pending = block_save_pending,
     .load_state = block_load,
-    .cleanup = block_migration_cleanup,
+    .cancel = block_migration_cancel,
     .is_active = block_is_active,
 };
 

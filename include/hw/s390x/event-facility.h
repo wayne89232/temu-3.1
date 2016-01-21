@@ -47,7 +47,6 @@
      OBJECT_GET_CLASS(SCLPEventClass, (obj), TYPE_SCLP_EVENT)
 
 #define TYPE_SCLP_CPU_HOTPLUG "sclp-cpu-hotplug"
-#define TYPE_SCLP_QUIESCE "sclpquiesce"
 
 typedef struct WriteEventMask {
     SCCBHeader h;
@@ -147,10 +146,8 @@ typedef struct WriteEventData {
 
 typedef struct ReadEventData {
     SCCBHeader h;
-    union {
-        uint32_t mask;
-        EventBufferHeader ebh;
-    };
+    EventBufferHeader ebh;
+    uint32_t mask;
 } QEMU_PACKED ReadEventData;
 
 typedef struct SCLPEvent {
@@ -189,8 +186,11 @@ typedef struct SCLPEventClass {
      OBJECT_GET_CLASS(SCLPEventFacilityClass, (obj), \
                       TYPE_SCLP_EVENT_FACILITY)
 
+typedef struct SCLPEventFacility SCLPEventFacility;
+
 typedef struct SCLPEventFacilityClass {
-    SysBusDeviceClass parent_class;
+    DeviceClass parent_class;
+    int (*init)(SCLPEventFacility *ef);
     void (*command_handler)(SCLPEventFacility *ef, SCCB *sccb, uint64_t code);
     bool (*event_pending)(SCLPEventFacility *ef);
 } SCLPEventFacilityClass;

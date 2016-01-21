@@ -9,12 +9,12 @@
  * version 2 of the License, or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
+#include <stdlib.h>
 
 #include "cpu.h"
 #include "exec/exec-all.h"
 #include "exec/helper-proto.h"
-#include "crypto/aes.h"
+#include "qemu/aes.h"
 
 union CRYPTO_STATE {
     uint8_t    bytes[16];

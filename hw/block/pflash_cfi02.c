@@ -35,7 +35,6 @@
  * It does not implement multiple sectors erase
  */
 
-#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/block/flash.h"
 #include "qemu/timer.h"

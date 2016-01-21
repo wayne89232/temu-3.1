@@ -22,9 +22,10 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>
  */
 
+#include <dirent.h>
+
 #include "qemu-common.h"
 #include "qapi/error.h"
-#include "qemu/error-report.h"
 #include "qemu/sockets.h"
 #include "sysemu/tpm_backend.h"
 #include "tpm_int.h"
@@ -32,15 +33,16 @@
 #include "hw/i386/pc.h"
 #include "sysemu/tpm_backend_int.h"
 #include "tpm_tis.h"
-#include "tpm_util.h"
 
-#define DEBUG_TPM 0
+/* #define DEBUG_TPM */
 
-#define DPRINTF(fmt, ...) do { \
-    if (DEBUG_TPM) { \
-        fprintf(stderr, fmt, ## __VA_ARGS__); \
-    } \
-} while (0);
+#ifdef DEBUG_TPM
+#define DPRINTF(fmt, ...) \
+    do { fprintf(stderr, fmt, ## __VA_ARGS__); } while (0)
+#else
+#define DPRINTF(fmt, ...) \
+    do { } while (0)
+#endif
 
 #define TYPE_TPM_PASSTHROUGH "tpm-passthrough"
 #define TPM_PASSTHROUGH(obj) \
@@ -69,8 +71,6 @@ struct TPMPassthruState {
     bool tpm_op_canceled;
     int cancel_fd;
     bool had_startup_error;
-
-    TPMVersion tpm_version;
 };
 
 typedef struct TPMPassthruState TPMPassthruState;
@@ -83,37 +83,12 @@ static void tpm_passthrough_cancel_cmd(TPMBackend *tb);
 
 static int tpm_passthrough_unix_write(int fd, const uint8_t *buf, uint32_t len)
 {
-    int ret, remain;
-
-    remain = len;
-    while (len > 0) {
-        ret = write(fd, buf, remain);
-        if (ret < 0) {
-            if (errno != EINTR && errno != EAGAIN) {
-                return -1;
-            }
-        } else if (ret == 0) {
-            break;
-        } else {
-            buf += ret;
-            remain -= ret;
-        }
-    }
-    return len - remain;
+    return send_all(fd, buf, len);
 }
 
 static int tpm_passthrough_unix_read(int fd, uint8_t *buf, uint32_t len)
 {
-    int ret;
- reread:
-    ret = read(fd, buf, len);
-    if (ret < 0) {
-        if (errno != EINTR && errno != EAGAIN) {
-            return -1;
-        }
-        goto reread;
-    }
-    return ret;
+    return recv_all(fd, buf, len, true);
 }
 
 static uint32_t tpm_passthrough_get_size_from_buffer(const uint8_t *buf)
@@ -294,13 +269,6 @@ static bool tpm_passthrough_get_tpm_established_flag(TPMBackend *tb)
     return false;
 }
 
-static int tpm_passthrough_reset_tpm_established_flag(TPMBackend *tb,
-                                                      uint8_t locty)
-{
-    /* only a TPM 2.0 will support this */
-    return 0;
-}
-
 static bool tpm_passthrough_get_startup_error(TPMBackend *tb)
 {
     TPMPassthruState *tpm_pt = TPM_PASSTHROUGH(tb);
@@ -358,11 +326,56 @@ static const char *tpm_passthrough_create_desc(void)
     return "Passthrough TPM backend driver";
 }
 
-static TPMVersion tpm_passthrough_get_tpm_version(TPMBackend *tb)
+/*
+ * A basic test of a TPM device. We expect a well formatted response header
+ * (error response is fine) within one second.
+ */
+static int tpm_passthrough_test_tpmdev(int fd)
 {
-    TPMPassthruState *tpm_pt = TPM_PASSTHROUGH(tb);
+    struct tpm_req_hdr req = {
+        .tag = cpu_to_be16(TPM_TAG_RQU_COMMAND),
+        .len = cpu_to_be32(sizeof(req)),
+        .ordinal = cpu_to_be32(TPM_ORD_GetTicks),
+    };
+    struct tpm_resp_hdr *resp;
+    fd_set readfds;
+    int n;
+    struct timeval tv = {
+        .tv_sec = 1,
+        .tv_usec = 0,
+    };
+    unsigned char buf[1024];
 
-    return tpm_pt->tpm_version;
+    n = write(fd, &req, sizeof(req));
+    if (n < 0) {
+        return errno;
+    }
+    if (n != sizeof(req)) {
+        return EFAULT;
+    }
+
+    FD_ZERO(&readfds);
+    FD_SET(fd, &readfds);
+
+    /* wait for a second */
+    n = select(fd + 1, &readfds, NULL, NULL, &tv);
+    if (n != 1) {
+        return errno;
+    }
+
+    n = read(fd, &buf, sizeof(buf));
+    if (n < sizeof(struct tpm_resp_hdr)) {
+        return EFAULT;
+    }
+
+    resp = (struct tpm_resp_hdr *)buf;
+    /* check the header */
+    if (be16_to_cpu(resp->tag) != TPM_TAG_RSP_COMMAND ||
+        be32_to_cpu(resp->len) != n) {
+        return EBADMSG;
+    }
+
+    return 0;
 }
 
 /*
@@ -432,7 +445,7 @@ static int tpm_passthrough_handle_device_opts(QemuOpts *opts, TPMBackend *tb)
         goto err_free_parameters;
     }
 
-    if (tpm_util_test_tpmdev(tpm_pt->tpm_fd, &tpm_pt->tpm_version)) {
+    if (tpm_passthrough_test_tpmdev(tpm_pt->tpm_fd)) {
         error_report("'%s' is not a TPM device.",
                      tpm_pt->tpm_dev);
         goto err_close_tpmdev;
@@ -529,8 +542,6 @@ static const TPMDriverOps tpm_passthrough_driver = {
     .deliver_request          = tpm_passthrough_deliver_request,
     .cancel_cmd               = tpm_passthrough_cancel_cmd,
     .get_tpm_established_flag = tpm_passthrough_get_tpm_established_flag,
-    .reset_tpm_established_flag = tpm_passthrough_reset_tpm_established_flag,
-    .get_tpm_version          = tpm_passthrough_get_tpm_version,
 };
 
 static void tpm_passthrough_inst_init(Object *obj)

@@ -11,7 +11,6 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/arm/pxa.h"
 #include "hw/arm/arm.h"
@@ -228,7 +227,7 @@ static void tosa_init(MachineState *machine)
 
     mpu = pxa255_init(address_space_mem, tosa_binfo.ram_size);
 
-    memory_region_init_ram(rom, NULL, "tosa.rom", TOSA_ROM, &error_fatal);
+    memory_region_init_ram(rom, NULL, "tosa.rom", TOSA_ROM, &error_abort);
     vmstate_register_ram_global(rom);
     memory_region_set_readonly(rom, true);
     memory_region_add_subregion(address_space_mem, 0, rom);
@@ -253,13 +252,18 @@ static void tosa_init(MachineState *machine)
     sl_bootparam_write(SL_PXA_PARAM_BASE);
 }
 
-static void tosapda_machine_init(MachineClass *mc)
+static QEMUMachine tosapda_machine = {
+    .name = "tosa",
+    .desc = "Tosa PDA (PXA255)",
+    .init = tosa_init,
+};
+
+static void tosapda_machine_init(void)
 {
-    mc->desc = "Sharp SL-6000 (Tosa) PDA (PXA255)";
-    mc->init = tosa_init;
+    qemu_register_machine(&tosapda_machine);
 }
 
-DEFINE_MACHINE("tosa", tosapda_machine_init)
+machine_init(tosapda_machine_init);
 
 static void tosa_dac_class_init(ObjectClass *klass, void *data)
 {

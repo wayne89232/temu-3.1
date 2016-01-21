@@ -80,7 +80,7 @@ static ssize_t mipsnet_receive(NetClientState *nc, const uint8_t *buf, size_t si
 
     trace_mipsnet_receive(size);
     if (!mipsnet_can_receive(nc))
-        return 0;
+        return -1;
 
     s->busy = 1;
 
@@ -134,9 +134,6 @@ static uint64_t mipsnet_ioport_read(void *opaque, hwaddr addr,
         if (s->rx_count) {
             s->rx_count--;
             ret = s->rx_buffer[s->rx_read++];
-            if (mipsnet_can_receive(s->nic->ncs)) {
-                qemu_flush_queued_packets(qemu_get_queue(s->nic));
-            }
         }
         break;
     /* Reads as zero. */
@@ -173,9 +170,6 @@ static void mipsnet_ioport_write(void *opaque, hwaddr addr,
         }
         s->busy = !!s->intctl;
         mipsnet_update_irq(s);
-        if (mipsnet_can_receive(s->nic->ncs)) {
-            qemu_flush_queued_packets(qemu_get_queue(s->nic));
-        }
         break;
     case MIPSNET_TX_DATA_BUFFER:
         s->tx_buffer[s->tx_written++] = val;
@@ -220,6 +214,7 @@ static const VMStateDescription vmstate_mipsnet = {
 static NetClientInfo net_mipsnet_info = {
     .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
+    .can_receive = mipsnet_can_receive,
     .receive = mipsnet_receive,
 };
 

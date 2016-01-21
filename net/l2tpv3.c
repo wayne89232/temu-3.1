@@ -28,6 +28,7 @@
 #include "config-host.h"
 #include "net/net.h"
 #include "clients.h"
+#include "monitor/monitor.h"
 #include "qemu-common.h"
 #include "qemu/error-report.h"
 #include "qemu/option.h"
@@ -132,15 +133,17 @@ typedef struct NetL2TPV3State {
 
 } NetL2TPV3State;
 
+static int l2tpv3_can_send(void *opaque);
 static void net_l2tpv3_send(void *opaque);
 static void l2tpv3_writable(void *opaque);
 
 static void l2tpv3_update_fd_handler(NetL2TPV3State *s)
 {
-    qemu_set_fd_handler(s->fd,
-                        s->read_poll ? net_l2tpv3_send : NULL,
-                        s->write_poll ? l2tpv3_writable : NULL,
-                        s);
+    qemu_set_fd_handler2(s->fd,
+                         s->read_poll ? l2tpv3_can_send : NULL,
+                         s->read_poll ? net_l2tpv3_send     : NULL,
+                         s->write_poll ? l2tpv3_writable : NULL,
+                         s);
 }
 
 static void l2tpv3_read_poll(NetL2TPV3State *s, bool enable)
@@ -164,6 +167,13 @@ static void l2tpv3_writable(void *opaque)
     NetL2TPV3State *s = opaque;
     l2tpv3_write_poll(s, false);
     qemu_flush_queued_packets(&s->nc);
+}
+
+static int l2tpv3_can_send(void *opaque)
+{
+    NetL2TPV3State *s = opaque;
+
+    return qemu_can_send_packet(&s->nc);
 }
 
 static void l2tpv3_send_completed(NetClientState *nc, ssize_t len)
@@ -325,7 +335,7 @@ static int l2tpv3_verify_header(NetL2TPV3State *s, uint8_t *buf)
         if (s->cookie_is_64) {
             cookie = ldq_be_p(buf + s->cookie_offset);
         } else {
-            cookie = ldl_be_p(buf + s->cookie_offset) & 0xffffffffULL;
+            cookie = ldl_be_p(buf + s->cookie_offset);
         }
         if (cookie != s->rx_cookie) {
             if (!s->header_mismatch) {
@@ -526,9 +536,10 @@ static NetClientInfo net_l2tpv3_info = {
 
 int net_init_l2tpv3(const NetClientOptions *opts,
                     const char *name,
-                    NetClientState *peer, Error **errp)
+                    NetClientState *peer)
 {
-    /* FIXME error_setg(errp, ...) on failure */
+
+
     const NetdevL2TPv3Options *l2tpv3;
     NetL2TPV3State *s;
     NetClientState *nc;
@@ -545,8 +556,8 @@ int net_init_l2tpv3(const NetClientOptions *opts,
     s->queue_tail = 0;
     s->header_mismatch = false;
 
-    assert(opts->type == NET_CLIENT_OPTIONS_KIND_L2TPV3);
-    l2tpv3 = opts->u.l2tpv3;
+    assert(opts->kind == NET_CLIENT_OPTIONS_KIND_L2TPV3);
+    l2tpv3 = opts->l2tpv3;
 
     if (l2tpv3->has_ipv6 && l2tpv3->ipv6) {
         s->ipv6 = l2tpv3->ipv6;

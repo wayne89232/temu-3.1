@@ -59,6 +59,7 @@ static struct dma_cont {
     uint8_t flip_flop;
     int dshift;
     struct dma_regs regs[4];
+    qemu_irq *cpu_request_exit;
     MemoryRegion channel_io;
     MemoryRegion cont_io;
 } dma_controllers[2];
@@ -357,7 +358,6 @@ static void channel_run (int ncont, int ichan)
 }
 
 static QEMUBH *dma_bh;
-static bool dma_bh_scheduled;
 
 static void DMA_run (void)
 {
@@ -390,15 +390,12 @@ static void DMA_run (void)
 
     running = 0;
 out:
-    if (rearm) {
+    if (rearm)
         qemu_bh_schedule_idle(dma_bh);
-        dma_bh_scheduled = true;
-    }
 }
 
 static void DMA_run_bh(void *unused)
 {
-    dma_bh_scheduled = false;
     DMA_run();
 }
 
@@ -461,14 +458,12 @@ int DMA_write_memory (int nchan, void *buf, int pos, int len)
     return len;
 }
 
-/* request the emulator to transfer a new DMA memory block ASAP (even
- * if the idle bottom half would not have exited the iothread yet).
- */
-void DMA_schedule(void)
+/* request the emulator to transfer a new DMA memory block ASAP */
+void DMA_schedule(int nchan)
 {
-    if (dma_bh_scheduled) {
-        qemu_notify_event();
-    }
+    struct dma_cont *d = &dma_controllers[nchan > 3];
+
+    qemu_irq_pulse(*d->cpu_request_exit);
 }
 
 static void dma_reset(void *opaque)
@@ -520,11 +515,13 @@ static const MemoryRegionOps cont_io_ops = {
 
 /* dshift = 0: 8 bit DMA, 1 = 16 bit DMA */
 static void dma_init2(struct dma_cont *d, int base, int dshift,
-                      int page_base, int pageh_base)
+                      int page_base, int pageh_base,
+                      qemu_irq *cpu_request_exit)
 {
     int i;
 
     d->dshift = dshift;
+    d->cpu_request_exit = cpu_request_exit;
 
     memory_region_init_io(&d->channel_io, NULL, &channel_io_ops, d,
                           "dma-chan", 8 << d->dshift);
@@ -588,10 +585,12 @@ static const VMStateDescription vmstate_dma = {
     }
 };
 
-void DMA_init(int high_page_enable)
+void DMA_init(int high_page_enable, qemu_irq *cpu_request_exit)
 {
-    dma_init2(&dma_controllers[0], 0x00, 0, 0x80, high_page_enable ? 0x480 : -1);
-    dma_init2(&dma_controllers[1], 0xc0, 1, 0x88, high_page_enable ? 0x488 : -1);
+    dma_init2(&dma_controllers[0], 0x00, 0, 0x80,
+              high_page_enable ? 0x480 : -1, cpu_request_exit);
+    dma_init2(&dma_controllers[1], 0xc0, 1, 0x88,
+              high_page_enable ? 0x488 : -1, cpu_request_exit);
     vmstate_register (NULL, 0, &vmstate_dma, &dma_controllers[0]);
     vmstate_register (NULL, 1, &vmstate_dma, &dma_controllers[1]);
 

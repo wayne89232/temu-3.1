@@ -634,18 +634,13 @@ static int vapic_prepare(VAPICROMState *s)
 static void vapic_write(void *opaque, hwaddr addr, uint64_t data,
                         unsigned int size)
 {
-    VAPICROMState *s = opaque;
-    X86CPU *cpu;
-    CPUX86State *env;
+    CPUState *cs = current_cpu;
+    X86CPU *cpu = X86_CPU(cs);
+    CPUX86State *env = &cpu->env;
     hwaddr rom_paddr;
+    VAPICROMState *s = opaque;
 
-    if (!current_cpu) {
-        return;
-    }
-
-    cpu_synchronize_state(current_cpu);
-    cpu = X86_CPU(current_cpu);
-    env = &cpu->env;
+    cpu_synchronize_state(cs);
 
     /*
      * The VAPIC supports two PIO-based hypercalls, both via port 0x7E.

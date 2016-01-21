@@ -1,6 +1,6 @@
 /*
  * Copyright IBM, Corp. 2009
- * Copyright (c) 2013, 2015 Red Hat Inc.
+ * Copyright (c) 2013 Red Hat Inc.
  *
  * Authors:
  *  Anthony Liguori   <aliguori@us.ibm.com>
@@ -1005,7 +1005,6 @@ static void keyword_literal(void)
 {
     QObject *obj;
     QBool *qbool;
-    QObject *null;
     QString *str;
 
     obj = qobject_from_json("true");
@@ -1013,7 +1012,7 @@ static void keyword_literal(void)
     g_assert(qobject_type(obj) == QTYPE_QBOOL);
 
     qbool = qobject_to_qbool(obj);
-    g_assert(qbool_get_bool(qbool) == true);
+    g_assert(qbool_get_int(qbool) != 0);
 
     str = qobject_to_json(obj);
     g_assert(strcmp(qstring_get_str(str), "true") == 0);
@@ -1026,7 +1025,7 @@ static void keyword_literal(void)
     g_assert(qobject_type(obj) == QTYPE_QBOOL);
 
     qbool = qobject_to_qbool(obj);
-    g_assert(qbool_get_bool(qbool) == false);
+    g_assert(qbool_get_int(qbool) == 0);
 
     str = qobject_to_json(obj);
     g_assert(strcmp(qstring_get_str(str), "false") == 0);
@@ -1039,29 +1038,18 @@ static void keyword_literal(void)
     g_assert(qobject_type(obj) == QTYPE_QBOOL);
 
     qbool = qobject_to_qbool(obj);
-    g_assert(qbool_get_bool(qbool) == false);
+    g_assert(qbool_get_int(qbool) == 0);
 
     QDECREF(qbool);
-
-    /* Test that non-zero values other than 1 get collapsed to true */
-    obj = qobject_from_jsonf("%i", 2);
+    
+    obj = qobject_from_jsonf("%i", true);
     g_assert(obj != NULL);
     g_assert(qobject_type(obj) == QTYPE_QBOOL);
 
     qbool = qobject_to_qbool(obj);
-    g_assert(qbool_get_bool(qbool) == true);
+    g_assert(qbool_get_int(qbool) != 0);
 
     QDECREF(qbool);
-
-    obj = qobject_from_json("null");
-    g_assert(obj != NULL);
-    g_assert(qobject_type(obj) == QTYPE_QNULL);
-
-    null = qnull();
-    g_assert(null == obj);
-
-    qobject_decref(obj);
-    qobject_decref(null);
 }
 
 typedef struct LiteralQDictEntry LiteralQDictEntry;
@@ -1484,30 +1472,6 @@ static void unterminated_literal(void)
     g_assert(obj == NULL);
 }
 
-static char *make_nest(char *buf, size_t cnt)
-{
-    memset(buf, '[', cnt - 1);
-    buf[cnt - 1] = '{';
-    buf[cnt] = '}';
-    memset(buf + cnt + 1, ']', cnt - 1);
-    buf[2 * cnt] = 0;
-    return buf;
-}
-
-static void limits_nesting(void)
-{
-    enum { max_nesting = 1024 }; /* see qobject/json-streamer.c */
-    char buf[2 * (max_nesting + 1) + 1];
-    QObject *obj;
-
-    obj = qobject_from_json(make_nest(buf, max_nesting));
-    g_assert(obj != NULL);
-    qobject_decref(obj);
-
-    obj = qobject_from_json(make_nest(buf, max_nesting + 1));
-    g_assert(obj == NULL);
-}
-
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -1543,7 +1507,6 @@ int main(int argc, char **argv)
     g_test_add_func("/errors/invalid_array_comma", invalid_array_comma);
     g_test_add_func("/errors/invalid_dict_comma", invalid_dict_comma);
     g_test_add_func("/errors/unterminated/literal", unterminated_literal);
-    g_test_add_func("/errors/limits/nesting", limits_nesting);
 
     return g_test_run();
 }

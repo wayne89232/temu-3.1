@@ -63,18 +63,11 @@ static void msmouse_chr_close (struct CharDriverState *chr)
     g_free (chr);
 }
 
-static CharDriverState *qemu_chr_open_msmouse(const char *id,
-                                              ChardevBackend *backend,
-                                              ChardevReturn *ret,
-                                              Error **errp)
+CharDriverState *qemu_chr_open_msmouse(void)
 {
-    ChardevCommon *common = qapi_ChardevDummy_base(backend->u.msmouse);
     CharDriverState *chr;
 
-    chr = qemu_chr_alloc(common, errp);
-    if (!chr) {
-        return NULL;
-    }
+    chr = qemu_chr_alloc();
     chr->chr_write = msmouse_chr_write;
     chr->chr_close = msmouse_chr_close;
     chr->explicit_be_open = true;
@@ -86,8 +79,7 @@ static CharDriverState *qemu_chr_open_msmouse(const char *id,
 
 static void register_types(void)
 {
-    register_char_driver("msmouse", CHARDEV_BACKEND_KIND_MSMOUSE, NULL,
-                         qemu_chr_open_msmouse);
+    register_char_driver("msmouse", CHARDEV_BACKEND_KIND_MSMOUSE, NULL);
 }
 
 type_init(register_types);

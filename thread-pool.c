@@ -18,7 +18,7 @@
 #include "qemu/queue.h"
 #include "qemu/thread.h"
 #include "qemu/osdep.h"
-#include "qemu/coroutine.h"
+#include "block/coroutine.h"
 #include "trace.h"
 #include "block/thread-pool.h"
 #include "qemu/main-loop.h"
@@ -170,12 +170,12 @@ restart:
         if (elem->state != THREAD_DONE) {
             continue;
         }
-
-        trace_thread_pool_complete(pool, elem, elem->common.opaque,
-                                   elem->ret);
-        QLIST_REMOVE(elem, all);
-
-        if (elem->common.cb) {
+        if (elem->state == THREAD_DONE) {
+            trace_thread_pool_complete(pool, elem, elem->common.opaque,
+                                       elem->ret);
+        }
+        if (elem->state == THREAD_DONE && elem->common.cb) {
+            QLIST_REMOVE(elem, all);
             /* Read state before ret.  */
             smp_rmb();
 
@@ -188,6 +188,8 @@ restart:
             qemu_aio_unref(elem);
             goto restart;
         } else {
+            /* remove the request */
+            QLIST_REMOVE(elem, all);
             qemu_aio_unref(elem);
         }
     }

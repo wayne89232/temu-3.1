@@ -14,16 +14,11 @@
 #ifndef QEMU_JSON_LEXER_H
 #define QEMU_JSON_LEXER_H
 
-#include "glib-compat.h"
+#include "qapi/qmp/qstring.h"
+#include "qapi/qmp/qlist.h"
 
 typedef enum json_token_type {
-    JSON_MIN = 100,
-    JSON_LCURLY = JSON_MIN,
-    JSON_RCURLY,
-    JSON_LSQUARE,
-    JSON_RSQUARE,
-    JSON_COLON,
-    JSON_COMMA,
+    JSON_OPERATOR = 100,
     JSON_INTEGER,
     JSON_FLOAT,
     JSON_KEYWORD,
@@ -35,14 +30,13 @@ typedef enum json_token_type {
 
 typedef struct JSONLexer JSONLexer;
 
-typedef void (JSONLexerEmitter)(JSONLexer *, GString *,
-                                JSONTokenType, int x, int y);
+typedef void (JSONLexerEmitter)(JSONLexer *, QString *, JSONTokenType, int x, int y);
 
 struct JSONLexer
 {
     JSONLexerEmitter *emit;
     int state;
-    GString *token;
+    QString *token;
     int x, y;
 };
 

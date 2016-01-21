@@ -112,9 +112,9 @@ int DMA_write_memory (int nchan, void *buf, int pos, int size)
 }
 void DMA_hold_DREQ (int nchan) {}
 void DMA_release_DREQ (int nchan) {}
-void DMA_schedule(void) {}
+void DMA_schedule(int nchan) {}
 
-void DMA_init(int high_page_enable)
+void DMA_init(int high_page_enable, qemu_irq *cpu_request_exit)
 {
 }
 
@@ -127,7 +127,7 @@ void DMA_register_channel (int nchan,
 static void fw_cfg_boot_set(void *opaque, const char *boot_device,
                             Error **errp)
 {
-    fw_cfg_modify_i16(opaque, FW_CFG_BOOT_DEVICE, boot_device[0]);
+    fw_cfg_add_i16(opaque, FW_CFG_BOOT_DEVICE, boot_device[0]);
 }
 
 static int sun4u_NVRAM_set_params(Nvram *nvram, uint16_t NVRAM_size,
@@ -208,7 +208,7 @@ static uint64_t sun4u_load_kernel(const char *kernel_filename,
         bswap_needed = 0;
 #endif
         kernel_size = load_elf(kernel_filename, NULL, NULL, kernel_entry,
-                               kernel_addr, &kernel_top, 1, EM_SPARCV9, 0);
+                               kernel_addr, &kernel_top, 1, ELF_MACHINE, 0);
         if (kernel_size < 0) {
             *kernel_addr = KERNEL_LOAD_ADDR;
             *kernel_entry = KERNEL_LOAD_ADDR;
@@ -358,19 +358,37 @@ typedef struct ResetData {
     uint64_t prom_addr;
 } ResetData;
 
+void cpu_put_timer(QEMUFile *f, CPUTimer *s)
+{
+    qemu_put_be32s(f, &s->frequency);
+    qemu_put_be32s(f, &s->disabled);
+    qemu_put_be64s(f, &s->disabled_mask);
+    qemu_put_sbe64s(f, &s->clock_offset);
+
+    timer_put(f, s->qtimer);
+}
+
+void cpu_get_timer(QEMUFile *f, CPUTimer *s)
+{
+    qemu_get_be32s(f, &s->frequency);
+    qemu_get_be32s(f, &s->disabled);
+    qemu_get_be64s(f, &s->disabled_mask);
+    qemu_get_sbe64s(f, &s->clock_offset);
+
+    timer_get(f, s->qtimer);
+}
+
 static CPUTimer *cpu_timer_create(const char *name, SPARCCPU *cpu,
                                   QEMUBHFunc *cb, uint32_t frequency,
-                                  uint64_t disabled_mask, uint64_t npt_mask)
+                                  uint64_t disabled_mask)
 {
     CPUTimer *timer = g_malloc0(sizeof (CPUTimer));
 
     timer->name = name;
     timer->frequency = frequency;
     timer->disabled_mask = disabled_mask;
-    timer->npt_mask = npt_mask;
 
     timer->disabled = 1;
-    timer->npt = 1;
     timer->clock_offset = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
 
     timer->qtimer = timer_new_ns(QEMU_CLOCK_VIRTUAL, cb, cpu);
@@ -476,17 +494,17 @@ static uint64_t timer_to_cpu_ticks(int64_t timer_ticks, uint32_t frequency)
 
 void cpu_tick_set_count(CPUTimer *timer, uint64_t count)
 {
-    uint64_t real_count = count & ~timer->npt_mask;
-    uint64_t npt_bit = count & timer->npt_mask;
+    uint64_t real_count = count & ~timer->disabled_mask;
+    uint64_t disabled_bit = count & timer->disabled_mask;
 
     int64_t vm_clock_offset = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
                     cpu_to_timer_ticks(real_count, timer->frequency);
 
-    TIMER_DPRINTF("%s set_count count=0x%016lx (npt %s) p=%p\n",
+    TIMER_DPRINTF("%s set_count count=0x%016lx (%s) p=%p\n",
                   timer->name, real_count,
-                  timer->npt ? "disabled" : "enabled", timer);
+                  timer->disabled?"disabled":"enabled", timer);
 
-    timer->npt = npt_bit ? 1 : 0;
+    timer->disabled = disabled_bit ? 1 : 0;
     timer->clock_offset = vm_clock_offset;
 }
 
@@ -496,13 +514,12 @@ uint64_t cpu_tick_get_count(CPUTimer *timer)
                     qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) - timer->clock_offset,
                     timer->frequency);
 
-    TIMER_DPRINTF("%s get_count count=0x%016lx (npt %s) p=%p\n",
+    TIMER_DPRINTF("%s get_count count=0x%016lx (%s) p=%p\n",
            timer->name, real_count,
-           timer->npt ? "disabled" : "enabled", timer);
+           timer->disabled?"disabled":"enabled", timer);
 
-    if (timer->npt) {
-        real_count |= timer->npt_mask;
-    }
+    if (timer->disabled)
+        real_count |= timer->disabled_mask;
 
     return real_count;
 }
@@ -576,14 +593,13 @@ pci_ebus_init(PCIBus *bus, int devfn, qemu_irq *irqs)
     return isa_bus;
 }
 
-static void pci_ebus_realize(PCIDevice *pci_dev, Error **errp)
+static int
+pci_ebus_init1(PCIDevice *pci_dev)
 {
     EbusState *s = DO_UPCAST(EbusState, pci_dev, pci_dev);
 
-    if (!isa_bus_new(DEVICE(pci_dev), get_system_memory(),
-                     pci_address_space_io(pci_dev), errp)) {
-        return;
-    }
+    isa_bus_new(DEVICE(pci_dev), get_system_memory(),
+                pci_address_space_io(pci_dev));
 
     pci_dev->config[0x04] = 0x06; // command = bus master, pci mem
     pci_dev->config[0x05] = 0x00;
@@ -598,13 +614,14 @@ static void pci_ebus_realize(PCIDevice *pci_dev, Error **errp)
     memory_region_init_alias(&s->bar1, OBJECT(s), "bar1", get_system_io(),
                              0, 0x4000);
     pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->bar1);
+    return 0;
 }
 
 static void ebus_class_init(ObjectClass *klass, void *data)
 {
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
-    k->realize = pci_ebus_realize;
+    k->init = pci_ebus_init1;
     k->vendor_id = PCI_VENDOR_ID_SUN;
     k->device_id = PCI_DEVICE_ID_SUN_EBUS;
     k->revision = 0x01;
@@ -654,7 +671,7 @@ static void prom_init(hwaddr addr, const char *bios_name)
     filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
     if (filename) {
         ret = load_elf(filename, translate_prom_address, &addr,
-                       NULL, NULL, NULL, 1, EM_SPARCV9, 0);
+                       NULL, NULL, NULL, 1, ELF_MACHINE, 0);
         if (ret < 0 || ret > PROM_SIZE_MAX) {
             ret = load_image_targphys(filename, addr, PROM_SIZE_MAX);
         }
@@ -673,7 +690,7 @@ static int prom_init1(SysBusDevice *dev)
     PROMState *s = OPENPROM(dev);
 
     memory_region_init_ram(&s->prom, OBJECT(s), "sun4u.prom", PROM_SIZE_MAX,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(&s->prom);
     memory_region_set_readonly(&s->prom, true);
     sysbus_init_mmio(dev, &s->prom);
@@ -717,7 +734,7 @@ static int ram_init1(SysBusDevice *dev)
     RamDevice *d = SUN4U_RAM(dev);
 
     memory_region_init_ram(&d->ram, OBJECT(d), "sun4u.ram", d->size,
-                           &error_fatal);
+                           &error_abort);
     vmstate_register_ram_global(&d->ram);
     sysbus_init_mmio(dev, &d->ram);
     return 0;
@@ -782,16 +799,13 @@ static SPARCCPU *cpu_devinit(const char *cpu_model, const struct hwdef *hwdef)
     env = &cpu->env;
 
     env->tick = cpu_timer_create("tick", cpu, tick_irq,
-                                  tick_frequency, TICK_INT_DIS,
-                                  TICK_NPT_MASK);
+                                  tick_frequency, TICK_NPT_MASK);
 
     env->stick = cpu_timer_create("stick", cpu, stick_irq,
-                                   stick_frequency, TICK_INT_DIS,
-                                   TICK_NPT_MASK);
+                                   stick_frequency, TICK_INT_DIS);
 
     env->hstick = cpu_timer_create("hstick", cpu, hstick_irq,
-                                    hstick_frequency, TICK_INT_DIS,
-                                    TICK_NPT_MASK);
+                                    hstick_frequency, TICK_INT_DIS);
 
     reset_info = g_malloc0(sizeof(ResetData));
     reset_info->cpu = cpu;
@@ -951,53 +965,29 @@ static void niagara_init(MachineState *machine)
     sun4uv_init(get_system_memory(), machine, &hwdefs[2]);
 }
 
-static void sun4u_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-
-    mc->desc = "Sun4u platform";
-    mc->init = sun4u_init;
-    mc->max_cpus = 1; /* XXX for now */
-    mc->is_default = 1;
-    mc->default_boot_order = "c";
-}
-
-static const TypeInfo sun4u_type = {
-    .name = MACHINE_TYPE_NAME("sun4u"),
-    .parent = TYPE_MACHINE,
-    .class_init = sun4u_class_init,
+static QEMUMachine sun4u_machine = {
+    .name = "sun4u",
+    .desc = "Sun4u platform",
+    .init = sun4u_init,
+    .max_cpus = 1, // XXX for now
+    .is_default = 1,
+    .default_boot_order = "c",
 };
 
-static void sun4v_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-
-    mc->desc = "Sun4v platform";
-    mc->init = sun4v_init;
-    mc->max_cpus = 1; /* XXX for now */
-    mc->default_boot_order = "c";
-}
-
-static const TypeInfo sun4v_type = {
-    .name = MACHINE_TYPE_NAME("sun4v"),
-    .parent = TYPE_MACHINE,
-    .class_init = sun4v_class_init,
+static QEMUMachine sun4v_machine = {
+    .name = "sun4v",
+    .desc = "Sun4v platform",
+    .init = sun4v_init,
+    .max_cpus = 1, // XXX for now
+    .default_boot_order = "c",
 };
 
-static void niagara_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-
-    mc->desc = "Sun4v platform, Niagara";
-    mc->init = niagara_init;
-    mc->max_cpus = 1; /* XXX for now */
-    mc->default_boot_order = "c";
-}
-
-static const TypeInfo niagara_type = {
-    .name = MACHINE_TYPE_NAME("Niagara"),
-    .parent = TYPE_MACHINE,
-    .class_init = niagara_class_init,
+static QEMUMachine niagara_machine = {
+    .name = "Niagara",
+    .desc = "Sun4v platform, Niagara",
+    .init = niagara_init,
+    .max_cpus = 1, // XXX for now
+    .default_boot_order = "c",
 };
 
 static void sun4u_register_types(void)
@@ -1009,10 +999,10 @@ static void sun4u_register_types(void)
 
 static void sun4u_machine_init(void)
 {
-    type_register_static(&sun4u_type);
-    type_register_static(&sun4v_type);
-    type_register_static(&niagara_type);
+    qemu_register_machine(&sun4u_machine);
+    qemu_register_machine(&sun4v_machine);
+    qemu_register_machine(&niagara_machine);
 }
 
 type_init(sun4u_register_types)
-machine_init(sun4u_machine_init)
+machine_init(sun4u_machine_init);

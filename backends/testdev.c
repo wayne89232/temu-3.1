@@ -108,16 +108,13 @@ static void testdev_close(struct CharDriverState *chr)
     g_free(testdev);
 }
 
-static CharDriverState *chr_testdev_init(const char *id,
-                                         ChardevBackend *backend,
-                                         ChardevReturn *ret,
-                                         Error **errp)
+CharDriverState *chr_testdev_init(void)
 {
     TestdevCharState *testdev;
     CharDriverState *chr;
 
-    testdev = g_new0(TestdevCharState, 1);
-    testdev->chr = chr = g_new0(CharDriverState, 1);
+    testdev = g_malloc0(sizeof(TestdevCharState));
+    testdev->chr = chr = g_malloc0(sizeof(CharDriverState));
 
     chr->opaque = testdev;
     chr->chr_write = testdev_write;
@@ -128,8 +125,7 @@ static CharDriverState *chr_testdev_init(const char *id,
 
 static void register_types(void)
 {
-    register_char_driver("testdev", CHARDEV_BACKEND_KIND_TESTDEV, NULL,
-                         chr_testdev_init);
+    register_char_driver("testdev", CHARDEV_BACKEND_KIND_TESTDEV, NULL);
 }
 
 type_init(register_types);

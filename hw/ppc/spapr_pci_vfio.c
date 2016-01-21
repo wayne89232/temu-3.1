@@ -19,7 +19,6 @@
 
 #include "hw/ppc/spapr.h"
 #include "hw/pci-host/spapr.h"
-#include "hw/pci/msix.h"
 #include "linux/vfio.h"
 #include "hw/vfio/vfio.h"
 
@@ -72,26 +71,9 @@ static void spapr_phb_vfio_finish_realize(sPAPRPHBState *sphb, Error **errp)
                                 spapr_tce_get_iommu(tcet));
 }
 
-static void spapr_phb_vfio_eeh_reenable(sPAPRPHBVFIOState *svphb)
-{
-    struct vfio_eeh_pe_op op = {
-        .argsz = sizeof(op),
-        .op    = VFIO_EEH_PE_ENABLE
-    };
-
-    vfio_container_ioctl(&svphb->phb.iommu_as,
-                         svphb->iommugroupid, VFIO_EEH_PE_OP, &op);
-}
-
 static void spapr_phb_vfio_reset(DeviceState *qdev)
 {
-    /*
-     * The PE might be in frozen state. To reenable the EEH
-     * functionality on it will clean the frozen state, which
-     * ensures that the contained PCI devices will work properly
-     * after reboot.
-     */
-    spapr_phb_vfio_eeh_reenable(SPAPR_PCI_VFIO_HOST_BRIDGE(qdev));
+    /* Do nothing */
 }
 
 static int spapr_phb_vfio_eeh_set_option(sPAPRPHBState *sphb,
@@ -117,7 +99,7 @@ static int spapr_phb_vfio_eeh_set_option(sPAPRPHBState *sphb,
         phb = PCI_HOST_BRIDGE(sphb);
         pdev = pci_find_device(phb->bus,
                                (addr >> 16) & 0xFF, (addr >> 8) & 0xFF);
-        if (!pdev || !object_dynamic_cast(OBJECT(pdev), "vfio-pci")) {
+        if (!pdev) {
             return RTAS_OUT_PARAM_ERROR;
         }
 
@@ -160,49 +142,6 @@ static int spapr_phb_vfio_eeh_get_state(sPAPRPHBState *sphb, int *state)
     return RTAS_OUT_SUCCESS;
 }
 
-static void spapr_phb_vfio_eeh_clear_dev_msix(PCIBus *bus,
-                                              PCIDevice *pdev,
-                                              void *opaque)
-{
-    /* Check if the device is VFIO PCI device */
-    if (!object_dynamic_cast(OBJECT(pdev), "vfio-pci")) {
-        return;
-    }
-
-    /*
-     * The MSIx table will be cleaned out by reset. We need
-     * disable it so that it can be reenabled properly. Also,
-     * the cached MSIx table should be cleared as it's not
-     * reflecting the contents in hardware.
-     */
-    if (msix_enabled(pdev)) {
-        uint16_t flags;
-
-        flags = pci_host_config_read_common(pdev,
-                                            pdev->msix_cap + PCI_MSIX_FLAGS,
-                                            pci_config_size(pdev), 2);
-        flags &= ~PCI_MSIX_FLAGS_ENABLE;
-        pci_host_config_write_common(pdev,
-                                     pdev->msix_cap + PCI_MSIX_FLAGS,
-                                     pci_config_size(pdev), flags, 2);
-    }
-
-    msix_reset(pdev);
-}
-
-static void spapr_phb_vfio_eeh_clear_bus_msix(PCIBus *bus, void *opaque)
-{
-       pci_for_each_device(bus, pci_bus_num(bus),
-                           spapr_phb_vfio_eeh_clear_dev_msix, NULL);
-}
-
-static void spapr_phb_vfio_eeh_pre_reset(sPAPRPHBState *sphb)
-{
-       PCIHostState *phb = PCI_HOST_BRIDGE(sphb);
-
-       pci_for_each_bus(phb->bus, spapr_phb_vfio_eeh_clear_bus_msix, NULL);
-}
-
 static int spapr_phb_vfio_eeh_reset(sPAPRPHBState *sphb, int option)
 {
     sPAPRPHBVFIOState *svphb = SPAPR_PCI_VFIO_HOST_BRIDGE(sphb);
@@ -214,11 +153,9 @@ static int spapr_phb_vfio_eeh_reset(sPAPRPHBState *sphb, int option)
         op.op = VFIO_EEH_PE_RESET_DEACTIVATE;
         break;
     case RTAS_SLOT_RESET_HOT:
-        spapr_phb_vfio_eeh_pre_reset(sphb);
         op.op = VFIO_EEH_PE_RESET_HOT;
         break;
     case RTAS_SLOT_RESET_FUNDAMENTAL:
-        spapr_phb_vfio_eeh_pre_reset(sphb);
         op.op = VFIO_EEH_PE_RESET_FUNDAMENTAL;
         break;
     default:

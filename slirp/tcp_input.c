@@ -231,8 +231,8 @@ tcp_input(struct mbuf *m, int iphlen, struct socket *inso)
     Slirp *slirp;
 
 	DEBUG_CALL("tcp_input");
-	DEBUG_ARGS((dfd, " m = %p  iphlen = %2d  inso = %p\n",
-		    m, iphlen, inso));
+	DEBUG_ARGS((dfd, " m = %8lx  iphlen = %2d  inso = %lx\n",
+		    (long )m, iphlen, (long )inso ));
 
 	/*
 	 * If called with m == 0, then we're continuing the connect
@@ -584,13 +584,7 @@ findso:
 	    goto cont_input;
 	  }
 
-          if ((tcp_fconnect(so) == -1) &&
-#if defined(_WIN32)
-              socket_error() != WSAEWOULDBLOCK
-#else
-              (errno != EINPROGRESS) && (errno != EWOULDBLOCK)
-#endif
-          ) {
+	  if((tcp_fconnect(so) == -1) && (errno != EINPROGRESS) && (errno != EWOULDBLOCK)) {
 	    u_char code=ICMP_UNREACH_NET;
 	    DEBUG_MISC((dfd, " tcp fconnect errno = %d-%s\n",
 			errno,strerror(errno)));
@@ -923,8 +917,8 @@ trimthenstep6:
 
 		if (SEQ_LEQ(ti->ti_ack, tp->snd_una)) {
 			if (ti->ti_len == 0 && tiwin == tp->snd_wnd) {
-			  DEBUG_MISC((dfd, " dup ack  m = %p  so = %p\n",
-				      m, so));
+			  DEBUG_MISC((dfd, " dup ack  m = %lx  so = %lx\n",
+				      (long )m, (long )so));
 				/*
 				 * If we have outstanding data (other than
 				 * a window probe), this is a completely
@@ -1302,7 +1296,7 @@ tcp_dooptions(struct tcpcb *tp, u_char *cp, int cnt, struct tcpiphdr *ti)
 	int opt, optlen;
 
 	DEBUG_CALL("tcp_dooptions");
-	DEBUG_ARGS((dfd, " tp = %p  cnt=%i\n", tp, cnt));
+	DEBUG_ARGS((dfd, " tp = %lx  cnt=%i\n", (long)tp, cnt));
 
 	for (; cnt > 0; cnt -= optlen, cp += optlen) {
 		opt = cp[0];
@@ -1383,7 +1377,7 @@ tcp_xmit_timer(register struct tcpcb *tp, int rtt)
 	register short delta;
 
 	DEBUG_CALL("tcp_xmit_timer");
-	DEBUG_ARG("tp = %p", tp);
+	DEBUG_ARG("tp = %lx", (long)tp);
 	DEBUG_ARG("rtt = %d", rtt);
 
 	if (tp->t_srtt != 0) {
@@ -1471,7 +1465,7 @@ tcp_mss(struct tcpcb *tp, u_int offer)
 	int mss;
 
 	DEBUG_CALL("tcp_mss");
-	DEBUG_ARG("tp = %p", tp);
+	DEBUG_ARG("tp = %lx", (long)tp);
 	DEBUG_ARG("offer = %d", offer);
 
 	mss = min(IF_MTU, IF_MRU) - sizeof(struct tcpiphdr);

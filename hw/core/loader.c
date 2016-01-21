@@ -51,9 +51,11 @@
 #include "hw/nvram/fw_cfg.h"
 #include "exec/memory.h"
 #include "exec/address-spaces.h"
-#include "hw/boards.h"
 
 #include <zlib.h>
+
+bool option_rom_has_mr = false;
+bool rom_file_has_mr = true;
 
 static int roms_loaded;
 
@@ -592,7 +594,8 @@ static int load_uboot_image(const char *filename, hwaddr *ep, hwaddr *loadaddr,
     ret = hdr->ih_size;
 
 out:
-    g_free(data);
+    if (data)
+        g_free(data);
     close(fd);
     return ret;
 }
@@ -738,7 +741,7 @@ static void *rom_set_mr(Rom *rom, Object *owner, const char *name)
     memory_region_init_resizeable_ram(rom->mr, owner, name,
                                       rom->datasize, rom->romsize,
                                       fw_cfg_resized,
-                                      &error_fatal);
+                                      &error_abort);
     memory_region_set_readonly(rom->mr, true);
     vmstate_register_ram_global(rom->mr);
 
@@ -752,7 +755,6 @@ int rom_add_file(const char *file, const char *fw_dir,
                  hwaddr addr, int32_t bootindex,
                  bool option_rom)
 {
-    MachineClass *mc = MACHINE_GET_CLASS(qdev_get_machine());
     Rom *rom;
     int rc, fd = -1;
     char devpath[100];
@@ -809,7 +811,7 @@ int rom_add_file(const char *file, const char *fw_dir,
                  basename);
         snprintf(devpath, sizeof(devpath), "/rom@%s", fw_file_name);
 
-        if ((!option_rom || mc->option_rom_has_mr) && mc->rom_file_has_mr) {
+        if ((!option_rom || option_rom_has_mr) && rom_file_has_mr) {
             data = rom_set_mr(rom, OBJECT(fw_cfg), devpath);
         } else {
             data = rom->data;
@@ -833,13 +835,12 @@ err:
     return -1;
 }
 
-MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
+ram_addr_t rom_add_blob(const char *name, const void *blob, size_t len,
                    size_t max_len, hwaddr addr, const char *fw_file_name,
                    FWCfgReadCallback fw_callback, void *callback_opaque)
 {
-    MachineClass *mc = MACHINE_GET_CLASS(qdev_get_machine());
     Rom *rom;
-    MemoryRegion *mr = NULL;
+    ram_addr_t ret = RAM_ADDR_MAX;
 
     rom           = g_malloc0(sizeof(*rom));
     rom->name     = g_strdup(name);
@@ -855,9 +856,9 @@ MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
 
         snprintf(devpath, sizeof(devpath), "/rom@%s", fw_file_name);
 
-        if (mc->rom_file_has_mr) {
+        if (rom_file_has_mr) {
             data = rom_set_mr(rom, OBJECT(fw_cfg), devpath);
-            mr = rom->mr;
+            ret = memory_region_get_ram_addr(rom->mr);
         } else {
             data = rom->data;
         }
@@ -866,7 +867,7 @@ MemoryRegion *rom_add_blob(const char *name, const void *blob, size_t len,
                                  fw_callback, callback_opaque,
                                  data, rom->datasize);
     }
-    return mr;
+    return ret;
 }
 
 /* This function is specific for elf program because we don't need to allocate
@@ -932,7 +933,7 @@ static void rom_reset(void *unused)
     }
 }
 
-int rom_check_and_register_reset(void)
+int rom_load_all(void)
 {
     hwaddr addr = 0;
     MemoryRegionSection section;
@@ -956,8 +957,12 @@ int rom_check_and_register_reset(void)
         memory_region_unref(section.mr);
     }
     qemu_register_reset(rom_reset, NULL);
-    roms_loaded = 1;
     return 0;
+}
+
+void rom_load_done(void)
+{
+    roms_loaded = 1;
 }
 
 void rom_set_fw(FWCfgState *f)

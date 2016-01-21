@@ -23,9 +23,9 @@
 #include "qemu-common.h"
 #include "qemu/sockets.h"
 #include "qemu/xattr.h"
-#include "9p-iov-marshal.h"
-#include "hw/9pfs/9p-proxy.h"
-#include "fsdev/9p-iov-marshal.h"
+#include "virtio-9p-marshal.h"
+#include "hw/9pfs/virtio-9p-proxy.h"
+#include "fsdev/virtio-9p-marshal.h"
 
 #define PROGNAME "virtfs-proxy-helper"
 
@@ -49,7 +49,6 @@ static struct option helper_opts[] = {
     {"socket", required_argument, NULL, 's'},
     {"uid", required_argument, NULL, 'u'},
     {"gid", required_argument, NULL, 'g'},
-    {},
 };
 
 static bool is_daemon;
@@ -739,12 +738,7 @@ static int proxy_socket(const char *path, uid_t uid, gid_t gid)
         return -1;
     }
 
-    if (strlen(path) >= sizeof(proxy.sun_path)) {
-        do_log(LOG_CRIT, "UNIX domain socket path exceeds %zu characters\n",
-               sizeof(proxy.sun_path));
-        return -1;
-    }
-
+    g_assert(strlen(path) < sizeof(proxy.sun_path));
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
         do_perror("socket");
@@ -1128,19 +1122,10 @@ int main(int argc, char **argv)
         }
     }
 
-    if (chdir("/") < 0) {
-        do_perror("chdir");
-        goto error;
-    }
-    if (chroot(rpath) < 0) {
-        do_perror("chroot");
-        goto error;
-    }
-
     get_version = false;
 #ifdef FS_IOC_GETVERSION
     /* check whether underlying FS support IOC_GETVERSION */
-    retval = statfs("/", &st_fs);
+    retval = statfs(rpath, &st_fs);
     if (!retval) {
         switch (st_fs.f_type) {
         case EXT2_SUPER_MAGIC:
@@ -1153,7 +1138,16 @@ int main(int argc, char **argv)
     }
 #endif
 
+    if (chdir("/") < 0) {
+        do_perror("chdir");
+        goto error;
+    }
+    if (chroot(rpath) < 0) {
+        do_perror("chroot");
+        goto error;
+    }
     umask(0);
+
     if (init_capabilities() < 0) {
         goto error;
     }

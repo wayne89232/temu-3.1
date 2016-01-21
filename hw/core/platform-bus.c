@@ -20,8 +20,8 @@
  */
 
 #include "hw/platform-bus.h"
+#include "monitor/monitor.h"
 #include "exec/address-spaces.h"
-#include "qemu/error-report.h"
 #include "sysemu/sysemu.h"
 
 
@@ -107,29 +107,31 @@ static void plaform_bus_refresh_irqs(PlatformBusDevice *pbus)
     pbus->done_gathering = true;
 }
 
-static void platform_bus_map_irq(PlatformBusDevice *pbus, SysBusDevice *sbdev,
-                                 int n)
+static int platform_bus_map_irq(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+                                int n)
 {
     int max_irqs = pbus->num_irqs;
     int irqn;
 
     if (sysbus_is_irq_connected(sbdev, n)) {
         /* IRQ is already mapped, nothing to do */
-        return;
+        return 0;
     }
 
     irqn = find_first_zero_bit(pbus->used_irqs, max_irqs);
     if (irqn >= max_irqs) {
-        error_report("Platform Bus: Can not fit IRQ line");
-        exit(1);
+        hw_error("Platform Bus: Can not fit IRQ line");
+        return -1;
     }
 
     set_bit(irqn, pbus->used_irqs);
     sysbus_connect_irq(sbdev, n, pbus->irqs[irqn]);
+
+    return 0;
 }
 
-static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
-                                  int n)
+static int platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+                                 int n)
 {
     MemoryRegion *sbdev_mr = sysbus_mmio_get_region(sbdev, n);
     uint64_t size = memory_region_size(sbdev_mr);
@@ -139,7 +141,7 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
 
     if (memory_region_is_mapped(sbdev_mr)) {
         /* Region is already mapped, nothing to do */
-        return;
+        return 0;
     }
 
     /*
@@ -154,13 +156,13 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
     }
 
     if (!found_region) {
-        error_report("Platform Bus: Can not fit MMIO region of size %"PRIx64,
-                     size);
-        exit(1);
+        hw_error("Platform Bus: Can not fit MMIO region of size %"PRIx64, size);
     }
 
     /* Map the device's region into our Platform Bus MMIO space */
     memory_region_add_subregion(&pbus->mmio, off, sbdev_mr);
+
+    return 0;
 }
 
 /*

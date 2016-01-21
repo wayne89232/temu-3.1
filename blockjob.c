@@ -29,26 +29,11 @@
 #include "block/block.h"
 #include "block/blockjob.h"
 #include "block/block_int.h"
-#include "sysemu/block-backend.h"
-#include "qapi/qmp/qerror.h"
 #include "qapi/qmp/qjson.h"
-#include "qemu/coroutine.h"
+#include "block/coroutine.h"
 #include "qmp-commands.h"
 #include "qemu/timer.h"
 #include "qapi-event.h"
-
-/* Transactional group of block jobs */
-struct BlockJobTxn {
-
-    /* Is this txn being cancelled? */
-    bool aborting;
-
-    /* List of jobs */
-    QLIST_HEAD(, BlockJob) jobs;
-
-    /* Reference count */
-    int refcnt;
-};
 
 void *block_job_create(const BlockJobDriver *driver, BlockDriverState *bs,
                        int64_t speed, BlockCompletionFunc *cb,
@@ -57,7 +42,7 @@ void *block_job_create(const BlockJobDriver *driver, BlockDriverState *bs,
     BlockJob *job;
 
     if (bs->job) {
-        error_setg(errp, QERR_DEVICE_IN_USE, bdrv_get_device_name(bs));
+        error_set(errp, QERR_DEVICE_IN_USE, bdrv_get_device_name(bs));
         return NULL;
     }
     bdrv_ref(bs);
@@ -68,12 +53,10 @@ void *block_job_create(const BlockJobDriver *driver, BlockDriverState *bs,
     bdrv_op_unblock(bs, BLOCK_OP_TYPE_DATAPLANE, job->blocker);
 
     job->driver        = driver;
-    job->id            = g_strdup(bdrv_get_device_name(bs));
     job->bs            = bs;
     job->cb            = cb;
     job->opaque        = opaque;
     job->busy          = true;
-    job->refcnt        = 1;
     bs->job = job;
 
     /* Only set speed when necessary to avoid NotSupported error */
@@ -82,7 +65,10 @@ void *block_job_create(const BlockJobDriver *driver, BlockDriverState *bs,
 
         block_job_set_speed(job, speed, &local_err);
         if (local_err) {
-            block_job_unref(job);
+            bs->job = NULL;
+            bdrv_op_unblock_all(bs, job->blocker);
+            error_free(job->blocker);
+            g_free(job);
             error_propagate(errp, local_err);
             return NULL;
         }
@@ -90,118 +76,16 @@ void *block_job_create(const BlockJobDriver *driver, BlockDriverState *bs,
     return job;
 }
 
-void block_job_ref(BlockJob *job)
-{
-    ++job->refcnt;
-}
-
-void block_job_unref(BlockJob *job)
-{
-    if (--job->refcnt == 0) {
-        job->bs->job = NULL;
-        bdrv_op_unblock_all(job->bs, job->blocker);
-        bdrv_unref(job->bs);
-        error_free(job->blocker);
-        g_free(job->id);
-        g_free(job);
-    }
-}
-
-static void block_job_completed_single(BlockJob *job)
-{
-    if (!job->ret) {
-        if (job->driver->commit) {
-            job->driver->commit(job);
-        }
-    } else {
-        if (job->driver->abort) {
-            job->driver->abort(job);
-        }
-    }
-    job->cb(job->opaque, job->ret);
-    if (job->txn) {
-        block_job_txn_unref(job->txn);
-    }
-    block_job_unref(job);
-}
-
-static void block_job_completed_txn_abort(BlockJob *job)
-{
-    AioContext *ctx;
-    BlockJobTxn *txn = job->txn;
-    BlockJob *other_job, *next;
-
-    if (txn->aborting) {
-        /*
-         * We are cancelled by another job, which will handle everything.
-         */
-        return;
-    }
-    txn->aborting = true;
-    /* We are the first failed job. Cancel other jobs. */
-    QLIST_FOREACH(other_job, &txn->jobs, txn_list) {
-        ctx = bdrv_get_aio_context(other_job->bs);
-        aio_context_acquire(ctx);
-    }
-    QLIST_FOREACH(other_job, &txn->jobs, txn_list) {
-        if (other_job == job || other_job->completed) {
-            /* Other jobs are "effectively" cancelled by us, set the status for
-             * them; this job, however, may or may not be cancelled, depending
-             * on the caller, so leave it. */
-            if (other_job != job) {
-                other_job->cancelled = true;
-            }
-            continue;
-        }
-        block_job_cancel_sync(other_job);
-        assert(other_job->completed);
-    }
-    QLIST_FOREACH_SAFE(other_job, &txn->jobs, txn_list, next) {
-        ctx = bdrv_get_aio_context(other_job->bs);
-        block_job_completed_single(other_job);
-        aio_context_release(ctx);
-    }
-}
-
-static void block_job_completed_txn_success(BlockJob *job)
-{
-    AioContext *ctx;
-    BlockJobTxn *txn = job->txn;
-    BlockJob *other_job, *next;
-    /*
-     * Successful completion, see if there are other running jobs in this
-     * txn.
-     */
-    QLIST_FOREACH(other_job, &txn->jobs, txn_list) {
-        if (!other_job->completed) {
-            return;
-        }
-    }
-    /* We are the last completed job, commit the transaction. */
-    QLIST_FOREACH_SAFE(other_job, &txn->jobs, txn_list, next) {
-        ctx = bdrv_get_aio_context(other_job->bs);
-        aio_context_acquire(ctx);
-        assert(other_job->ret == 0);
-        block_job_completed_single(other_job);
-        aio_context_release(ctx);
-    }
-}
-
 void block_job_completed(BlockJob *job, int ret)
 {
     BlockDriverState *bs = job->bs;
 
     assert(bs->job == job);
-    assert(!job->completed);
-    job->completed = true;
-    job->ret = ret;
-    if (!job->txn) {
-        block_job_completed_single(job);
-    } else if (ret < 0 || block_job_is_cancelled(job)) {
-        block_job_completed_txn_abort(job);
-    } else {
-        block_job_completed_txn_success(job);
-    }
+    job->cb(job->opaque, ret);
+    bs->job = NULL;
+    bdrv_op_unblock_all(bs, job->blocker);
+    error_free(job->blocker);
+    g_free(job);
 }
 
 void block_job_set_speed(BlockJob *job, int64_t speed, Error **errp)
@@ -209,7 +93,7 @@ void block_job_set_speed(BlockJob *job, int64_t speed, Error **errp)
     Error *local_err = NULL;
 
     if (!job->driver->set_speed) {
-        error_setg(errp, QERR_UNSUPPORTED);
+        error_set(errp, QERR_UNSUPPORTED);
         return;
     }
     job->driver->set_speed(job, speed, &local_err);
@@ -223,8 +107,9 @@ void block_job_set_speed(BlockJob *job, int64_t speed, Error **errp)
 
 void block_job_complete(BlockJob *job, Error **errp)
 {
-    if (job->pause_count || job->cancelled || !job->driver->complete) {
-        error_setg(errp, QERR_BLOCK_JOB_NOT_READY, job->id);
+    if (job->paused || job->cancelled || !job->driver->complete) {
+        error_set(errp, QERR_BLOCK_JOB_NOT_READY,
+                  bdrv_get_device_name(job->bs));
         return;
     }
 
@@ -233,26 +118,17 @@ void block_job_complete(BlockJob *job, Error **errp)
 
 void block_job_pause(BlockJob *job)
 {
-    job->pause_count++;
+    job->paused = true;
 }
 
 bool block_job_is_paused(BlockJob *job)
 {
-    return job->pause_count > 0;
+    return job->paused;
 }
 
 void block_job_resume(BlockJob *job)
 {
-    assert(job->pause_count > 0);
-    job->pause_count--;
-    if (job->pause_count) {
-        return;
-    }
-    block_job_enter(job);
-}
-
-void block_job_enter(BlockJob *job)
-{
+    job->paused = false;
     block_job_iostatus_reset(job);
     if (job->co && !job->busy) {
         qemu_coroutine_enter(job->co, NULL);
@@ -262,7 +138,7 @@ void block_job_enter(BlockJob *job)
 void block_job_cancel(BlockJob *job)
 {
     job->cancelled = true;
-    block_job_enter(job);
+    block_job_resume(job);
 }
 
 bool block_job_is_cancelled(BlockJob *job)
@@ -286,29 +162,43 @@ struct BlockFinishData {
     int ret;
 };
 
+static void block_job_finish_cb(void *opaque, int ret)
+{
+    struct BlockFinishData *data = opaque;
+
+    data->cancelled = block_job_is_cancelled(data->job);
+    data->ret = ret;
+    data->cb(data->opaque, ret);
+}
+
 static int block_job_finish_sync(BlockJob *job,
                                  void (*finish)(BlockJob *, Error **errp),
                                  Error **errp)
 {
+    struct BlockFinishData data;
     BlockDriverState *bs = job->bs;
     Error *local_err = NULL;
-    int ret;
 
     assert(bs->job == job);
 
-    block_job_ref(job);
+    /* Set up our own callback to store the result and chain to
+     * the original callback.
+     */
+    data.job = job;
+    data.cb = job->cb;
+    data.opaque = job->opaque;
+    data.ret = -EINPROGRESS;
+    job->cb = block_job_finish_cb;
+    job->opaque = &data;
     finish(job, &local_err);
     if (local_err) {
         error_propagate(errp, local_err);
-        block_job_unref(job);
         return -EBUSY;
     }
-    while (!job->completed) {
+    while (data.ret == -EINPROGRESS) {
         aio_poll(bdrv_get_aio_context(bs), true);
     }
-    ret = (job->cancelled && job->ret == 0) ? -ECANCELED : job->ret;
-    block_job_unref(job);
-    return ret;
+    return (data.cancelled && data.ret == 0) ? -ECANCELED : data.ret;
 }
 
 /* A wrapper around block_job_cancel() taking an Error ** parameter so it may be
@@ -365,10 +255,10 @@ BlockJobInfo *block_job_query(BlockJob *job)
 {
     BlockJobInfo *info = g_new0(BlockJobInfo, 1);
     info->type      = g_strdup(BlockJobType_lookup[job->driver->job_type]);
-    info->device    = g_strdup(job->id);
+    info->device    = g_strdup(bdrv_get_device_name(job->bs));
     info->len       = job->len;
     info->busy      = job->busy;
-    info->paused    = job->pause_count > 0;
+    info->paused    = job->paused;
     info->offset    = job->offset;
     info->speed     = job->speed;
     info->io_status = job->iostatus;
@@ -387,7 +277,7 @@ static void block_job_iostatus_set_err(BlockJob *job, int error)
 void block_job_event_cancelled(BlockJob *job)
 {
     qapi_event_send_block_job_cancelled(job->driver->job_type,
-                                        job->id,
+                                        bdrv_get_device_name(job->bs),
                                         job->len,
                                         job->offset,
                                         job->speed,
@@ -397,7 +287,7 @@ void block_job_event_cancelled(BlockJob *job)
 void block_job_event_completed(BlockJob *job, const char *msg)
 {
     qapi_event_send_block_job_completed(job->driver->job_type,
-                                        job->id,
+                                        bdrv_get_device_name(job->bs),
                                         job->len,
                                         job->offset,
                                         job->speed,
@@ -411,7 +301,7 @@ void block_job_event_ready(BlockJob *job)
     job->ready = true;
 
     qapi_event_send_block_job_ready(job->driver->job_type,
-                                    job->id,
+                                    bdrv_get_device_name(job->bs),
                                     job->len,
                                     job->offset,
                                     job->speed, &error_abort);
@@ -440,17 +330,15 @@ BlockErrorAction block_job_error_action(BlockJob *job, BlockDriverState *bs,
     default:
         abort();
     }
-    qapi_event_send_block_job_error(job->id,
+    qapi_event_send_block_job_error(bdrv_get_device_name(job->bs),
                                     is_read ? IO_OPERATION_TYPE_READ :
                                     IO_OPERATION_TYPE_WRITE,
                                     action, &error_abort);
     if (action == BLOCK_ERROR_ACTION_STOP) {
-        /* make the pause user visible, which will be resumed from QMP. */
-        job->user_paused = true;
         block_job_pause(job);
         block_job_iostatus_set_err(job, error);
-        if (bs->blk && bs != job->bs) {
-            blk_iostatus_set_err(bs->blk, error);
+        if (bs != job->bs) {
+            bdrv_iostatus_set_err(bs, error);
         }
     }
     return action;
@@ -499,37 +387,4 @@ void block_job_defer_to_main_loop(BlockJob *job,
     data->opaque = opaque;
 
     qemu_bh_schedule(data->bh);
-}
-
-BlockJobTxn *block_job_txn_new(void)
-{
-    BlockJobTxn *txn = g_new0(BlockJobTxn, 1);
-    QLIST_INIT(&txn->jobs);
-    txn->refcnt = 1;
-    return txn;
-}
-
-static void block_job_txn_ref(BlockJobTxn *txn)
-{
-    txn->refcnt++;
-}
-
-void block_job_txn_unref(BlockJobTxn *txn)
-{
-    if (txn && --txn->refcnt == 0) {
-        g_free(txn);
-    }
-}
-
-void block_job_txn_add_job(BlockJobTxn *txn, BlockJob *job)
-{
-    if (!txn) {
-        return;
-    }
-
-    assert(!job->txn);
-    job->txn = txn;
-
-    QLIST_INSERT_HEAD(&txn->jobs, job, txn_list);
-    block_job_txn_ref(txn);
 }

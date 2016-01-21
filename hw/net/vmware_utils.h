@@ -18,7 +18,10 @@
 #define VMWARE_UTILS_H
 
 #include "qemu/range.h"
-#include "vmxnet_debug.h"
+
+#ifndef VMW_SHPRN
+#define VMW_SHPRN(fmt, ...) do {} while (0)
+#endif
 
 /*
  * Shared memory access functions with byte swap support
