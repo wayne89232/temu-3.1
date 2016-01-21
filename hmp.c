@@ -33,6 +33,7 @@
 #include <spice/enums.h>
 #endif
 
+
 static void hmp_handle_error(Monitor *mon, Error **errp)
 {
     assert(errp);

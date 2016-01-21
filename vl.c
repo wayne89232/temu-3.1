@@ -744,7 +744,7 @@ int qemu_timedate_diff(struct tm *tm)
             struct tm tmp = *tm;
             tmp.tm_isdst = -1; /* use timezone to figure it out */
             seconds = mktime(&tmp);
-	}
+    }
     else
         seconds = mktimegm(tm) + rtc_date_offset;
 
@@ -2729,9 +2729,7 @@ static void set_memory_options(uint64_t *ram_slots, ram_addr_t *maxram_size)
         exit(EXIT_FAILURE);
     }
 }
-
-int main(int argc, char **argv, char **envp)
-{  
+int main(int argc, char **argv, char **envp){
     int i;
     int snapshot, linux_boot;
     const char *initrd_filename;
@@ -4271,7 +4269,7 @@ int main(int argc, char **argv, char **envp)
     /* init local displays */
     switch (display_type) {
     case DT_NOGRAPHIC:
-        (void)ds;	/* avoid warning if no display is configured */
+        (void)ds;   /* avoid warning if no display is configured */
         break;
 #if defined(CONFIG_CURSES)
     case DT_CURSES:
@@ -4330,10 +4328,7 @@ int main(int argc, char **argv, char **envp)
         do_load_plugin(load_plugin);
 
 
-    if(plugin){
-        plugin->test();
-    }
-    else{
+    if(!plugin){
         printf("No plugin loaded\n");
     }
     //end plugin implementation

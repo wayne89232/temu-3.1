@@ -9,7 +9,7 @@
 plugin_interface_t *plugin = NULL;
 static FILE *load_plugin_log = NULL;
 static void *plugin_handle = NULL;
-static char cur_plugin_path[100]="";
+static char cur_plugin_path[100] = "";
 
 void do_load_plugin(const char *plugin_path)
 {
@@ -23,8 +23,10 @@ void do_load_plugin(const char *plugin_path)
     //   return;
     // }
 
-    plugin_handle = dlopen(plugin_path, RTLD_NOW);
+    plugin_handle = dlopen(plugin_path, RTLD_NOW | RTLD_GLOBAL);
     if(NULL == plugin_handle) {
+    // plugin_handle = dlopen(plugin_path, RTLD_NOW);
+    // if (NULL == plugin_handle) {
         printf("%s\n", dlerror());
         return;
     }
@@ -48,14 +50,14 @@ void do_load_plugin(const char *plugin_path)
     }
     load_plugin_log = fopen("plugin_log.log", "w");
     assert(load_plugin_log != NULL);
- 
+
     strncpy(cur_plugin_path, plugin_path, 100);
     printf("%s is loaded successfully!\n", plugin_path);
 }
 
 void do_unload_plugin(void)
 {
-    if(cur_plugin_path[0]) {
+    if (cur_plugin_path[0]) {
         // plugin->plugin_cleanup();
         fclose(load_plugin_log);
         load_plugin_log = NULL;

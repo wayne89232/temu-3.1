@@ -19,4 +19,3 @@ all: main.c
 clean:
 	rm -f *.o *.so *~ $(PLUGIN)
 
-
