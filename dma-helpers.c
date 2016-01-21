@@ -195,6 +195,8 @@ static const AIOCBInfo dma_aiocb_info = {
     .cancel_async       = dma_aio_cancel,
 };
 
+/*Here we implement our code*/
+
 BlockAIOCB *dma_blk_io(
     BlockBackend *blk, QEMUSGList *sg, uint64_t sector_num,
     DMAIOFunc *io_func, BlockCompletionFunc *cb,
