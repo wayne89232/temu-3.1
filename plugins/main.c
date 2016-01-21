@@ -406,7 +406,7 @@ static void get_sectornum(char* filename){
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ../../fname2sector_singl.sh ";  
+  char* bash = "bash ../fname2sector_singl.sh ";  
   char* file = filename;
 
   char *s = malloc(strlen(bash) + strlen(file) + 1);
@@ -427,8 +427,8 @@ static void get_sectornum(char* filename){
 
   if (atoi(buf) == -1000)
   {
-    //printf("small");
     char* c  ="../../fname2sector_res ../../../win7_test.img ";
+
     char* s = malloc(strlen(c)+1);
     strcpy(s,c);
     strcpy(s,file);
@@ -610,7 +610,7 @@ static void create_logfile(void) {
   remove("packet_log.pcap");
   FILE * fp;
   long int header;
-  fp = fopen ("packet_log.pcap", "ab"); //use time
+  fp = fopen ("packet_log.pcap", "a"); //use time
   // const char *header = "d4c3 b2a1 0200 0400 0000 0000 0000 0000\nffff 0000 0100 0000 ";
   header = 0x00040002a1b2c3d4;
   fwrite( &header, sizeof( header ), 1, fp );
@@ -624,7 +624,7 @@ static void create_logfile(void) {
 
 plugin_interface_t * init_plugin()
 {
-  if (!(my_log = fopen("plugin.log", "w"))) {
+  if (!(my_log = fopen("plugin.log", "a"))) {
     fprintf(stderr, "cannot create plugin.log\n");
     return NULL;
   }
