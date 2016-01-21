@@ -28,6 +28,10 @@ static int vmstate_n_elems(void *opaque, VMStateField *field)
         n_elems = *(uint8_t *)(opaque+field->num_offset);
     }
 
+    if (field->flags & VMS_MULTIPLY_ELEMENTS) {
+        n_elems *= field->num;
+    }
+
     return n_elems;
 }
 
@@ -276,6 +280,17 @@ static void vmsd_desc_field_end(const VMStateDescription *vmsd, QJSON *vmdesc,
     json_end_object(vmdesc);
 }
 
+
+bool vmstate_save_needed(const VMStateDescription *vmsd, void *opaque)
+{
+    if (vmsd->needed && !vmsd->needed(opaque)) {
+        /* optional section not needed */
+        return false;
+    }
+    return true;
+}
+
+
 void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
                         void *opaque, QJSON *vmdesc)
 {
@@ -341,11 +356,11 @@ void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
 }
 
 static const VMStateDescription *
-    vmstate_get_subsection(const VMStateSubsection *sub, char *idstr)
+vmstate_get_subsection(const VMStateDescription **sub, char *idstr)
 {
-    while (sub && sub->needed) {
-        if (strcmp(idstr, sub->vmsd->name) == 0) {
-            return sub->vmsd;
+    while (sub && *sub && (*sub)->needed) {
+        if (strcmp(idstr, (*sub)->name) == 0) {
+            return *sub;
         }
         sub++;
     }
@@ -358,7 +373,7 @@ static int vmstate_subsection_load(QEMUFile *f, const VMStateDescription *vmsd,
     trace_vmstate_subsection_load(vmsd->name);
 
     while (qemu_peek_byte(f, 0) == QEMU_VM_SUBSECTION) {
-        char idstr[256];
+        char idstr[256], *idstr_ret;
         int ret;
         uint8_t version_id, len, size;
         const VMStateDescription *sub_vmsd;
@@ -369,11 +384,12 @@ static int vmstate_subsection_load(QEMUFile *f, const VMStateDescription *vmsd,
             trace_vmstate_subsection_load_bad(vmsd->name, "(short)");
             return 0;
         }
-        size = qemu_peek_buffer(f, (uint8_t *)idstr, len, 2);
+        size = qemu_peek_buffer(f, (uint8_t **)&idstr_ret, len, 2);
         if (size != len) {
             trace_vmstate_subsection_load_bad(vmsd->name, "(peek fail)");
             return 0;
         }
+        memcpy(idstr, idstr_ret, size);
         idstr[size] = 0;
 
         if (strncmp(vmsd->name, idstr, strlen(vmsd->name)) != 0) {
@@ -405,12 +421,12 @@ static int vmstate_subsection_load(QEMUFile *f, const VMStateDescription *vmsd,
 static void vmstate_subsection_save(QEMUFile *f, const VMStateDescription *vmsd,
                                     void *opaque, QJSON *vmdesc)
 {
-    const VMStateSubsection *sub = vmsd->subsections;
+    const VMStateDescription **sub = vmsd->subsections;
     bool subsection_found = false;
 
-    while (sub && sub->needed) {
-        if (sub->needed(opaque)) {
-            const VMStateDescription *vmsd = sub->vmsd;
+    while (sub && *sub && (*sub)->needed) {
+        if ((*sub)->needed(opaque)) {
+            const VMStateDescription *vmsd = *sub;
             uint8_t len;
 
             if (vmdesc) {
@@ -780,6 +796,29 @@ const VMStateInfo vmstate_info_float64 = {
     .name = "float64",
     .get  = get_float64,
     .put  = put_float64,
+};
+
+/* CPU_DoubleU type */
+
+static int get_cpudouble(QEMUFile *f, void *pv, size_t size)
+{
+    CPU_DoubleU *v = pv;
+    qemu_get_be32s(f, &v->l.upper);
+    qemu_get_be32s(f, &v->l.lower);
+    return 0;
+}
+
+static void put_cpudouble(QEMUFile *f, void *pv, size_t size)
+{
+    CPU_DoubleU *v = pv;
+    qemu_put_be32s(f, &v->l.upper);
+    qemu_put_be32s(f, &v->l.lower);
+}
+
+const VMStateInfo vmstate_info_cpudouble = {
+    .name = "CPU_Double_U",
+    .get  = get_cpudouble,
+    .put  = put_cpudouble,
 };
 
 /* uint8_t buffers */

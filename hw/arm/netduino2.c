@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#include "qemu/osdep.h"
 #include "hw/boards.h"
 #include "qemu/error-report.h"
 #include "hw/arm/stm32f205_soc.h"
@@ -38,20 +39,15 @@ static void netduino2_init(MachineState *machine)
     qdev_prop_set_string(dev, "cpu-model", "cortex-m3");
     object_property_set_bool(OBJECT(dev), true, "realized", &err);
     if (err != NULL) {
-        error_report("%s", error_get_pretty(err));
+        error_report_err(err);
         exit(1);
     }
 }
 
-static QEMUMachine netduino2_machine = {
-    .name = "netduino2",
-    .desc = "Netduino 2 Machine",
-    .init = netduino2_init,
-};
-
-static void netduino2_machine_init(void)
+static void netduino2_machine_init(MachineClass *mc)
 {
-    qemu_register_machine(&netduino2_machine);
+    mc->desc = "Netduino 2 Machine";
+    mc->init = netduino2_init;
 }
 
-machine_init(netduino2_machine_init);
+DEFINE_MACHINE("netduino2", netduino2_machine_init)

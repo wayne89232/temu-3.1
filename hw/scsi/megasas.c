@@ -431,7 +431,7 @@ static uint64_t megasas_fw_time(void)
 static uint64_t megasas_get_sata_addr(uint16_t id)
 {
     uint64_t addr = (0x1221ULL << 48);
-    return addr & (id << 24);
+    return addr | ((uint64_t)id << 24);
 }
 
 /*
@@ -718,7 +718,7 @@ static int megasas_ctrl_get_info(MegasasState *s, MegasasCmd *cmd)
     BusChild *kid;
     int num_pd_disks = 0;
 
-    memset(&info, 0x0, cmd->iov_size);
+    memset(&info, 0x0, dcmd_size);
     if (cmd->iov_size < dcmd_size) {
         trace_megasas_dcmd_invalid_xfer_len(cmd->index, cmd->iov_size,
                                             dcmd_size);
@@ -744,7 +744,7 @@ static int megasas_ctrl_get_info(MegasasState *s, MegasasCmd *cmd)
     info.device.type = MFI_INFO_DEV_SAS3G;
     info.device.port_count = 8;
     QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-        SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+        SCSIDevice *sdev = SCSI_DEVICE(kid->child);
         uint16_t pd_id;
 
         if (num_pd_disks < 8) {
@@ -757,7 +757,7 @@ static int megasas_ctrl_get_info(MegasasState *s, MegasasCmd *cmd)
 
     memcpy(info.product_name, base_class->product_name, 24);
     snprintf(info.serial_number, 32, "%s", s->hba_serial);
-    snprintf(info.package_version, 0x60, "%s-QEMU", QEMU_VERSION);
+    snprintf(info.package_version, 0x60, "%s-QEMU", qemu_hw_version());
     memcpy(info.image_component[0].name, "APP", 3);
     snprintf(info.image_component[0].version, 10, "%s-QEMU",
              base_class->product_version);
@@ -804,7 +804,7 @@ static int megasas_ctrl_get_info(MegasasState *s, MegasasCmd *cmd)
                                MFI_INFO_LDOPS_READ_POLICY);
     info.max_strips_per_io = cpu_to_le16(s->fw_sge);
     info.stripe_sz_ops.min = 3;
-    info.stripe_sz_ops.max = ffs(MEGASAS_MAX_SECTORS + 1) - 1;
+    info.stripe_sz_ops.max = ctz32(MEGASAS_MAX_SECTORS + 1);
     info.properties.pred_fail_poll_interval = cpu_to_le16(300);
     info.properties.intr_throttle_cnt = cpu_to_le16(16);
     info.properties.intr_throttle_timeout = cpu_to_le16(50);
@@ -960,7 +960,7 @@ static int megasas_dcmd_pd_get_list(MegasasState *s, MegasasCmd *cmd)
         max_pd_disks = MFI_MAX_SYS_PDS;
     }
     QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-        SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+        SCSIDevice *sdev = SCSI_DEVICE(kid->child);
         uint16_t pd_id;
 
         if (num_pd_disks >= max_pd_disks)
@@ -1136,7 +1136,7 @@ static int megasas_dcmd_ld_get_list(MegasasState *s, MegasasCmd *cmd)
         max_ld_disks = MFI_MAX_LD;
     }
     QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-        SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+        SCSIDevice *sdev = SCSI_DEVICE(kid->child);
 
         if (num_ld_disks >= max_ld_disks) {
             break;
@@ -1187,7 +1187,7 @@ static int megasas_dcmd_ld_list_query(MegasasState *s, MegasasCmd *cmd)
         max_ld_disks = MFI_MAX_LD;
     }
     QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-        SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+        SCSIDevice *sdev = SCSI_DEVICE(kid->child);
 
         if (num_ld_disks >= max_ld_disks) {
             break;
@@ -1327,7 +1327,7 @@ static int megasas_dcmd_cfg_read(MegasasState *s, MegasasCmd *cmd)
     ld_offset = array_offset + sizeof(struct mfi_array) * num_pd_disks;
 
     QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-        SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+        SCSIDevice *sdev = SCSI_DEVICE(kid->child);
         uint16_t sdev_id = ((sdev->id & 0xFF) << 8) | (sdev->lun & 0xFF);
         struct mfi_array *array;
         struct mfi_ld_config *ld;
@@ -2202,8 +2202,15 @@ static uint64_t megasas_queue_read(void *opaque, hwaddr addr,
     return 0;
 }
 
+static void megasas_queue_write(void *opaque, hwaddr addr,
+                               uint64_t val, unsigned size)
+{
+    return;
+}
+
 static const MemoryRegionOps megasas_queue_ops = {
     .read = megasas_queue_read,
+    .write = megasas_queue_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
         .min_access_size = 8,
@@ -2230,7 +2237,7 @@ static void megasas_soft_reset(MegasasState *s)
          * after the initial reset.
          */
         QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-            SCSIDevice *sdev = DO_UPCAST(SCSIDevice, qdev, kid->child);
+            SCSIDevice *sdev = SCSI_DEVICE(kid->child);
 
             sdev->unit_attention = SENSE_CODE(NO_SENSE);
             scsi_device_unit_attention_reported(sdev);
@@ -2407,13 +2414,6 @@ static void megasas_scsi_realize(PCIDevice *dev, Error **errp)
     }
 }
 
-static void
-megasas_write_config(PCIDevice *pci, uint32_t addr, uint32_t val, int len)
-{
-    pci_default_write_config(pci, addr, val, len);
-    msi_write_config(pci, addr, val, len);
-}
-
 static Property megasas_properties_gen1[] = {
     DEFINE_PROP_UINT32("max_sge", MegasasState, fw_sge,
                        MEGASAS_DEFAULT_SGE),
@@ -2516,7 +2516,6 @@ static void megasas_class_init(ObjectClass *oc, void *data)
     dc->vmsd = info->vmsd;
     set_bit(DEVICE_CATEGORY_STORAGE, dc->categories);
     dc->desc = info->desc;
-    pc->config_write = megasas_write_config;
 }
 
 static const TypeInfo megasas_info = {

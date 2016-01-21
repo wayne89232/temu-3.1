@@ -77,6 +77,7 @@ struct CharDriverState {
     void *opaque;
     char *label;
     char *filename;
+    int logfd;
     int be_open;
     int fe_open;
     int explicit_fe_open;
@@ -89,13 +90,15 @@ struct CharDriverState {
 };
 
 /**
- * @qemu_chr_alloc:
+ * qemu_chr_alloc:
+ * @backend: the common backend config
+ * @errp: pointer to a NULL-initialized error object
  *
  * Allocate and initialize a new CharDriverState.
  *
- * Returns: a newly allocated CharDriverState.
+ * Returns: a newly allocated CharDriverState, or NULL on error.
  */
-CharDriverState *qemu_chr_alloc(void);
+CharDriverState *qemu_chr_alloc(ChardevCommon *backend, Error **errp);
 
 /**
  * @qemu_chr_new_from_opts:
@@ -128,9 +131,17 @@ CharDriverState *qemu_chr_new(const char *label, const char *filename,
 /**
  * @qemu_chr_delete:
  *
- * Destroy a character backend.
+ * Destroy a character backend and remove it from the list of
+ * identified character backends.
  */
 void qemu_chr_delete(CharDriverState *chr);
+
+/**
+ * @qemu_chr_free:
+ *
+ * Destroy a character backend.
+ */
+void qemu_chr_free(CharDriverState *chr);
 
 /**
  * @qemu_chr_fe_set_echo:
@@ -345,7 +356,9 @@ bool chr_is_ringbuf(const CharDriverState *chr);
 QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename);
 
 void register_char_driver(const char *name, ChardevBackendKind kind,
-        void (*parse)(QemuOpts *opts, ChardevBackend *backend, Error **errp));
+        void (*parse)(QemuOpts *opts, ChardevBackend *backend, Error **errp),
+        CharDriverState *(*create)(const char *id, ChardevBackend *backend,
+                                   ChardevReturn *ret, Error **errp));
 
 /* add an eventfd to the qemu devices that are polled */
 CharDriverState *qemu_chr_open_eventfd(int eventfd);
@@ -354,18 +367,8 @@ extern int term_escape_char;
 
 CharDriverState *qemu_char_get_next_serial(void);
 
-/* msmouse */
-CharDriverState *qemu_chr_open_msmouse(void);
-
-/* testdev.c */
-CharDriverState *chr_testdev_init(void);
-
-/* baum.c */
-CharDriverState *chr_baum_init(void);
-
 /* console.c */
-typedef CharDriverState *(VcHandler)(ChardevVC *vc);
-
+typedef CharDriverState *(VcHandler)(ChardevVC *vc, Error **errp);
 void register_vc_handler(VcHandler *handler);
-CharDriverState *vc_init(ChardevVC *vc);
+
 #endif

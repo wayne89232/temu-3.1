@@ -7,18 +7,17 @@
  * This work is licensed under the terms of the GNU GPL, version 2 or later.
  * See the COPYING file in the top-level directory.
  */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <stdarg.h>
-#include <stdio.h>
+#include "qemu/osdep.h"
 #include <getopt.h>
 #include <libgen.h>
 
 #include "qemu-io.h"
+#include "qemu/error-report.h"
 #include "qemu/main-loop.h"
 #include "qemu/option.h"
 #include "qemu/config-file.h"
 #include "qemu/readline.h"
+#include "qapi/qmp/qstring.h"
 #include "sysemu/block-backend.h"
 #include "block/block_int.h"
 #include "trace/control.h"
@@ -52,23 +51,42 @@ static const cmdinfo_t close_cmd = {
 static int openfile(char *name, int flags, QDict *opts)
 {
     Error *local_err = NULL;
+    BlockDriverState *bs;
 
     if (qemuio_blk) {
-        fprintf(stderr, "file open already, try 'help close'\n");
+        error_report("file open already, try 'help close'");
         QDECREF(opts);
         return 1;
     }
 
     qemuio_blk = blk_new_open("hda", name, NULL, opts, flags, &local_err);
     if (!qemuio_blk) {
-        fprintf(stderr, "%s: can't open%s%s: %s\n", progname,
-                name ? " device " : "", name ?: "",
-                error_get_pretty(local_err));
-        error_free(local_err);
+        error_reportf_err(local_err, "can't open%s%s: ",
+                          name ? " device " : "", name ?: "");
         return 1;
     }
 
+    bs = blk_bs(qemuio_blk);
+    if (bdrv_is_encrypted(bs)) {
+        char password[256];
+        printf("Disk image '%s' is encrypted.\n", name);
+        if (qemu_read_password(password, sizeof(password)) < 0) {
+            error_report("No password given");
+            goto error;
+        }
+        if (bdrv_set_key(bs, password) < 0) {
+            error_report("invalid password");
+            goto error;
+        }
+    }
+
+
     return 0;
+
+ error:
+    blk_unref(qemuio_blk);
+    qemuio_blk = NULL;
+    return 1;
 }
 
 static void open_help(void)
@@ -120,7 +138,7 @@ static int open_f(BlockBackend *blk, int argc, char **argv)
     QemuOpts *qopts;
     QDict *opts;
 
-    while ((c = getopt(argc, argv, "snrgo:")) != EOF) {
+    while ((c = getopt(argc, argv, "snrgo:")) != -1) {
         switch (c) {
         case 's':
             flags |= BDRV_O_SNAPSHOT;
@@ -132,8 +150,7 @@ static int open_f(BlockBackend *blk, int argc, char **argv)
             readonly = 1;
             break;
         case 'o':
-            if (!qemu_opts_parse(&empty_opts, optarg, 0)) {
-                printf("could not parse option list -- %s\n", optarg);
+            if (!qemu_opts_parse_noisily(&empty_opts, optarg, false)) {
                 qemu_opts_reset(&empty_opts);
                 return 0;
             }

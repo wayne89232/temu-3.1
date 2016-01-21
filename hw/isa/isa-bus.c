@@ -21,6 +21,7 @@
 #include "hw/sysbus.h"
 #include "sysemu/sysemu.h"
 #include "hw/isa/isa.h"
+#include "hw/i386/pc.h"
 
 static ISABus *isabus;
 
@@ -43,10 +44,10 @@ static const TypeInfo isa_bus_info = {
 };
 
 ISABus *isa_bus_new(DeviceState *dev, MemoryRegion* address_space,
-                    MemoryRegion *address_space_io)
+                    MemoryRegion *address_space_io, Error **errp)
 {
     if (isabus) {
-        fprintf(stderr, "Can't create a second ISA bus\n");
+        error_setg(errp, "Can't create a second ISA bus");
         return NULL;
     }
     if (!dev) {
@@ -62,9 +63,6 @@ ISABus *isa_bus_new(DeviceState *dev, MemoryRegion* address_space,
 
 void isa_bus_irqs(ISABus *bus, qemu_irq *irqs)
 {
-    if (!bus) {
-        hw_error("Can't set isa irqs with no isa bus present.");
-    }
     bus->irqs = irqs;
 }
 
@@ -136,10 +134,6 @@ ISADevice *isa_create(ISABus *bus, const char *name)
 {
     DeviceState *dev;
 
-    if (!bus) {
-        hw_error("Tried to create isa device %s with no isa bus present.",
-                 name);
-    }
     dev = qdev_create(BUS(bus), name);
     return ISA_DEVICE(dev);
 }
@@ -148,10 +142,6 @@ ISADevice *isa_try_create(ISABus *bus, const char *name)
 {
     DeviceState *dev;
 
-    if (!bus) {
-        hw_error("Tried to create isa device %s with no isa bus present.",
-                 name);
-    }
     dev = qdev_try_create(BUS(bus), name);
     return ISA_DEVICE(dev);
 }
@@ -177,6 +167,9 @@ ISADevice *isa_vga_init(ISABus *bus)
         return isa_create_simple(bus, "isa-vga");
     case VGA_VMWARE:
         fprintf(stderr, "%s: vmware_vga: no PCI bus\n", __func__);
+        return NULL;
+    case VGA_VIRTIO:
+        fprintf(stderr, "%s: virtio-vga: no PCI bus\n", __func__);
         return NULL;
     case VGA_NONE:
     default:
@@ -267,3 +260,28 @@ MemoryRegion *isa_address_space_io(ISADevice *dev)
 }
 
 type_init(isabus_register_types)
+
+static void parallel_init(ISABus *bus, int index, CharDriverState *chr)
+{
+    DeviceState *dev;
+    ISADevice *isadev;
+
+    isadev = isa_create(bus, "isa-parallel");
+    dev = DEVICE(isadev);
+    qdev_prop_set_uint32(dev, "index", index);
+    qdev_prop_set_chr(dev, "chardev", chr);
+    qdev_init_nofail(dev);
+}
+
+void parallel_hds_isa_init(ISABus *bus, int n)
+{
+    int i;
+
+    assert(n <= MAX_PARALLEL_PORTS);
+
+    for (i = 0; i < n; i++) {
+        if (parallel_hds[i]) {
+            parallel_init(bus, i, parallel_hds[i]);
+        }
+    }
+}

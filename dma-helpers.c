@@ -10,13 +10,8 @@
 #include "sysemu/block-backend.h"
 #include "sysemu/dma.h"
 #include "trace.h"
-#include "qemu/range.h"
 #include "qemu/thread.h"
 #include "qemu/main-loop.h"
-#include "time.h"
-#include "static_structs_test.h"
-
-#include "plugin.h"
 
 /* #define DEBUG_IOMMU */
 
@@ -32,7 +27,8 @@ int dma_memory_set(AddressSpace *as, dma_addr_t addr, uint8_t c, dma_addr_t len)
     memset(fillbuf, c, FILLBUF_SIZE);
     while (len > 0) {
         l = len < FILLBUF_SIZE ? len : FILLBUF_SIZE;
-        error |= address_space_rw(as, addr, fillbuf, l, true);
+        error |= address_space_rw(as, addr, MEMTXATTRS_UNSPECIFIED,
+                                  fillbuf, l, true);
         len -= l;
         addr += l;
     }
@@ -96,14 +92,6 @@ static void reschedule_dma(void *opaque)
     dma_blk_cb(dbs, 0);
 }
 
-static void continue_after_map_failure(void *opaque)
-{
-    DMAAIOCB *dbs = (DMAAIOCB *)opaque;
-
-    dbs->bh = qemu_bh_new(reschedule_dma, dbs);
-    qemu_bh_schedule(dbs->bh);
-}
-
 static void dma_blk_unmap(DMAAIOCB *dbs)
 {
     int i;
@@ -153,7 +141,6 @@ static void dma_blk_cb(void *opaque, int ret)
         cur_addr = dbs->sg->sg[dbs->sg_cur_index].base + dbs->sg_cur_byte;
         cur_len = dbs->sg->sg[dbs->sg_cur_index].len - dbs->sg_cur_byte;
         mem = dma_memory_map(dbs->sg->as, cur_addr, &cur_len, dbs->dir);
-        // print io b
         if (!mem)
             break;
         qemu_iovec_add(&dbs->iov, mem, cur_len);
@@ -166,7 +153,9 @@ static void dma_blk_cb(void *opaque, int ret)
 
     if (dbs->iov.size == 0) {
         trace_dma_map_wait(dbs);
-        cpu_register_map_client(dbs, continue_after_map_failure);
+        dbs->bh = aio_bh_new(blk_get_aio_context(dbs->blk),
+                             reschedule_dma, dbs);
+        cpu_register_map_client(dbs->bh);
         return;
     }
 
@@ -188,6 +177,11 @@ static void dma_aio_cancel(BlockAIOCB *acb)
     if (dbs->acb) {
         blk_aio_cancel_async(dbs->acb);
     }
+    if (dbs->bh) {
+        cpu_unregister_map_client(dbs->bh);
+        qemu_bh_delete(dbs->bh);
+        dbs->bh = NULL;
+    }
 }
 
 
@@ -196,16 +190,13 @@ static const AIOCBInfo dma_aiocb_info = {
     .cancel_async       = dma_aio_cancel,
 };
 
-
-/*Here we implement our code*/
-
 BlockAIOCB *dma_blk_io(
     BlockBackend *blk, QEMUSGList *sg, uint64_t sector_num,
     DMAIOFunc *io_func, BlockCompletionFunc *cb,
     void *opaque, DMADirection dir)
 {
     DMAAIOCB *dbs = blk_aio_get(&dma_aiocb_info, blk, cb, opaque);
-    
+
     trace_dma_blk_io(dbs, blk, sector_num, (dir == DMA_DIRECTION_TO_DEVICE));
 
     dbs->acb = NULL;
@@ -219,52 +210,7 @@ BlockAIOCB *dma_blk_io(
     dbs->bh = NULL;
     qemu_iovec_init(&dbs->iov, sg->nsg);
     dma_blk_cb(dbs, 0);
-
-   // printf("hi\n");
-    uint64_t base;
-    uint64_t len;
-    base = sg->sg->base;
-    len = sg->sg->len;
-    if(dir == DMA_DIRECTION_TO_DEVICE){
-        plugin->blk_write(sector_num,base,len);
-        // if(fname!=NULL){
-        //     // printf("Writing File: %s\n", fname);
-        //     printf("Mapping: %s - %s\n",fname, f2p_mapping(fname));
-        // }
-    }
-    else{
-        plugin->blk_read(sector_num,base,len);
-
-        // if(fname!=NULL){
-        //     printf("Mapping: %s - %s\n",fname, f2p_mapping(fname));
-        // }
-    }
-
-
-    // if(sector_num == 1119016)
-    //     printf("got u!\n");
-  //   time_t rawtime;
-  // struct tm * timeinfo;
-
-  // time ( &rawtime );
-  // timeinfo = localtime ( &rawtime );
-  // printf ("-----------------------------------------------------\n");
-  // printf ( "Current local time and date: %s", asctime (timeinfo) );
-
-    
-    // if(dir == DMA_DIRECTION_TO_DEVICE)
-    //     printf("Writing in to disk!!\n");
-    // else
-    //     printf("Reading from disk!!\n");
-  //if(sector_num == 5490728)
-    // printf("Sector number=%"PRIu64"\n", sector_num);
-  //   printf ("Base = %"PRIu64"\n", sg->sg->base);
-  //   printf ("Length = %"PRIu64"\n", sg->sg->len);
- //   printf("dma_blk_io ! \n\n");
-    
-
-        return &dbs->common;
-
+    return &dbs->common;
 }
 
 
@@ -274,7 +220,6 @@ BlockAIOCB *dma_blk_read(BlockBackend *blk,
 {
     return dma_blk_io(blk, sg, sector, blk_aio_readv, cb, opaque,
                       DMA_DIRECTION_FROM_DEVICE);
-    //printf("%s\n", "read");
 }
 
 BlockAIOCB *dma_blk_write(BlockBackend *blk,
@@ -283,7 +228,6 @@ BlockAIOCB *dma_blk_write(BlockBackend *blk,
 {
     return dma_blk_io(blk, sg, sector, blk_aio_writev, cb, opaque,
                       DMA_DIRECTION_TO_DEVICE);
-    //printf("%s\n","write" );
 }
 
 
@@ -311,13 +255,11 @@ static uint64_t dma_buf_rw(uint8_t *ptr, int32_t len, QEMUSGList *sg,
 uint64_t dma_buf_read(uint8_t *ptr, int32_t len, QEMUSGList *sg)
 {
     return dma_buf_rw(ptr, len, sg, DMA_DIRECTION_FROM_DEVICE);
-   // printf("%s\n","read");
 }
 
 uint64_t dma_buf_write(uint8_t *ptr, int32_t len, QEMUSGList *sg)
 {
     return dma_buf_rw(ptr, len, sg, DMA_DIRECTION_TO_DEVICE);
-    //printf("%s\n","write" );
 }
 
 void dma_acct_start(BlockBackend *blk, BlockAcctCookie *cookie,
@@ -325,17 +267,3 @@ void dma_acct_start(BlockBackend *blk, BlockAcctCookie *cookie,
 {
     block_acct_start(blk_get_stats(blk), cookie, sg->size, type);
 }
-
-
-
-
-
-typedef struct diskio_record{
-    uint32_t pid;
-    uint32_t timestamp;
-    uint64_t memory_addr;
-    uint64_t length;
-    char* process;
-    char* operation;
-
-}diskio_record_t;

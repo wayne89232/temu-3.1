@@ -21,10 +21,11 @@
 
 #include "hw/nmi.h"
 #include "qapi/qmp/qerror.h"
+#include "monitor/monitor.h"
 
 struct do_nmi_s {
     int cpu_index;
-    Error *errp;
+    Error *err;
     bool handled;
 };
 
@@ -39,8 +40,8 @@ static int do_nmi(Object *o, void *opaque)
         NMIClass *nc = NMI_GET_CLASS(n);
 
         ns->handled = true;
-        nc->nmi_monitor_handler(n, ns->cpu_index, &ns->errp);
-        if (ns->errp) {
+        nc->nmi_monitor_handler(n, ns->cpu_index, &ns->err);
+        if (ns->err) {
             return -1;
         }
     }
@@ -58,16 +59,35 @@ void nmi_monitor_handle(int cpu_index, Error **errp)
 {
     struct do_nmi_s ns = {
         .cpu_index = cpu_index,
-        .errp = NULL,
+        .err = NULL,
         .handled = false
     };
 
     nmi_children(object_get_root(), &ns);
     if (ns.handled) {
-        error_propagate(errp, ns.errp);
+        error_propagate(errp, ns.err);
     } else {
-        error_set(errp, QERR_UNSUPPORTED);
+        error_setg(errp, QERR_UNSUPPORTED);
     }
+}
+
+void inject_nmi(void)
+{
+#if defined(TARGET_I386)
+    CPUState *cs;
+
+    CPU_FOREACH(cs) {
+        X86CPU *cpu = X86_CPU(cs);
+
+        if (!cpu->apic_state) {
+            cpu_interrupt(cs, CPU_INTERRUPT_NMI);
+        } else {
+            apic_deliver_nmi(cpu->apic_state);
+        }
+    }
+#else
+    nmi_monitor_handle(0, NULL);
+#endif
 }
 
 static const TypeInfo nmi_info = {

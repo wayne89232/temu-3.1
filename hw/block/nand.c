@@ -522,8 +522,8 @@ void nand_setio(DeviceState *dev, uint32_t value)
 
     if (s->ale) {
         unsigned int shift = s->addrlen * 8;
-        unsigned int mask = ~(0xff << shift);
-        unsigned int v = value << shift;
+        uint64_t mask = ~(0xffull << shift);
+        uint64_t v = (uint64_t)value << shift;
 
         s->addr = (s->addr & mask) | v;
         s->addrlen ++;
@@ -635,7 +635,7 @@ DeviceState *nand_init(BlockBackend *blk, int manf_id, int chip_id)
     qdev_prop_set_uint8(dev, "manufacturer_id", manf_id);
     qdev_prop_set_uint8(dev, "chip_id", chip_id);
     if (blk) {
-        qdev_prop_set_drive_nofail(dev, "drive", blk);
+        qdev_prop_set_drive(dev, "drive", blk, &error_fatal);
     }
 
     qdev_init_nofail(dev);
@@ -712,7 +712,7 @@ static void glue(nand_blk_erase_, PAGE_SIZE)(NANDFlashState *s)
         memset(s->storage + (PAGE(addr) << OOB_SHIFT),
                         0xff, OOB_SIZE << s->erase_shift);
         i = SECTOR(addr);
-        page = SECTOR(addr + (ADDR_SHIFT + s->erase_shift));
+        page = SECTOR(addr + (1 << (ADDR_SHIFT + s->erase_shift)));
         for (; i < page; i ++)
             if (blk_write(s->blk, i, iobuf, 1) < 0) {
                 printf("%s: write error in sector %" PRIu64 "\n", __func__, i);

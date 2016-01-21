@@ -6,6 +6,7 @@
 /*** qdev-properties.c ***/
 
 extern PropertyInfo qdev_prop_bit;
+extern PropertyInfo qdev_prop_bit64;
 extern PropertyInfo qdev_prop_bool;
 extern PropertyInfo qdev_prop_uint8;
 extern PropertyInfo qdev_prop_uint16;
@@ -49,6 +50,15 @@ extern PropertyInfo qdev_prop_arraylen;
             + type_check(uint32_t,typeof_field(_state, _field)), \
         .qtype     = QTYPE_QBOOL,                                \
         .defval    = (bool)_defval,                              \
+        }
+#define DEFINE_PROP_BIT64(_name, _state, _field, _bit, _defval) {       \
+        .name      = (_name),                                           \
+        .info      = &(qdev_prop_bit64),                                \
+        .bitnr    = (_bit),                                             \
+        .offset    = offsetof(_state, _field)                           \
+            + type_check(uint64_t, typeof_field(_state, _field)),       \
+        .qtype     = QTYPE_QBOOL,                                       \
+        .defval    = (bool)_defval,                                     \
         }
 
 #define DEFINE_PROP_BOOL(_name, _state, _field, _defval) {       \
@@ -170,8 +180,6 @@ void qdev_prop_set_chr(DeviceState *dev, const char *name, CharDriverState *valu
 void qdev_prop_set_netdev(DeviceState *dev, const char *name, NetClientState *value);
 void qdev_prop_set_drive(DeviceState *dev, const char *name,
                          BlockBackend *value, Error **errp);
-void qdev_prop_set_drive_nofail(DeviceState *dev, const char *name,
-                                BlockBackend *value);
 void qdev_prop_set_macaddr(DeviceState *dev, const char *name, uint8_t *value);
 void qdev_prop_set_enum(DeviceState *dev, const char *name, int value);
 /* FIXME: Remove opaque pointer properties.  */

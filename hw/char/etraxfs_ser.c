@@ -165,7 +165,7 @@ static void serial_receive(void *opaque, const uint8_t *buf, int size)
 
     /* Got a byte.  */
     if (s->rx_fifo_len >= 16) {
-        qemu_log("WARNING: UART dropped char.\n");
+        D(qemu_log("WARNING: UART dropped char.\n"));
         return;
     }
 
@@ -182,15 +182,13 @@ static void serial_receive(void *opaque, const uint8_t *buf, int size)
 static int serial_can_receive(void *opaque)
 {
     ETRAXSerial *s = opaque;
-    int r;
 
     /* Is the receiver enabled?  */
     if (!(s->regs[RW_REC_CTRL] & (1 << 3))) {
         return 0;
     }
 
-    r = sizeof(s->rx_fifo) - s->rx_fifo_len;
-    return r;
+    return sizeof(s->rx_fifo) - s->rx_fifo_len;
 }
 
 static void serial_event(void *opaque, int event)
