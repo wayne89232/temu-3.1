@@ -14,6 +14,7 @@
 #include "qemu/thread.h"
 #include "qemu/main-loop.h"
 #include "time.h"
+#include "static_structs_test.h"
 
 #include "plugin.h"
 
@@ -195,13 +196,14 @@ static const AIOCBInfo dma_aiocb_info = {
     .cancel_async       = dma_aio_cancel,
 };
 
+
 BlockAIOCB *dma_blk_io(
     BlockBackend *blk, QEMUSGList *sg, uint64_t sector_num,
     DMAIOFunc *io_func, BlockCompletionFunc *cb,
     void *opaque, DMADirection dir)
 {
     DMAAIOCB *dbs = blk_aio_get(&dma_aiocb_info, blk, cb, opaque);
-
+    
     trace_dma_blk_io(dbs, blk, sector_num, (dir == DMA_DIRECTION_TO_DEVICE));
 
     dbs->acb = NULL;
@@ -221,12 +223,22 @@ BlockAIOCB *dma_blk_io(
     uint64_t len;
     base = sg->sg->base;
     len = sg->sg->len;
-    if(dir == DMA_DIRECTION_TO_DEVICE)
+    if(dir == DMA_DIRECTION_TO_DEVICE){
         plugin->blk_write(sector_num,base,len);
-    else 
+        // if(fname!=NULL){
+        //     // printf("Writing File: %s\n", fname);
+        //     printf("Mapping: %s - %s\n",fname, f2p_mapping(fname));
+        // }
+    }
+    else{
         plugin->blk_read(sector_num,base,len);
-    if(sector_num == 1119016)
-        printf("got u!\n");
+        // if(fname!=NULL){
+        //     printf("Mapping: %s - %s\n",fname, f2p_mapping(fname));
+        // }
+    }
+
+    // if(sector_num == 1119016)
+    //     printf("got u!\n");
   //   time_t rawtime;
   // struct tm * timeinfo;
 

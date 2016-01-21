@@ -11,3 +11,8 @@
 #define CreateTime 0x168
 #define KDBG_offset 0x10
 #define pool_offset 0x10
+
+void PSlist(Monitor *mon,hwaddr KDBG_addr);
+uint64_t findKDBG(void);
+uint64_t my_memory_dump(hwaddr addr);
+char* f2p_mapping(char* fname);

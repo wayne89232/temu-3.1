@@ -23,8 +23,10 @@ void do_load_plugin(const char *plugin_path)
     //   return;
     // }
 
-    plugin_handle = dlopen(plugin_path, RTLD_NOW);
-    if (NULL == plugin_handle) {
+    plugin_handle = dlopen(plugin_path, RTLD_NOW | RTLD_GLOBAL);
+    if(NULL == plugin_handle) {
+    // plugin_handle = dlopen(plugin_path, RTLD_NOW);
+    // if (NULL == plugin_handle) {
         printf("%s\n", dlerror());
         return;
     }

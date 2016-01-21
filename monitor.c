@@ -1398,15 +1398,67 @@ static void my_memory_dump_printc(Monitor *mon, hwaddr addr)
     //monitor_printf(mon, " %s\n, name");
 }
 
+/*print the char for a given addr*/
+static void memory_dump_string(Monitor *mon, hwaddr addr, int length)
+{
+    CPUArchState *env;
+    int  i, len;
+    uint8_t buf[1000];
+    uint64_t v;
+    len = length; 
+    i = 0;
+
+    env = mon_get_cpu();
+    cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0);
+    while (i < len) {
+              v = ldub_p(buf + i);         
+              if (v >= 32 && v <= 126) { 
+                     monitor_printf(mon, "%c", (int) v);  
+              }  
+              i ++;
+     }
+}
+static char* get_string(hwaddr addr, int length)
+{
+    CPUArchState *env;
+    int  i, len;
+    uint8_t buf[1000];
+    uint64_t v;
+    len = length; 
+    i = 0;
+    char* fname = malloc(length+10);
+
+    env = mon_get_cpu();
+    cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0);
+    while (i < len) {
+              v = ldub_p(buf + i);         
+              if (v >= 32 && v <= 126) { 
+                     // monitor_printf(mon, "%c", (int) v);
+                     //concat v to string
+                     char a[2];  
+                     a[0] = (int)v;
+                     a[1] = 0;
+                     // printf("%s","i");
+                     strcat(fname, a);
+
+              }  
+              i ++;
+     }
+     // printf("%s\n", fname);
+     return fname;
+}
+
 /*return the hex value for a given addr*/
-static uint64_t my_memory_dump(hwaddr addr)
+uint64_t my_memory_dump(hwaddr addr)
 { 
+
     CPUArchState *env;
     int  len;
     uint8_t buf[16]; 
     uint64_t v; 
     len = 8; 
     env = mon_get_cpu();
+
     if (cpu_memory_rw_debug(ENV_GET_CPU(env), addr, buf, len, 0) < 0) {
                 return -1;
     }else{   
@@ -1415,8 +1467,136 @@ static uint64_t my_memory_dump(hwaddr addr)
     }
 }
 
+char* f2p_mapping(char* fname){
+
+
+
+    target_ulong start_addr = 0xfffff80003b00000;
+    target_ulong end_addr = 0xfffff80004000000; 
+    target_ulong kdbg_value = 0x000003404742444b;
+
+    while(start_addr < end_addr){
+
+        start_addr += KDBG_offset; 
+
+        if(my_memory_dump(start_addr) == kdbg_value)            
+           break;
+    }
+
+    target_ulong KDBG_addr = start_addr - KDBG_offset;
+
+
+    target_ulong pshead_addr ; 
+    target_ulong eprocess_actproclink_addr; 
+    target_ulong eprocess_next_actproclink_addr ;
+    target_ulong pcb_addr;//eprocess_head_addr = pcb
+    target_ulong imagefilename;
+    target_ulong pid_addr , pid_value ;
+    target_ulong handle_table_addr;
+    target_ulong handle_entry;
+    target_ulong pshead_value; 
+    target_ulong table_code; 
+    //char* process_name;
+
+    if(KDBG_addr + KDBG_offset == 0xfffff80004000000) //if not found
+    {
+        printf("Could not found KDBG address. \n");
+             printf("Could not found KDBG address. \n");
+    }
+    else{           
+         pshead_addr  = KDBG_addr + PsActiveProcessHead;
+         pshead_value = my_memory_dump(pshead_addr); 
+           
+         //first process 
+         eprocess_actproclink_addr = my_memory_dump(pshead_value) ;
+         pcb_addr = eprocess_actproclink_addr - PCB;
+         imagefilename = pcb_addr + ImageFileName;
+         pid_addr = pcb_addr + PID; 
+
+         handle_table_addr = my_memory_dump(pcb_addr + handle_table); 
+
+         while(my_memory_dump(eprocess_actproclink_addr) != pshead_value)
+         {
+                eprocess_next_actproclink_addr = my_memory_dump(eprocess_actproclink_addr) ; 
+                pcb_addr = eprocess_next_actproclink_addr - PCB;
+                imagefilename  = pcb_addr + ImageFileName;
+                pid_addr = pcb_addr + PID; 
+                pid_value = my_memory_dump_printd(pid_addr);
+                handle_table_addr = my_memory_dump(pcb_addr + handle_table);
+                //get the address of entry
+                table_code = my_memory_dump(handle_table_addr);
+                handle_entry = table_code & ~7;
+                if(pid_value ==0)
+                    break; //break for last process
+                
+                if((table_code & 7) == 0){
+                    // level 1 handle table
+                    // win7 x64 -> KERNEL_HANDLE_MASK = 0xFFFFFFFF80000000
+                    int i = 0;
+                    while(i < 256){ //256 entries
+                        target_ulong object_addr = (my_memory_dump(handle_entry)&~0x7)|0x8000000000000000;
+                        target_ulong object_type = object_addr+0x18;
+                        target_ulong object_body = object_addr+0x30;
+                        if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                            // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                            int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                            
+                            //At 0x58: +0x000 length  / +0x008 buffer
+                            if(length != 0){
+                                char* fname2 = malloc(length+11);
+                                fname2 = get_string(my_memory_dump(object_body+0x60), length);
+                                // return fname2;
+                                if(strstr(fname, fname2)){
+                                    //print imagefilename
+                                    return get_string(imagefilename,8);    
+                                }
+                            }
+                        }
+                        handle_entry += 0x10;
+                        i++;
+                    }
+                    
+                }
+                else if((table_code & 7) == 1){
+                    while(my_memory_dump(handle_entry)!=0){
+                        target_ulong lv2_handle_entry = my_memory_dump(handle_entry);
+                        int j = 0;
+                        while(j < 256){ //256 entries
+                            target_ulong object_addr = (my_memory_dump(lv2_handle_entry)&~0x7)|0x8000000000000000;
+                            target_ulong object_type = object_addr+0x18;
+                            target_ulong object_body = object_addr+0x30;
+                            if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                                // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                                int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                                
+                                //At 0x58: +0x000 length  / +0x008 buffer
+                                if(length != 0){
+                                    char* fname2 = malloc(length+11);
+                                    fname2 = get_string(my_memory_dump(object_body+0x60), length);     
+
+                                    if(strstr(fname, fname2)){
+                                        //print imagefilename
+                                        return get_string(imagefilename,8);    
+                                    }                
+                                }
+                            }
+                            lv2_handle_entry += 0x10;
+                            j++;
+                        }
+                        handle_entry += 0x8;
+                    }
+                }
+                eprocess_actproclink_addr =  eprocess_next_actproclink_addr ;
+         }
+    }    
+    char* str= malloc(sizeof(char));
+    char char1= 'X';
+    str[0] = char1;
+    return str;
+}
+
 /*find KDBG address between start_addr and end_addr*/
-static uint64_t findKDBG(void)
+uint64_t findKDBG(void)
 { 
   target_ulong start_addr = 0xfffff80003b00000;
   target_ulong end_addr = 0xfffff80004000000; 
@@ -1430,7 +1610,7 @@ static uint64_t findKDBG(void)
     return start_addr - KDBG_offset ;  //if not found,return end_addr
 }
 
-static void PSlist(Monitor *mon,hwaddr KDBG_addr)
+void PSlist(Monitor *mon,hwaddr KDBG_addr)
 {
     target_ulong pshead_addr ; 
     target_ulong eprocess_actproclink_addr; 
@@ -1512,13 +1692,18 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
                             target_ulong object_addr = (my_memory_dump(handle_entry)&~0x7)|0x8000000000000000;
                             target_ulong object_type = object_addr+0x18;
                             target_ulong object_body = object_addr+0x30;
-                            // monitor_printf(mon,  "Object_type: 0x" TARGET_FMT_lx " \n" ,my_memory_dump(object_type)&0xff);
-                            if((my_memory_dump(object_type)&0xff) == 0x1c){
-                                //is file
-                                monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
-                                monitor_printf(mon,  "   ");
-                                my_memory_dump_printc(mon, object_body+0x58);
-                                monitor_printf(mon,  "\n");
+                            if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                                // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                                int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                                
+                                //At 0x58: +0x000 length  / +0x008 buffer
+                                if(length != 0){
+                                    monitor_printf(mon,  "   ");
+                                    monitor_printf(mon,  "length: %d   ", length);
+                                    memory_dump_string(mon, my_memory_dump(object_body+0x60), length);
+                                    // monitor_printf(mon,  "%s\n",get_string(my_memory_dump(object_body+0x60),length) );
+                                    monitor_printf(mon,  "\n");                                    
+                                }
                             }
                             handle_entry += 0x10;
                             i++;
@@ -1526,13 +1711,35 @@ static void PSlist(Monitor *mon,hwaddr KDBG_addr)
                         
                     }
                     else if((table_code & 7) == 1){
-                        int i = 0;
+                        int i = 1;
                         while(my_memory_dump(handle_entry)!=0){
-                            monitor_printf(mon,  "1Table: 0x" TARGET_FMT_lx " \n" ,my_memory_dump(handle_entry));
+                            monitor_printf(mon,  "Table num: %d \n",i);
+                            target_ulong lv2_handle_entry = my_memory_dump(handle_entry);
+                            int j = 0;
+                            while(j < 256){ //256 entries
+                                target_ulong object_addr = (my_memory_dump(lv2_handle_entry)&~0x7)|0x8000000000000000;
+                                target_ulong object_type = object_addr+0x18;
+                                target_ulong object_body = object_addr+0x30;
+                                if((my_memory_dump(object_type)&0xffff) == 0x1c){
+                                    // monitor_printf(mon,  "Object_body: 0x" TARGET_FMT_lx " \n" ,object_addr+0x30);
+                                    int length = (int)(my_memory_dump(object_body+0x58)&0xff);
+                                    
+                                    //At 0x58: +0x000 length  / +0x008 buffer
+                                    if(length != 0){
+                                        monitor_printf(mon,  "   ");
+                                        monitor_printf(mon,  "length: %d   ", length);
+                                        memory_dump_string(mon, my_memory_dump(object_body+0x60), length);    
+                                        monitor_printf(mon,  "\n");                                    
+                                    }
+                                }
+                                lv2_handle_entry += 0x10;
+                                j++;
+                            }
+
                             i++;
                             handle_entry += 0x8;
                         }
-                        monitor_printf(mon,  "Table num: %d \n",i);
+                        
 
                     }
                     else
@@ -1636,6 +1843,31 @@ static void pool_files(Monitor *mon)
    }
     monitor_printf(mon, "Traverse done!\n");  
 }
+
+// static void pool_nets(Monitor *mon)
+// {
+//   target_ulong tcp_tag = 0x54637045; 
+//   // target_ulong small_tcp_tag = 0x45360754; 
+//   target_ulong store   = 0x00000000;
+//   target_ulong start_addr = 0xFFFFFa8000D00004;
+//   //0xFFFFF8a000500000
+//   //0xFFFFF8a002000000
+//   target_ulong end_addr = 0xFFFFFa8003000004;
+//   // target_ulong end_addr = 0xFFFFF8bFFFFFFFFF; 0xFFFFF8a000D20000
+//   // target_ulong tcp_tag = 0x00000000e56c6946;
+//   // target_ulong last_addr;
+
+//    while(start_addr < end_addr){
+//         store = my_memory_dump(start_addr);
+//         if(store == tcp_tag || store == ){
+//             monitor_printf(mon,  "Dump : 0x"TARGET_FMT_lx "\n" ,start_addr);
+//             my_memory_dump_printc(mon, start_addr);
+//         }
+//          start_addr += 0x1;
+//    }
+//     monitor_printf(mon, "Traverse done!\n");  
+// }
+
     // //for debugging purpose
     // const char *filename = "windows7.dump";
     // FILE* fp = fopen("/home/a110605/volatility-2.4/windows7.dump", "r");
@@ -1679,7 +1911,10 @@ static void hmp_pool_files(Monitor *mon, const QDict *qdict)
              pool_files(mon);
     } 
 }
-
+static void hmp_pool_nets(Monitor *mon, const QDict *qdict)
+{
+    // pool_nets(mon);
+}
 static void hmp_getcr3(Monitor *mon, const QDict *qdict)
 {
     const char *arg = qdict_get_try_str(qdict, "command");
@@ -4124,6 +4359,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
     //         }
     //     }
     // }
+
     if (!cmd) {
         monitor_printf(mon, "unknown command: '%.*s'\n",
                        (int)(p - cmdline), cmdline);

@@ -171,7 +171,69 @@ enum {
     defreg(VET),        defreg(RDTR),   defreg(RADV),   defreg(TADV),
     defreg(ITR),
 };
+// static void log_packet(const uint8_t *buf, size_t size){
+//     FILE * fp;
 
+//     time_t rawtime;
+//     struct tm * timeinfo;
+//     time ( &rawtime );
+//     timeinfo = localtime ( &rawtime );
+
+//     fp = fopen ("packet_log","a");//use time
+
+//     fprintf(fp,"[packet received]%s\n",asctime(timeinfo));
+//     fprintf(fp,"Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
+//     fprintf(fp,"Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
+//     fprintf(fp,"Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
+//     fprintf(fp,"Destination Port:%d\n",256*(*(buf+36)) + *(buf+37));
+//     if(*(buf+23)==6)
+//         fprintf(fp,"Protocol: 6(tcp)\n");
+//     else if(*(buf+23)==17)
+//         fprintf(fp,"Protocol: 17(udp)\n");
+//     else if(*(buf+23)==1)
+//         fprintf(fp,"Protocol: 128(icmp)\n");
+//     else
+//         fprintf(fp,"Protocol number:%d\n",*(buf+23));
+//     fprintf(fp,"pdu: ");
+//     int i;
+//     for(i = 0;i<size;i++){
+//         fprintf(fp, "%02x ",*(buf+i));
+//     }
+//     fprintf(fp,"-end\r\n");
+//     fprintf(fp,"---------------------------------------\r\n");
+//     chmod("ref.txt",0777);
+//     fclose(fp);
+// }
+// static void print_packet(const uint8_t *buf, size_t size){
+//     // //cliff
+//     // get_cr3();
+//     // printf("get_cr3");
+//     // time_t rawtime;
+//     // struct tm * timeinfo;
+//     // time ( &rawtime );
+//     // timeinfo = localtime ( &rawtime );
+
+//     // printf("[packet received]%s\n",asctime(timeinfo));
+//     // printf("Source IP:%d.%d.%d.%d\n",*(buf+26),*(buf+27),*(buf+28),*(buf+29));
+//     // printf("Source Port:%d\n",256*(*(buf+34)) + *(buf+35));
+//     // printf("Destination IP:%d.%d.%d.%d\n",*(buf+30),*(buf+31),*(buf+32),*(buf+33));
+//     // printf("Destination Port:%d\n",256*(*(buf+36)) + *(buf+37));
+//     // if(*(buf+23)==6)
+//     //     printf("Protocol: tcp\n");
+//     // else if(*(buf+23)==17)
+//     //     printf("Protocol: udp\n");
+//     // else if(*(buf+23)==1)
+//     //     printf("Protocol: icmp\n");
+//     // else
+//     //     printf("Protocol number:%d\n",*(buf+23));
+    
+//     // printf("pdu: ");  
+//     // int i;
+//     // for(i = 0;i<size;i++){
+//     //     printf("%02x ",*(buf+i));
+//     // }
+//     // printf("\n---------------------------------------\n");
+// }
 static void
 e1000_link_down(E1000State *s)
 {

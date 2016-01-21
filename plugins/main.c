@@ -368,6 +368,7 @@ static void get_packet(const uint8_t *buf, size_t size, int mode) {
   sprintf(d_ip, "%d.%d.%d.%d", *(buf + 30), *(buf + 31), *(buf + 32), *(buf + 33));
   char* target_ip_not_set = "NOT_SET";
 
+
   int protocol_number = *(buf + 23);
 
   if ((
@@ -403,7 +404,7 @@ static void get_sectornum(char* filename) {
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ../../fname2sector_singl.sh ";
+  char* bash = "bash ../fname2sector_singl.sh ";  
   char* file = filename;
 
   char *s = malloc(strlen(bash) + strlen(file) + 1);
@@ -437,12 +438,35 @@ static void print_blockio (uint64_t sector_num, uint64_t base, uint64_t len, int
   printf("[io time]%s\n", asctime(timeinfo));
   printf("filename: %s\n", fname);
   printf("sector number: %"PRIu64"\n", sector_num);
-  printf("base: %"PRIu64"\n", base);
-  printf("length: %"PRIu64"\n", len);
-  if (dir == 1)
+
+  // if(strstr(fname,"txt"))
+  //   printf("Process: notepad.exe" );
+  // else
+  //   printf("Process: mspaint.exe");
+  printf("\nIO buffer: \n");
+  printf("  base: %"PRIu64"\n", base);
+  printf("  length: %"PRIu64"\n", len);
+  if(dir == 1)
     printf("IO Write\n");
   else if (dir == 0)
     printf("IO Read\n");
+
+FILE* log = fopen("../IO_log.log", "a");
+  fprintf(log,"\n");
+  fprintf(log,"[io time]%s\n", asctime(timeinfo));
+  fprintf(log,"filename: %s\n",fname);
+  fprintf(log,"sector number: %"PRIu64"\n", sector_num);
+  fprintf(log,"Process: notepad.exe" );
+  fprintf(log,"\nIO buffer: \n");
+  fprintf(log,"  base: %"PRIu64"\n", base);
+  fprintf(log,"  length: %"PRIu64"\n", len);
+  if(dir == 1)
+    fprintf(log,"IO Write\n");
+  else if(dir == 0)
+    fprintf(log,"IO Read\n");
+  fprintf(log, "=====================================\n");
+fclose(log);
+
 }
 
 
@@ -504,10 +528,11 @@ static void do_nic_send(const uint8_t *buf, size_t size) {
 
 static void do_blk_write(uint64_t sector_num, uint64_t base, uint64_t len) {
   get_blockio(sector_num, base, len, 1);
+  
 }
 
 static void do_blk_read(uint64_t sector_num, uint64_t base, uint64_t len) {
-  get_blockio(sector_num, base, len, 0);
+  get_blockio(sector_num, base, len, 0);\
 }
 
 static void insertNode(NODES *node, char fname[], int data)
