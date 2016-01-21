@@ -21,7 +21,7 @@ STEXI
 @item help or ? [@var{cmd}]
 @findex help
 Show the help for all commands or just for command @var{cmd}.
-ETEXI    
+ETEXI
 
     {
         .name       = "commit",
@@ -791,7 +791,6 @@ STEXI
 @findex memsave
 save to disk virtual memory dump starting at @var{addr} of size @var{size}.
 ETEXI
-
 
     {
         .name       = "pmemsave",
@@ -1701,47 +1700,6 @@ STEXI
 @item info @var{subcommand}
 @findex info
 Show various information about the system state.
-ETEXI
-
-    {
-        .name       = "plugin_set",
-        .args_type  = "property:s,value:s",
-        .params     = "property value",
-        .help       = "set plugin configuration",
-        .mhandler.cmd = hmp_plugin_set,
-    },
-
-STEXI
-@item plugin_set @var{property} @var{value}
-Set plugin configuration
-ETEXI
-
-    {
-        .name       = "plugin_reset",
-        .args_type  = "property:s",
-        .params     = "property",
-        .help       = "reset plugin configuration",
-        .mhandler.cmd = hmp_plugin_reset,
-    },
-
-STEXI
-@item plugin_reset @var{property}
-Reset plugin configuration
-ETEXI
-
-    {
-        .name       = "plugin_toggle",
-        .args_type  = "property:s",
-        .params     = "property",
-        .help       = "set plugin configuration",
-        .mhandler.cmd = hmp_plugin_toggle,
-    },
-
-STEXI
-@item plugin_toggle @var{property}
-Set plugin configuration
-
-
 
 @table @option
 @item info version
@@ -1823,51 +1781,11 @@ show the memory devices
 @end table
 ETEXI
 
-{
-        .name       = "pslist",
-        .args_type  = "command:s?",
-        .params     = "pslist [command]",
-        .help       = "List the active process in guest Windows.",
-        .mhandler.cmd = hmp_pslist,
-},
-
 STEXI
-@item pslist @var{command}
-@findex pslist
-List the active process in guest Windows.
-
-ETEXI
-{
-        .name       = "getcr3",
-        .args_type  = "command:s?",
-        .params     = "getcr3 [command]",
-        .help       = "List the active process cr3 value.",
-        .mhandler.cmd = hmp_getcr3,
-},
-
-STEXI
-@item getcr3 @var{command}
-@findex getcr3
-List the active process cr3 value.
-
-ETEXI
-{
-        .name       = "pool_files",
-        .args_type  = "command:s?",
-        .params     = "pool_files [command]",
-        .help       = "List the files.",
-        .mhandler.cmd = hmp_pool_files,
-},
-
-STEXI
-@item pool_files @var{command}
-@findex pool_files
-List the active files.
-
+@item info trace-events
+show available trace events and their state
 ETEXI
 
 STEXI
 @end table
 ETEXI
-
-
