@@ -406,7 +406,7 @@ static void get_sectornum(char* filename){
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ../fname2sector_singl.sh ";  
+  char* bash = "bash ../../fname2sector_singl.sh ";  
   char* file = filename;
 
   char *s = malloc(strlen(bash) + strlen(file) + 1);
