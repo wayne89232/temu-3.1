@@ -4876,12 +4876,10 @@ static BlockAIOCB *bdrv_co_aio_rw_vector(BlockDriverState *bs,
     acb->req.qiov = qiov;
     acb->req.flags = flags;
     acb->is_write = is_write;
-    //printf("%lu\n",qiov->iov->iov_len);
-    //printf("block:%p\n",qiov->iov->iov_base);
 
     co = qemu_coroutine_create(bdrv_co_do_rw);
     qemu_coroutine_enter(co, acb);
-    //printf("%s\n","hihi" );
+
     return &acb->common;
 }
 

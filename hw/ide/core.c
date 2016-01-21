@@ -741,7 +741,7 @@ static void ide_dma_cb(void *opaque, int ret)
         dma_buf_commit(s, 0);
         goto eot;
     }
-   // printf("ide_dma_cb\n");
+
 #ifdef DEBUG_AIO
     printf("ide_dma_cb: sector_num=%" PRId64 " n=%d, cmd_cmd=%d\n",
            sector_num, n, s->dma_cmd);
@@ -795,7 +795,7 @@ static void ide_sector_start_dma(IDEState *s, enum ide_dma_cmd dma_cmd)
     default:
         break;
     }
-   // printf("%s\n","ide_sector_start" );
+
     ide_start_dma(s, ide_dma_cb);
 }
 
@@ -1298,7 +1298,7 @@ static bool cmd_write_dma(IDEState *s, uint8_t cmd)
     ide_sector_start_dma(s, IDE_DMA_WRITE);
 
     s->media_changed = 1;
-   // printf("cmd_write_dma! \n" );
+
     return false;
 }
 
@@ -1814,7 +1814,6 @@ void ide_exec_cmd(IDEBus *bus, uint32_t val)
 {
     IDEState *s;
     bool complete;
-  //  printf("ide_exec_cmd !\n");
 
 #if defined(DEBUG_IDE)
     printf("ide: CMD=%02x\n", val);
@@ -1840,8 +1839,6 @@ void ide_exec_cmd(IDEBus *bus, uint32_t val)
     s->io_buffer_offset = 0;
 
     complete = ide_cmd_table[val].handler(s, val);
-    // if(ide_cmd_table[val] == ide_cmd_table[WIN_WRITEDMA])
-    //     printf("writing!\n");
     if (complete) {
         s->status &= ~BUSY_STAT;
         assert(!!s->error == !!(s->status & ERR_STAT));
