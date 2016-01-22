@@ -3,12 +3,13 @@
 #include <stdlib.h>
 #include <tsk/libtsk.h>
 
+// when compiling file using TSK library: gcc filename.c -o filename -ltsk
 typedef struct{
    TSK_FS_FILE *file;
    TSK_DADDR_T mft_entry_addr;
    int curr_mft_idx;
 } NTFS_ADDR_MFT_ENTRY;
-
+// fiwalk function goes through MFT table until approches the matched file, and get its address
 static TSK_WALK_RET_ENUM
 cb_get_metadata_addr(TSK_FS_FILE *fs_file, TSK_OFF_T a_off, TSK_DADDR_T
 addr,
@@ -37,7 +38,7 @@ int main(int argc, char **argv1)
     uint8_t attr_check;
 
 #ifdef TSK_WIN32
-    // On Windows, get the wide arguments (mingw doesn't support wmain)
+    // On Windows, get the wide arguments (?)
     argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 #else
     argv = (TSK_TCHAR **) argv1;
@@ -51,6 +52,7 @@ int main(int argc, char **argv1)
         tsk_error_print(stderr);
         exit(1);
     }
+    //open file system
     fs_info =
         tsk_fs_open_img(img_info, 206848*512, TSK_FS_TYPE_NTFS_DETECT);    
     if (fs_info == NULL) {
@@ -58,7 +60,7 @@ int main(int argc, char **argv1)
         tsk_error_print(stderr);
         exit(1);
     }
-
+    //open file
     fs_file = tsk_fs_file_open(fs_info, NULL, (const char*) argv[2]);
 
     NTFS_ADDR_MFT_ENTRY addr_mfte;
