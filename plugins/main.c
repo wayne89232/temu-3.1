@@ -249,28 +249,28 @@ static void log_packet_pcap(const uint8_t *buf, size_t size) {
 
   int Caplen;
   if (size <= PDU_bytes) {
-    Caplen = size + 4;//test for wireshark process name
+    Caplen = size;//test for wireshark process name
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
   }
   else {
     int len = size;
-    Caplen = PDU_bytes + 4;//test for wireshark process name
+    Caplen = PDU_bytes;//test for wireshark process name
     fwrite( &Caplen, sizeof( Caplen ), 1, fp );
     fwrite( &len, sizeof( len ), 1, fp );
   }
   int i = 0;
   char content;
-  for (i = 0; i < Caplen - 4; i++) {
+  for (i = 0; i < Caplen; i++) {
 
     content = *(buf + i);
     fwrite( &content, sizeof( content ), 1, fp );
 
   }
   //wiret WORM for wireshark process name test
-  int j;
-  j = 0x4D524F57;
-  fwrite( &j, sizeof( j ), 1, fp );
+  // int j;
+  // j = 0x4D524F57;
+  // fwrite( &j, sizeof( j ), 1, fp );
 
   chmod("packet_log.pcap", 0777);
   fclose(fp);
@@ -406,7 +406,7 @@ static void get_sectornum(char* filename){
   FILE *fp;
   //printf("%s\n","hi" );
   // bash ./fname2sector.sh filename
-  char* bash = "bash ../fname2sector_singl.sh ";  
+  char* bash = "bash ../../fname2sector_singl.sh ";  
   char* file = filename;
 
   char *s = malloc(strlen(bash) + strlen(file) + 1);
@@ -427,11 +427,12 @@ static void get_sectornum(char* filename){
 
   if (atoi(buf) == -1000)
   {
+    FILE *fp;
     char* c  ="../../fname2sector_res ../../../win7_test.img ";
 
-    char* s = malloc(strlen(c)+1);
+    char* s = malloc(strlen(c)+strlen(file)+1);
     strcpy(s,c);
-    strcpy(s,file);
+    strcat(s,file);
     if ((fp = popen(s, "r")) == NULL) {  
       printf("popen() error!\n");  
       exit(1);

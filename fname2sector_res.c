@@ -76,7 +76,7 @@ int main(int argc, char **argv1)
         printf("fiwalk != 0\n");
     }
 
-    printf("%" PRId64 "\n", addr_mfte.mft_entry_addr);
+    printf("%" PRId64 "\n", addr_mfte.mft_entry_addr*8+206848);
 
     if(mft_file == NULL){
          fprintf(stderr, "Error opening file\n");
